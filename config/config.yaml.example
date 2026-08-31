@@ -1,0 +1,40 @@
+llm:
+  provider: caii   # caii | vllm | ollama
+  caii:
+    endpoint: https://<workspace-domain>/namespaces/serving-default/endpoints/<endpoint-name>/v1
+    model: <model-id>
+    api_key: ""   # leave blank; JWT read from /tmp/jwt automatically in CML
+  vllm:
+    endpoint: http://localhost:8000/v1
+    model: meta-llama/Llama-3.1-8B-Instruct
+    api_key: ""
+  ollama:
+    endpoint: http://localhost:11434/v1
+    model: llama3.1:8b
+    api_key: ollama
+  temperature: 0.1
+  max_tokens: 4096
+
+data:
+  n_customers: 2000
+  n_accounts: 3000
+  n_transactions: 100000
+  suspicious_rate: 0.04
+  db_path: data/aml.db
+  raw_dir: data/raw
+  processed_dir: data/processed
+
+model:
+  db_path: data/aml.db
+  model_dir: models
+  max_depth: 6
+  learning_rate: 0.1
+  n_estimators: 300
+  test_size: 0.2
+  val_size: 0.1
+  decision_threshold: 0.5
+
+demo:
+  label_count_preset: 499   # bumps to 500 on first disposition → triggers retrain
+  nightfall_case_id: "CASE-NIGHTFALL-001"
+  auto_replay: false

@@ -1,0 +1,31 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+*.egg-info/
+dist/
+build/
+
+# Data & models
+data/aml.db
+data/raw/
+data/processed/
+models/*.json
+models/*.ubj
+models/registry/*.json
+!models/.gitkeep
+
+# Node
+node_modules/
+03_application/frontend/dist/
+03_application/frontend/.vite/
+
+# Config (secrets)
+.env
+config/config.yaml
+
+# OS
+.DS_Store
+*.swp

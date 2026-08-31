@@ -10,3 +10,5 @@
 - [ ] Task 7: Frontend (start_frontend.py + React app with /investigation + /modelops)
 
 ## Log
+Task 1: complete (commits 17742ea..a9839b5, review clean)
+Task 2: complete (commits a9839b5..0173ca1, review clean)

@@ -53,7 +53,7 @@ tasks:
 
   - type: run_session
     name: Feature Engineering and Train
-    script: 02_backend/data_pipeline/feature_engineering.py
+    script: 02_backend/ml/feature_engineering.py
     kernel: python3
     short_summary: Compute AML features and prepare training dataset
     long_summary: >-
@@ -66,7 +66,7 @@ tasks:
 
   - type: run_session
     name: Train Risk Model
-    script: 02_backend/model_serving/train.py
+    script: 02_backend/ml/train.py
     kernel: python3
     short_summary: Train XGBoost AML risk model and register in model registry
     long_summary: >-
@@ -80,7 +80,7 @@ tasks:
   - type: start_application
     name: AML Platform
     subdomain: aml-platform
-    script: 03_application/start_frontend.py
+    script: 03_frontend/start_frontend.py
     kernel: python3
     short_summary: Launch the AML investigation dashboard and API in one app
     long_summary: >-

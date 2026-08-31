@@ -69,7 +69,7 @@ def main():
     time.sleep(2)
 
     # Start frontend (prod if dist/ exists, else dev)
-    dist_dir = os.path.join(PROJECT_ROOT, "03_application", "frontend", "dist")
+    dist_dir = os.path.join(PROJECT_ROOT, "03_frontend", "dist")
     if os.path.isdir(dist_dir):
         print(f"Starting frontend (production) on port {FRONTEND_PORT}...")
         mode = "prod"
@@ -78,7 +78,7 @@ def main():
         mode = "dev"
 
     frontend = subprocess.Popen(
-        [sys.executable, os.path.join(PROJECT_ROOT, "03_application", "start_frontend.py"), mode],
+        [sys.executable, os.path.join(PROJECT_ROOT, "03_frontend", "start_frontend.py"), mode],
         env=env,
         cwd=PROJECT_ROOT,
     )

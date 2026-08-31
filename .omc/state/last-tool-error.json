@@ -1,0 +1,7 @@
+{
+  "tool_name": "Bash",
+  "tool_input_preview": "{\"command\":\"BACKEND_PORT=7078 python 02_backend/start_backend.py &\\nBPID=$!\\nsleep 4\\necho \\\"=== /api/alerts ===\\\" && curl -s \\\"http://localhost:7078/api/alerts?limit=3\\\" | python -m json.tool | head ...",
+  "error": "Exit code 1\nINFO:     Started server process [7395]\nINFO:     Waiting for application startup.\nINFO:     Application startup complete.\nERROR:    [Errno 48] error while attempting to bind on address ('127.0.0.1', 7078): address already in use\nINFO:     Waiting for application shutdown.\nINFO:     Application shutdown complete.\nStarting AML backend on 127.0.0.1:7078\n=== /api/alerts ===\n{\n    \"alerts\": [\n        {\n            \"alert_id\": \"ALERT-ML-B890CE5862\",\n            \"customer_id\": \"CUST-001860...",
+  "timestamp": "2026-08-31T08:52:56.993Z",
+  "retry_count": 1
+}

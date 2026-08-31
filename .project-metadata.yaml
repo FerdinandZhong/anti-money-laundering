@@ -1,0 +1,98 @@
+name: AML Investigation Platform
+description: >-
+  Intelligent AML investigation and continuous learning platform with a
+  multi-agent investigation workbench, XGBoost risk model, dual dashboards
+  for investigators and data scientists, and a governed retrain/canary/rollback
+  lifecycle. Powered by Cloudera AI Inferencing.
+author: Cloudera
+specification_version: 1.0
+prototype_version: 1.0
+date: "2026-08-31"
+
+environment_variables:
+  BACKEND_PORT:
+    default: "7078"
+    description: "Localhost port the co-located FastAPI backend binds to"
+    required: false
+  LLM_PROVIDER:
+    default: "caii"
+    description: "LLM provider: caii, vllm, or ollama"
+    required: false
+
+runtimes:
+  - editor: JupyterLab
+    kernel: Python 3.11
+    edition: Standard
+
+tasks:
+  - type: run_session
+    name: Install Dependencies
+    script: 01_installer/install.py
+    kernel: python3
+    short_summary: Install Python packages, Node.js, and build the React frontend
+    long_summary: >-
+      Validates system resources, creates data and model directories, installs
+      Python dependencies from requirements.txt, ensures Node.js is available
+      via nvm, and builds the production React frontend bundle.
+    cpu: 2
+    memory: 4
+    gpu: 1
+
+  - type: run_session
+    name: Generate Synthetic Data
+    script: 02_backend/data_generation/generate_synthetic_data.py
+    kernel: python3
+    short_summary: Generate synthetic customers, accounts, and transactions with AML patterns
+    long_summary: >-
+      Creates synthetic customers, accounts, and transactions with realistic
+      AML patterns including layering, structuring, smurfing, and cross-border
+      wire transfers. Writes raw data to SQLite and CSV for downstream processing.
+    cpu: 2
+    memory: 4
+    gpu: 0
+
+  - type: run_session
+    name: Feature Engineering and Train
+    script: 02_backend/data_pipeline/feature_engineering.py
+    kernel: python3
+    short_summary: Compute AML features and prepare training dataset
+    long_summary: >-
+      Computes velocity features, network centrality, geographic risk scores,
+      and behavioural deviation metrics. Outputs processed Parquet files and
+      populates the SQLite feature store for model training.
+    cpu: 2
+    memory: 8
+    gpu: 1
+
+  - type: run_session
+    name: Train Risk Model
+    script: 02_backend/model_serving/train.py
+    kernel: python3
+    short_summary: Train XGBoost AML risk model and register in model registry
+    long_summary: >-
+      Trains an XGBoost classifier on the engineered AML features. Evaluates
+      on a held-out test set, computes SHAP feature importances, and saves
+      the model to the registry with a versioned metadata record.
+    cpu: 2
+    memory: 8
+    gpu: 1
+
+  - type: start_application
+    name: AML Platform
+    subdomain: aml-platform
+    script: 03_application/start_frontend.py
+    kernel: python3
+    short_summary: Launch the AML investigation dashboard and API in one app
+    long_summary: >-
+      Serves the production React frontend and runs the FastAPI backend in the
+      same application. The backend binds to localhost:7078 and the frontend
+      reverse-proxies /api requests to it, so both services run inside a single
+      CML application with no cross-app networking. Binds to CDSW_APP_PORT.
+    cpu: 2
+    memory: 8
+    gpu: 0
+    environment_variables:
+      TASK_TYPE: START_APPLICATION
+      BACKEND_PORT:
+        default: "7078"
+        description: "Localhost port the co-located FastAPI backend binds to"

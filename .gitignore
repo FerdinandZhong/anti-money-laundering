@@ -17,10 +17,14 @@ models/*.ubj
 models/registry/*.json
 !models/.gitkeep
 
+# Claude / OMC session state
+.claude/
+.omc/
+
 # Node
 node_modules/
-03_application/frontend/dist/
-03_application/frontend/.vite/
+03_frontend/dist/
+03_frontend/.vite/
 
 # Config (secrets)
 .env

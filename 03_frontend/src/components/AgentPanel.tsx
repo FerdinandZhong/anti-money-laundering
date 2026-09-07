@@ -2,12 +2,14 @@ import React, { useEffect, useState } from 'react'
 import { Play, Loader2, CheckCircle2, Settings } from 'lucide-react'
 import { disposeCase, investigateCase, streamSSE, api, getCaiiEndpoints, setLlmProvider } from '../api'
 import type { CaiiEndpoint } from '../api'
-import { PipelineStream, type PipelineItem } from './PipelineStream'
+import { PipelineStream, type PipelineItem, type Verdict } from './PipelineStream'
 import type { WorkflowNode } from './WorkflowGraph'
 
 interface Props {
   caseId: string
   savedAnalysis?: { text: string; at: string }
+  onDisposed?: () => void
+  closed?: boolean
 }
 
 const DISPOSITIONS = [
@@ -18,7 +20,8 @@ const DISPOSITIONS = [
 
 // Fixed worker order for the pipeline (matches supervisor dispatch).
 const WORKER_ORDER = ['profile', 'pattern', 'network', 'screening']
-const PHASES = ['COLLECTING', 'ANALYZING', 'REVIEWED']
+// VERIFYING is only entered when an MCP server is configured (fail-soft otherwise).
+const PHASES = ['COLLECTING', 'VERIFYING', 'ANALYZING', 'REVIEWED']
 
 // Mirrors WORKER_TOOLS in 02_backend/agents/workers.py — tool chips per worker node.
 const WORKER_TOOLS: Record<string, string[]> = {
@@ -27,16 +30,17 @@ const WORKER_TOOLS: Record<string, string[]> = {
   network:   ['get_network_graph', 'get_device_overlap'],
   screening: ['get_customer_profile'],
 }
-const GRAPH_NODE_ORDER = [...WORKER_ORDER, 'narrate']
 
 interface LlmCfg { provider: string; model: string; available_providers: Record<string, { model: string }> }
 
-export const AgentPanel: React.FC<Props> = ({ caseId, savedAnalysis }) => {
+export const AgentPanel: React.FC<Props> = ({ caseId, savedAnalysis, onDisposed, closed }) => {
   const [phase, setPhase] = useState<string | null>(null)
   const [workers, setWorkers] = useState<Record<string, PipelineItem>>({})
   const [narrative, setNarrative] = useState('')
   const [running, setRunning] = useState(false)
   const [err, setErr] = useState('')
+  const [verdicts, setVerdicts] = useState<Verdict[]>([])
+  const [vtools, setVtools] = useState<string[]>([])   // MCP tool names called by verification
 
   const [disposition, setDisposition] = useState('SUSPICIOUS')
   const [notes, setNotes] = useState('')
@@ -93,6 +97,16 @@ export const AgentPanel: React.FC<Props> = ({ caseId, savedAnalysis }) => {
         }))
         break
       }
+      case 'tool_call':
+        setVtools(prev => [...prev, String(e.query ?? '')])
+        break
+      case 'verdict':
+        setVerdicts(prev => [...prev, {
+          claim: String(e.claim ?? ''),
+          verdict: String(e.verdict ?? 'unverified'),
+          sources: (e.sources as string[]) ?? [],
+        }])
+        break
       case 'token':
         setNarrative(prev => prev + String(e.text ?? ''))
         break
@@ -101,6 +115,7 @@ export const AgentPanel: React.FC<Props> = ({ caseId, savedAnalysis }) => {
 
   const runInvestigation = async () => {
     setPhase(null); setWorkers({}); setNarrative(''); setErr('')
+    setVerdicts([]); setVtools([])
     setRunning(true)
     try {
       const res = await investigateCase(caseId)
@@ -115,19 +130,24 @@ export const AgentPanel: React.FC<Props> = ({ caseId, savedAnalysis }) => {
     try {
       await disposeCase(caseId, { disposition, notes, adjudicator })
       setDisposeMsg({ ok: true, text: `Decision recorded: ${disposition}. Case closed.` })
+      onDisposed?.()
     } catch {
       setDisposeMsg({ ok: false, text: 'Submit failed — check that the backend is running.' })
     }
   }
 
-  const items = WORKER_ORDER.filter(w => workers[w]).map(w => workers[w])
+  // Verification only appears once configured (worker_start(verification) arrived).
+  const hasVerification = !!workers['verification']
+  const itemOrder = [...WORKER_ORDER, ...(hasVerification ? ['verification'] : [])]
+  const items = itemOrder.filter(w => workers[w]).map(w => workers[w])
 
-  // Live DAG nodes: 4 workers + a final "narrate" node for the streamed narrative.
+  // Live DAG: 4 collectors → (verification, if configured) → narrate.
+  const graphNodeOrder = [...WORKER_ORDER, ...(hasVerification ? ['verification'] : []), 'narrate']
   const graphNodes: WorkflowNode[] = running || items.length > 0 || narrative
-    ? GRAPH_NODE_ORDER.map(id => {
+    ? graphNodeOrder.map(id => {
         if (id === 'narrate') {
           const status: WorkflowNode['status'] =
-            narrative ? (running ? 'running' : 'completed') : running && items.length === WORKER_ORDER.length ? 'running' : 'pending'
+            narrative ? (running ? 'running' : 'completed') : running && items.length === itemOrder.length ? 'running' : 'pending'
           return { id, label: 'narrate', status, llmCalls: 1 }
         }
         const w = workers[id]
@@ -138,7 +158,10 @@ export const AgentPanel: React.FC<Props> = ({ caseId, savedAnalysis }) => {
           : (w.detail ?? '').startsWith('Error:')
           ? 'error'
           : 'completed'
-        return { id, label: id, status, llmCalls: 1, tools: (WORKER_TOOLS[id] ?? []).map(name => ({ name })) }
+        const tools = id === 'verification'
+          ? vtools.slice(0, 6).map(name => ({ name }))
+          : (WORKER_TOOLS[id] ?? []).map(name => ({ name }))
+        return { id, label: id, status, llmCalls: 1, tools }
       })
     : []
 
@@ -235,6 +258,7 @@ export const AgentPanel: React.FC<Props> = ({ caseId, savedAnalysis }) => {
           running={running}
           idle={'// Run inference to stream the agent analysis…'}
           graphNodes={graphNodes}
+          verdicts={verdicts}
         />
       )}
       {err && (
@@ -302,20 +326,22 @@ export const AgentPanel: React.FC<Props> = ({ caseId, savedAnalysis }) => {
 
         <button
           onClick={handleDispose}
-          className="flex items-center gap-1.5 px-4 py-2 bg-accent text-white
-                     text-xs font-semibold rounded-lg hover:bg-accent-dim transition-colors w-full justify-center"
+          disabled={!!closed}
+          className={`flex items-center gap-1.5 px-4 py-2 text-white
+                     text-xs font-semibold rounded-lg transition-colors w-full justify-center
+                     ${closed ? 'bg-accent/40 cursor-not-allowed' : 'bg-accent hover:bg-accent-dim'}`}
         >
           <CheckCircle2 className="w-3.5 h-3.5" />
           Submit Decision
         </button>
 
-        {disposeMsg && (
+        {(closed || disposeMsg) && (
           <p className={`mt-3 text-xs px-3 py-2 rounded-lg ${
-            disposeMsg.ok
+            !disposeMsg || disposeMsg.ok
               ? 'text-aml-green-dim bg-aml-green/10'
               : 'text-aml-red-dim bg-aml-red/10'
           }`}>
-            {disposeMsg.text}
+            {disposeMsg ? disposeMsg.text : 'Decision recorded. Case closed.'}
           </p>
         )}
       </div>

@@ -90,9 +90,35 @@ def train_model(conn) -> str:
     return version
 
 
+def promote(conn, version: str, model_dir: str) -> None:
+    """Flip the CHAMPION deployment to this version. Asserts the artifact
+    exists first — this is the seam that was missing: train_model() alone
+    never touched `deployments`, so a direct CLI run left the CHAMPION
+    pointer stale and scorer.py/get_model_explanation silently fell back to
+    the newest artifact on disk instead of the one actually promoted.
+    (agents/retraining.py already does its own canary-then-promote and does
+    not call this — this is for direct `python -m ml.train` runs.)
+    """
+    model_path = os.path.join(model_dir, f"aml_model_{version}.json")
+    assert os.path.exists(model_path), f"cannot promote {version}: artifact missing at {model_path}"
+    now = datetime.datetime.now(datetime.timezone.utc).isoformat()
+    conn.execute(
+        "UPDATE deployments SET status='RETIRED', rolled_back_at=? WHERE status='CHAMPION'",
+        (now,),
+    )
+    conn.execute(
+        "INSERT INTO deployments (deployment_id, model_version, environment, traffic_pct, status, deployed_at) "
+        "VALUES (?, ?, 'production', 100.0, 'CHAMPION', ?)",
+        (f"DEPLOY-{version}", version, now),
+    )
+    conn.commit()
+
+
 if __name__ == "__main__":
     from common.db import get_connection
     conn = get_connection()
     version = train_model(conn)
+    model_dir = os.path.join(PROJECT_ROOT, get_config()["model"].get("model_dir", "models"))
+    promote(conn, version, model_dir)
     conn.close()
-    print(f"Model saved: {version}")
+    print(f"Model saved + promoted to CHAMPION: {version}")

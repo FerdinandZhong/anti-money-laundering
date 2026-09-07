@@ -34,6 +34,30 @@ CREATE TABLE IF NOT EXISTS llm_models (
 );
 """
 
+_STATUS_BACKFILL_SQL = """
+UPDATE alerts SET status =
+  CASE (SELECT disposition FROM cases WHERE cases.alert_id = alerts.alert_id)
+    WHEN 'SUSPICIOUS'      THEN 'PROPOSED'
+    WHEN 'FALSE_POSITIVE'  THEN 'CLOSED'
+    WHEN 'NEEDS_MORE_INFO' THEN 'PENDING'
+  END
+WHERE status = 'OPEN'
+  AND alert_id IN (SELECT alert_id FROM cases WHERE state = 'CLOSED');
+"""
+
+_TOOL_CONFIG_SQL = """
+CREATE TABLE IF NOT EXISTS tool_config (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    kind TEXT NOT NULL DEFAULT 'mcp_server',
+    name TEXT UNIQUE NOT NULL,
+    transport TEXT NOT NULL DEFAULT 'http',
+    url TEXT,
+    api_key TEXT,
+    enabled INTEGER DEFAULT 1,
+    created_at TEXT DEFAULT (datetime('now'))
+);
+"""
+
 
 def get_connection() -> sqlite3.Connection:
     path = get_db_path()
@@ -51,12 +75,16 @@ def get_connection() -> sqlite3.Connection:
     conn.execute(_TRANSACTION_SCORES_SQL)
     conn.execute(_TRANSACTION_LABELS_SQL)
     conn.execute(_LLM_MODELS_SQL)
+    conn.execute(_TOOL_CONFIG_SQL)
     for col in ("analysis TEXT", "analyzed_at TEXT", "disposition TEXT"):
         try:
             conn.execute(f"ALTER TABLE cases ADD COLUMN {col}")
         except sqlite3.OperationalError as e:
             if "duplicate column" not in str(e).lower():
                 raise
+    # ponytail: runs on every connect; idempotent (WHERE status='OPEN' is a no-op once remapped)
+    conn.execute(_STATUS_BACKFILL_SQL)
+    conn.commit()
     return conn
 
 

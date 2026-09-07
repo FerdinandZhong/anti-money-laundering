@@ -321,3 +321,27 @@ if __name__ == "__main__":
     dev = devices_df()
     assert {"account_id", "device_fingerprint"}.issubset(dev.columns)
     print(f"features rows={len(feat)} devices rows={len(dev)}  OK")
+
+
+def fund_flow_edges(transactions: list[dict], root_account_id: str) -> list[dict]:
+    """Aggregate a transaction list into directional fund-flow edges centered on
+    root_account_id. INBOUND -> (from_account_id -> root); OUTBOUND -> (root ->
+    to_account_id or counterparty_name). Pure: no I/O. Fail-soft on [] -> []."""
+    agg: dict[tuple[str, str], dict] = {}
+    for t in transactions:
+        direction = (t.get("direction") or "").upper()
+        amount = float(t.get("amount") or 0.0)
+        if direction == "INBOUND":
+            src = t.get("from_account_id") or t.get("counterparty_name") or "unknown"
+            dst = root_account_id
+        else:  # OUTBOUND (default)
+            src = root_account_id
+            dst = t.get("to_account_id") or t.get("counterparty_name") or "unknown"
+        if not src or not dst or src == dst:
+            continue
+        key = (src, dst)
+        e = agg.setdefault(key, {"source": src, "target": dst, "relation": "fund_flow",
+                                 "amount": 0.0, "count": 0})
+        e["amount"] = round(e["amount"] + amount, 2)
+        e["count"] += 1
+    return list(agg.values())

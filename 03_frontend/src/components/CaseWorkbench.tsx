@@ -7,6 +7,7 @@ import { AgentPanel } from './AgentPanel'
 
 interface Props {
   alertId: string | null
+  onDisposed?: () => void
 }
 
 const fmt = (n: number) =>
@@ -18,7 +19,7 @@ const fmtDate = (s: string) =>
 const RISK_SCORE_COLOR = (s: number) =>
   s >= 0.8 ? 'text-red-600' : s >= 0.6 ? 'text-orange-500' : s >= 0.4 ? 'text-amber-500' : 'text-green-600'
 
-export const CaseWorkbench: React.FC<Props> = ({ alertId }) => {
+export const CaseWorkbench: React.FC<Props> = ({ alertId, onDisposed }) => {
   const [detail, setDetail] = useState<CaseDetail | null>(null)
   const [error, setError] = useState(false)
   // analyst per-tx labels, keyed by transaction_id: 1 suspicious, 0 clean, null unset
@@ -195,6 +196,8 @@ export const CaseWorkbench: React.FC<Props> = ({ alertId }) => {
         <AgentPanel
           caseId={detail.case_id}
           savedAnalysis={detail.analysis ? { text: detail.analysis, at: detail.analyzed_at ?? '' } : undefined}
+          onDisposed={onDisposed}
+          closed={!!detail.disposition}
         />
       </div>
     </div>

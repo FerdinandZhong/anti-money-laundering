@@ -1,19 +1,21 @@
 import { useEffect, useState } from 'react'
-import { Activity, FlaskConical, Circle, Boxes, Inbox } from 'lucide-react'
+import { Activity, FlaskConical, Circle, Boxes, Wrench, Inbox } from 'lucide-react'
 import type { Alert, EnvironmentHealth } from './api'
 import { getAlerts, getEnvironmentHealth } from './api'
 import { AlertQueue } from './components/AlertQueue'
 import { CaseWorkbench } from './components/CaseWorkbench'
 import { ModelDashboard } from './components/ModelDashboard'
 import { ModelsView } from './components/ModelsView'
+import { ToolsView } from './components/ToolsView'
 
-type Tab = 'investigation' | 'model' | 'models'
+type Tab = 'investigation' | 'model' | 'models' | 'tools'
 
 export default function App() {
   const [tab, setTab] = useState<Tab>('investigation')
   const [selected, setSelected] = useState<Alert | null>(null)
   const [hasLoaded, setHasLoaded] = useState(false)
   const [env, setEnv] = useState<EnvironmentHealth | null>(null)
+  const [queueReload, setQueueReload] = useState(0)
 
   useEffect(() => {
     getAlerts().then(r => setSelected(r.alerts[0] ?? null)).finally(() => setHasLoaded(true))
@@ -75,6 +77,13 @@ export default function App() {
             onClick={() => setTab('models')}
             primary
           />
+          <TabBtn
+            active={tab === 'tools'}
+            icon={<Wrench className="w-3.5 h-3.5" />}
+            label="Tools"
+            onClick={() => setTab('tools')}
+            primary
+          />
         </div>
       </header>
 
@@ -89,17 +98,21 @@ export default function App() {
           </div>
         ) : (
           <div className="flex flex-1 min-h-0 gap-4 p-5">
-            <AlertQueue selectedAlertId={selected?.alert_id ?? null} onSelect={setSelected} />
-            <CaseWorkbench alertId={selected?.alert_id ?? null} />
+            <AlertQueue selectedAlertId={selected?.alert_id ?? null} onSelect={setSelected} reloadKey={queueReload} />
+            <CaseWorkbench alertId={selected?.alert_id ?? null} onDisposed={() => setQueueReload(k => k + 1)} />
           </div>
         )
       ) : tab === 'model' ? (
         <div className="flex-1 min-h-0 overflow-y-auto">
           <ModelDashboard />
         </div>
-      ) : (
+      ) : tab === 'models' ? (
         <div className="flex-1 min-h-0 overflow-y-auto">
           <ModelsView />
+        </div>
+      ) : (
+        <div className="flex-1 min-h-0 overflow-y-auto">
+          <ToolsView />
         </div>
       )}
     </div>

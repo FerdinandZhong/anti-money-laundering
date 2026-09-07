@@ -1,9 +1,10 @@
 import React, { useEffect, useState } from 'react'
-import { FileSearch, ArrowUpRight, ArrowDownLeft } from 'lucide-react'
+import { FileSearch, ArrowUpRight, ArrowDownLeft, ChevronDown, ChevronRight } from 'lucide-react'
 import type { CaseDetail } from '../api'
 import { getAlertDetail, setTransactionLabels } from '../api'
 import { Badge, RiskBadge } from './Badge'
 import { AgentPanel } from './AgentPanel'
+import { NetworkGraph } from './NetworkGraph'
 
 interface Props {
   alertId: string | null
@@ -24,6 +25,7 @@ export const CaseWorkbench: React.FC<Props> = ({ alertId, onDisposed }) => {
   const [error, setError] = useState(false)
   // analyst per-tx labels, keyed by transaction_id: 1 suspicious, 0 clean, null unset
   const [labels, setLabels] = useState<Record<string, number | null>>({})
+  const [openRow, setOpenRow] = useState<number | null>(null)
 
   useEffect(() => {
     if (!alertId) return
@@ -150,48 +152,86 @@ export const CaseWorkbench: React.FC<Props> = ({ alertId, onDisposed }) => {
             </thead>
             <tbody>
               {[...(detail.transactions ?? [])].sort((a, b) => (b.is_suspicious ? 1 : 0) - (a.is_suspicious ? 1 : 0)).map((tx, i) => (
-                <tr
-                  key={i}
-                  className={`border-b border-surface-3 last:border-0 transition-colors
-                    ${tx.is_suspicious ? 'bg-red-50 hover:bg-red-100/50' : 'hover:bg-surface-2'}`}
-                >
-                  <td className="px-3 py-2.5 text-ink-muted font-mono">{fmtDate(tx.event_time)}</td>
-                  <td className="px-3 py-2.5">
-                    {tx.direction === 'OUT'
-                      ? <ArrowUpRight className="w-4 h-4 text-red-500" />
-                      : <ArrowDownLeft className="w-4 h-4 text-green-500" />}
-                  </td>
-                  <td className="px-3 py-2.5 text-ink font-semibold tabular-nums">{fmt(tx.amount)}</td>
-                  <td className="px-3 py-2.5 text-ink-muted">{tx.channel}</td>
-                  <td className="px-3 py-2.5 text-ink-muted">{tx.counterparty_name}</td>
-                  <td className="px-3 py-2.5">
-                    <span className="px-1.5 py-0.5 rounded-lg bg-surface-3 text-ink-muted font-mono text-2xs">
-                      {tx.counterparty_country}
-                    </span>
-                  </td>
-                  <td className="px-3 py-2.5">
-                    {tx.typology
-                      ? <Badge label={tx.typology} color="#fff7ed" small />
-                      : <span className="text-ink-faint">—</span>}
-                  </td>
-                  <td className="px-3 py-2.5 tabular-nums font-semibold">
-                    {tx.score != null
-                      ? <span className={RISK_SCORE_COLOR(tx.score)}>{(tx.score * 100).toFixed(0)}%</span>
-                      : <span className="text-ink-faint">—</span>}
-                  </td>
-                  <td className="px-3 py-2.5">
-                    {tx.transaction_id
-                      ? <LabelControl
-                          value={labels[tx.transaction_id] ?? null}
-                          onChange={next => saveLabel(tx.transaction_id!, next)}
-                        />
-                      : <span className="text-ink-faint">—</span>}
-                  </td>
-                </tr>
+                <React.Fragment key={i}>
+                  <tr
+                    onClick={() => setOpenRow(openRow === i ? null : i)}
+                    className={`border-b border-surface-3 last:border-0 transition-colors cursor-pointer
+                      ${tx.is_suspicious ? 'bg-red-50 hover:bg-red-100/50' : 'hover:bg-surface-2'}`}
+                  >
+                    <td className="px-3 py-2.5 text-ink-muted font-mono">
+                      <span className="inline-flex items-center gap-1">
+                        {openRow === i ? <ChevronDown className="w-3 h-3" /> : <ChevronRight className="w-3 h-3" />}
+                        {fmtDate(tx.event_time)}
+                      </span>
+                    </td>
+                    <td className="px-3 py-2.5">
+                      {tx.direction === 'OUT'
+                        ? <ArrowUpRight className="w-4 h-4 text-red-500" />
+                        : <ArrowDownLeft className="w-4 h-4 text-green-500" />}
+                    </td>
+                    <td className="px-3 py-2.5 text-ink font-semibold tabular-nums">{fmt(tx.amount)}</td>
+                    <td className="px-3 py-2.5 text-ink-muted">{tx.channel}</td>
+                    <td className="px-3 py-2.5 text-ink-muted">{tx.counterparty_name}</td>
+                    <td className="px-3 py-2.5">
+                      <span className="px-1.5 py-0.5 rounded-lg bg-surface-3 text-ink-muted font-mono text-2xs">
+                        {tx.counterparty_country}
+                      </span>
+                    </td>
+                    <td className="px-3 py-2.5">
+                      {tx.typology
+                        ? <Badge label={tx.typology} color="#fff7ed" small />
+                        : <span className="text-ink-faint">—</span>}
+                    </td>
+                    <td className="px-3 py-2.5 tabular-nums font-semibold">
+                      {tx.score != null
+                        ? <span className={RISK_SCORE_COLOR(tx.score)}>{(tx.score * 100).toFixed(0)}%</span>
+                        : <span className="text-ink-faint">—</span>}
+                    </td>
+                    <td className="px-3 py-2.5" onClick={e => e.stopPropagation()}>
+                      {tx.transaction_id
+                        ? <LabelControl
+                            value={labels[tx.transaction_id] ?? null}
+                            onChange={next => saveLabel(tx.transaction_id!, next)}
+                          />
+                        : <span className="text-ink-faint">—</span>}
+                    </td>
+                  </tr>
+                  {openRow === i && (
+                    <tr className="bg-surface-2/60">
+                      <td colSpan={9} className="px-6 py-3">
+                        <div className="flex flex-wrap gap-1.5 mb-3">
+                          {(tx.flags ?? []).length === 0
+                            ? <span className="text-2xs text-ink-faint">No typology flags for this transaction.</span>
+                            : (tx.flags ?? []).map(f => (
+                                <span key={f.key} title={f.why}
+                                  className="text-2xs font-semibold px-2 py-0.5 rounded-lg bg-amber-50 text-amber-700 border border-amber-200">
+                                  {f.label}
+                                </span>
+                              ))}
+                        </div>
+                        <div className="grid grid-cols-2 gap-x-8 gap-y-1 text-2xs text-ink-muted">
+                          <Detail label="Transaction ID" value={tx.transaction_id} />
+                          <Detail label="From → To" value={`${tx.from_account_id ?? '—'} → ${tx.to_account_id ?? '—'}`} />
+                          <Detail label="Currency" value={tx.currency} />
+                          <Detail label="MCC" value={tx.mcc} />
+                          <Detail label="Reference" value={tx.reference} />
+                        </div>
+                      </td>
+                    </tr>
+                  )}
+                </React.Fragment>
               ))}
             </tbody>
           </table>
         </div>
+
+        {detail.network && detail.network.nodes.length > 1 && (
+          <div className="mb-6">
+            <div className="w-8 h-0.5 bg-accent mb-2" />
+            <h3 className="text-sm font-bold text-ink mb-2">Network</h3>
+            <NetworkGraph graph={detail.network} />
+          </div>
+        )}
 
         <AgentPanel
           caseId={detail.case_id}
@@ -233,6 +273,13 @@ const LabelControl: React.FC<{ value: number | null; onChange: (next: number | n
     </div>
   )
 }
+
+const Detail: React.FC<{ label: string; value?: string | null }> = ({ label, value }) => (
+  <div className="flex gap-2">
+    <span className="text-ink-faint uppercase tracking-wider">{label}</span>
+    <span className="font-mono text-ink-muted break-all">{value || '—'}</span>
+  </div>
+)
 
 const MetaItem: React.FC<{ label: string; children: React.ReactNode }> = ({ label, children }) => (
   <div>

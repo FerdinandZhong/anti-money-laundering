@@ -45,17 +45,34 @@ def get_transaction_history(conn, account_id: str, limit: int = 50) -> list[dict
 
 def get_network_graph(conn, account_id: str) -> dict:
     fp_list = source.device_fingerprints(account_id)
-    if not fp_list:
-        return {"nodes": [{"id": account_id, "type": "account"}], "edges": []}
+    linked = source.accounts_by_fingerprints(fp_list) if fp_list else []
 
-    linked = source.accounts_by_fingerprints(fp_list)
-    nodes = [{"id": account_id, "type": "account", "is_root": True}]
-    edges = []
-    for aid in linked:
-        if aid != account_id:
-            nodes.append({"id": aid, "type": "account"})
-            edges.append({"source": account_id, "target": aid, "relation": "shared_device"})
+    txns = source.account_transactions(account_id, limit=200)
+    flow = source.fund_flow_edges(txns, account_id)
 
+    # node set: root + device-linked accounts + every endpoint named by a flow edge
+    node_ids = {account_id}
+    node_ids.update(a for a in linked if a != account_id)
+    for e in flow:
+        node_ids.add(e["source"]); node_ids.add(e["target"])
+
+    # classify: root is the collector; flow targets that aren't accounts are beneficiaries
+    flow_targets = {e["target"] for e in flow if e["source"] == account_id}
+    flow_sources = {e["source"] for e in flow if e["target"] == account_id}
+    nodes = []
+    for nid in node_ids:
+        if nid == account_id:
+            nodes.append({"id": nid, "type": "collector", "is_root": True})
+        elif nid in flow_targets and nid not in linked:
+            nodes.append({"id": nid, "type": "beneficiary"})
+        elif nid in flow_sources or nid in linked:
+            nodes.append({"id": nid, "type": "source"})
+        else:
+            nodes.append({"id": nid, "type": "account"})
+
+    edges = [{"source": account_id, "target": aid, "relation": "shared_device"}
+             for aid in linked if aid != account_id]
+    edges.extend(flow)
     return {"nodes": nodes, "edges": edges}
 
 
@@ -120,3 +137,41 @@ TOOLS: dict[str, Callable] = {
     "get_model_explanation": get_model_explanation,
     "get_drift_summary": get_drift_summary_tool,
 }
+
+
+# ---------------------------------------------------------------------------
+# MCP verification tools — bridge configured MCP servers into the tool-calling
+# loop. Aggregates every enabled server's tools into one OpenAI schema list plus
+# an execute() that routes each call back to the owning server. Empty + no-op
+# when nothing is configured (verification then fails soft).
+# ---------------------------------------------------------------------------
+
+def mcp_verification_tools() -> "tuple[list[dict], Callable]":
+    from common import mcp_client
+
+    schemas: list[dict] = []
+    routing: dict[str, str] = {}   # tool_name -> server_name (last wins on clash)
+    for srv in mcp_client.enabled_servers():
+        listed = mcp_client.list_tools_sync(srv["name"])
+        if not listed:
+            continue
+        for t in listed:
+            routing[t["name"]] = srv["name"]
+            schemas.append({"type": "function", "function": {
+                "name": t["name"],
+                "description": t.get("description", ""),
+                "parameters": t.get("input_schema") or {"type": "object", "properties": {}},
+            }})
+
+    def execute(name: str, args: dict) -> str:
+        server = routing.get(name)
+        if not server:
+            return f"error: unknown tool '{name}'"
+        res = mcp_client.call_tool_sync(server, name, args)
+        if res is None:
+            return f"error: tool '{name}' unavailable"
+        if isinstance(res, dict) and "error" in res:
+            return f"error: {res['error']}"
+        return res
+
+    return schemas, execute

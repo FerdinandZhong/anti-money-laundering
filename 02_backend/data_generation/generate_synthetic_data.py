@@ -163,13 +163,16 @@ def gen_accounts(customers: list[dict], n_accounts: int) -> list[dict]:
 
 def gen_devices(accounts: list[dict]) -> list[dict]:
     rows = []
-    shared_fp = "FP-NIGHTFALL-SHARED-001"
+    ring1 = "FP-NIGHTFALL-SHARED-001"
+    ring2 = "FP-NIGHTFALL-SHARED-002"
 
     for acc in accounts:
         aid = acc["account_id"]
-        # Nightfall and network 001-004 share fingerprint
-        if aid in ("ACC-NIGHTFALL-001", "ACC-NETWORK-001", "ACC-NETWORK-002", "ACC-NETWORK-003", "ACC-NETWORK-004"):
-            fp = shared_fp
+        if aid in ("ACC-NIGHTFALL-001", "ACC-NETWORK-001", "ACC-NETWORK-002",
+                   "ACC-NETWORK-003", "ACC-NETWORK-004"):
+            fp = ring1
+        elif aid in ("ACC-NETWORK-005", "ACC-NETWORK-006", "ACC-NETWORK-007", "ACC-NETWORK-008"):
+            fp = ring2
         else:
             fp = f"FP-{_uid()}"
 

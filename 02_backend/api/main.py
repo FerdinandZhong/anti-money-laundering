@@ -17,7 +17,9 @@ from pydantic import BaseModel
 
 from common.db import get_connection
 from common import source
+from common.tx_flags import derive_tx_flags
 from agents.supervisor import run_investigation
+from agents.tools import get_network_graph
 from agents import llm_client
 from ml.drift_monitor import get_drift_summary
 from agents.retraining import run_retraining
@@ -155,8 +157,9 @@ def get_alert_detail(alert_id: str, conn=Depends(get_db)):
             ).fetchall()
         }
 
-    transactions = [
-        {
+    transactions = []
+    for t in customer_txns:
+        row = {
             "transaction_id": t.get("transaction_id"),
             "event_time": t.get("event_time"),
             "direction": t.get("direction"),
@@ -168,9 +171,21 @@ def get_alert_detail(alert_id: str, conn=Depends(get_db)):
             "is_suspicious": t.get("is_suspicious"),
             "score": tx_scores.get(t.get("transaction_id")),
             "label": tx_labels.get(t.get("transaction_id")),
+            "from_account_id": t.get("from_account_id"),
+            "to_account_id": t.get("to_account_id"),
+            "currency": t.get("currency"),
+            "mcc": t.get("mcc"),
+            "reference": t.get("reference"),
         }
-        for t in customer_txns
-    ]
+        row["flags"] = derive_tx_flags(t, customer_txns)
+        transactions.append(row)
+
+    accounts = source.get_accounts(alert["customer_id"])
+    root_account_id = accounts[0]["account_id"] if accounts else alert["customer_id"]
+    try:
+        network = get_network_graph(None, root_account_id)
+    except Exception:
+        network = {"nodes": [{"id": root_account_id, "type": "collector", "is_root": True}], "edges": []}
 
     return {
         "case_id": case_id,
@@ -187,6 +202,7 @@ def get_alert_detail(alert_id: str, conn=Depends(get_db)):
         "account_age_days": customer.get("account_age_days", 0),
         "expected_monthly_turnover": customer.get("expected_monthly_turnover", 0),
         "transactions": transactions,
+        "network": network,
         "analysis": case.get("analysis"),
         "analyzed_at": case.get("analyzed_at"),
         "disposition": case.get("disposition"),

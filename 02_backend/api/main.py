@@ -48,6 +48,12 @@ _ALERT_SORTS = {
     "oldest": "created_at ASC",
 }
 
+_DISPOSITION_TO_STATUS = {
+    "SUSPICIOUS": "PROPOSED",       # awaiting SAR/STR filing
+    "FALSE_POSITIVE": "CLOSED",     # archived
+    "NEEDS_MORE_INFO": "PENDING",   # stays visible, needs info
+}
+
 
 @app.get("/api/alerts")
 def list_alerts(
@@ -242,6 +248,11 @@ def dispose_case(case_id: str, body: DisposeBody, conn=Depends(get_db)):
     conn.execute(
         "UPDATE cases SET state = 'CLOSED', disposition = ?, updated_at = ? WHERE case_id = ?",
         (body.disposition, datetime.now(timezone.utc).isoformat(), case_id),
+    )
+    conn.execute(
+        "UPDATE alerts SET status = ? "
+        "WHERE alert_id = (SELECT alert_id FROM cases WHERE case_id = ?)",
+        (_DISPOSITION_TO_STATUS[body.disposition], case_id),
     )
     conn.commit()
 
@@ -551,6 +562,74 @@ def test_llm_model(model_id: int, conn=Depends(get_db)):
         raise HTTPException(404, "Model not found")
     ok, message = llm_client.probe(row["api_base"], row["model_identifier"], row["api_key"])
     return {"ok": ok, "message": message}
+
+
+# ── MCP tool servers (Tools view) ─────────────────────────────────────────────
+
+class ToolConfigBody(BaseModel):
+    name: str
+    url: str
+    api_key: str | None = None   # blank/omitted on edit = keep existing (list masks it)
+    enabled: bool = True
+
+
+@app.get("/api/config/tools")
+def list_tools(conn=Depends(get_db)):
+    rows = conn.execute(
+        "SELECT id, kind, name, transport, url, api_key, enabled "
+        "FROM tool_config ORDER BY created_at DESC"
+    ).fetchall()
+    return {"tools": [{**dict(r), "api_key": _mask_key(r["api_key"])} for r in rows]}
+
+
+@app.post("/api/config/tools")
+def register_tool(body: ToolConfigBody, conn=Depends(get_db)):
+    """Register a remote streamable-HTTP MCP server."""
+    if not body.name.strip() or not body.url.strip():
+        raise HTTPException(400, "name and url are required")
+    try:
+        conn.execute(
+            "INSERT INTO tool_config (kind, name, transport, url, api_key, enabled) "
+            "VALUES ('mcp_server', ?, 'http', ?, ?, ?)",
+            (body.name.strip(), body.url.strip(), body.api_key, 1 if body.enabled else 0),
+        )
+        conn.commit()
+    except sqlite3.IntegrityError:
+        raise HTTPException(400, f"Tool server '{body.name}' already exists")
+    return {"ok": True, "name": body.name}
+
+
+@app.put("/api/config/tools/{tool_id}")
+def update_tool(tool_id: int, body: ToolConfigBody, conn=Depends(get_db)):
+    """Edit a server. api_key is kept when left blank (the list only returns a masked key)."""
+    row = conn.execute("SELECT * FROM tool_config WHERE id=?", (tool_id,)).fetchone()
+    if not row:
+        raise HTTPException(404, "Tool server not found")
+    api_key = body.api_key.strip() if (body.api_key and body.api_key.strip()) else row["api_key"]
+    try:
+        conn.execute(
+            "UPDATE tool_config SET name=?, url=?, api_key=?, enabled=? WHERE id=?",
+            (body.name.strip(), body.url.strip(), api_key, 1 if body.enabled else 0, tool_id),
+        )
+        conn.commit()
+    except sqlite3.IntegrityError:
+        raise HTTPException(400, f"Tool server '{body.name}' already exists")
+    return {"ok": True, "id": tool_id, "name": body.name}
+
+
+@app.post("/api/config/tools/{tool_id}/test")
+def test_tool(tool_id: int, conn=Depends(get_db)):
+    """Connect to the MCP server and list its tools. Never changes config."""
+    from common import mcp_client
+    row = conn.execute(
+        "SELECT url, api_key FROM tool_config WHERE id=?", (tool_id,)
+    ).fetchone()
+    if not row:
+        raise HTTPException(404, "Tool server not found")
+    ok, res = mcp_client.probe(row["url"], row["api_key"])
+    if ok:
+        return {"ok": True, "tools": [t["name"] for t in res], "count": len(res)}
+    return {"ok": False, "message": res}
 
 
 # ── Utility ───────────────────────────────────────────────────────────────────

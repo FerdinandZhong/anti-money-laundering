@@ -1,0 +1,66 @@
+{
+  "schema_version": 1,
+  "mode": "architecture",
+  "template_type": "architecture",
+  "style": 1,
+  "quality_profile": "standard",
+  "width": 1200,
+  "height": 860,
+  "title": "AML Investigation Platform — Business Process & Value Flow",
+  "subtitle": "from raw transactions to regulatory action and continuous model improvement",
+  "containers": [
+    { "id": "signals", "x": 40, "y": 90, "width": 1120, "height": 70, "label": "Signals" },
+    { "id": "detect", "x": 40, "y": 170, "width": 1120, "height": 120, "label": "Detect & Triage" },
+    { "id": "investigate", "x": 40, "y": 300, "width": 1120, "height": 120, "label": "Investigate" },
+    { "id": "decide", "x": 40, "y": 430, "width": 1120, "height": 180, "label": "Decide & Act" },
+    { "id": "govern", "x": 40, "y": 620, "width": 1120, "height": 120, "label": "Govern & Improve" }
+  ],
+  "nodes": [
+    { "id": "txn_data", "kind": "rect", "x": 490, "y": 98, "width": 220, "height": 54, "label": "Customer & Transaction Data", "sublabel": "2,000 customers · 100k+ txns", "fill": "#f0fdf4", "stroke": "#16a34a" },
+
+    { "id": "scoring", "kind": "rect", "x": 90, "y": 184, "width": 220, "height": 92, "label": "Risk Scoring Engine", "sublabel": "XGBoost composite · batch job", "fill": "#fff7ed", "stroke": "#ea580c" },
+    { "id": "alert_queue", "kind": "rect", "x": 460, "y": 184, "width": 200, "height": 92, "label": "Alert Queue", "sublabel": "148 open · risk-ranked", "fill": "#fffbeb", "stroke": "#d97706" },
+    { "id": "analyst", "kind": "user_avatar", "x": 810, "y": 184, "width": 220, "height": 92, "label": "Compliance Analyst", "sublabel": "selects & prioritizes case", "fill": "#eff6ff", "stroke": "#2563eb" },
+
+    { "id": "case_file", "kind": "rect", "x": 810, "y": 314, "width": 220, "height": 92, "label": "Case File", "sublabel": "opened on first review", "fill": "#f8fafc", "stroke": "#475569" },
+    { "id": "ai_team", "kind": "double_rect", "x": 460, "y": 314, "width": 220, "height": 92, "label": "AI Investigation Team", "sublabel": "4 parallel specialist agents", "fill": "#faf5ff", "stroke": "#9333ea" },
+    { "id": "evidence", "kind": "rect", "x": 90, "y": 314, "width": 200, "height": 92, "label": "Evidence & Narrative", "sublabel": "findings · SHAP · network", "fill": "#f5f3ff", "stroke": "#7c3aed" },
+
+    { "id": "decision", "kind": "speech", "x": 480, "y": 444, "width": 240, "height": 60, "label": "Disposition Decision", "sublabel": "analyst adjudicates", "fill": "#f0fdfa", "stroke": "#0d9488" },
+    { "id": "sar", "kind": "rect", "x": 190, "y": 528, "width": 200, "height": 66, "label": "SAR / STR Filing", "sublabel": "regulatory submission", "fill": "#fef2f2", "stroke": "#dc2626" },
+    { "id": "case_closed", "kind": "rect", "x": 770, "y": 528, "width": 200, "height": 66, "label": "Case Closed", "sublabel": "audit trail retained", "fill": "#f0fdf4", "stroke": "#16a34a" },
+
+    { "id": "mrm", "kind": "user_avatar", "x": 90, "y": 634, "width": 220, "height": 92, "label": "Model Risk Manager", "sublabel": "monitors drift & perf", "fill": "#eef2ff", "stroke": "#4f46e5" },
+    { "id": "governance", "kind": "rect", "x": 460, "y": 634, "width": 260, "height": 92, "label": "Governance Pipeline", "sublabel": "retrain · canary · promote", "fill": "#eef2ff", "stroke": "#1c0f43" }
+  ],
+  "arrows": [
+    { "id": "data-scoring", "source": "txn_data", "target": "scoring", "source_port": "left", "target_port": "top", "flow": "read", "label": "transactions", "corridor_x": [200], "corridor_y": [160], "label_dy": 8 },
+    { "id": "scoring-queue", "source": "scoring", "target": "alert_queue", "source_port": "right", "target_port": "left", "flow": "data", "label": "risk-ranked alerts" },
+    { "id": "queue-analyst", "source": "alert_queue", "target": "analyst", "source_port": "right", "target_port": "left", "flow": "control", "label": "select case" },
+
+    { "id": "analyst-case", "source": "analyst", "target": "case_file", "source_port": "bottom", "target_port": "top", "flow": "control", "label": "open case" },
+    { "id": "case-ai", "source": "case_file", "target": "ai_team", "source_port": "left", "target_port": "right", "flow": "control", "label": "investigate" },
+    { "id": "ai-evidence", "source": "ai_team", "target": "evidence", "source_port": "left", "target_port": "right", "flow": "data", "label": "findings" },
+
+    { "id": "evidence-decision", "source": "evidence", "target": "decision", "source_port": "bottom", "target_port": "left", "flow": "data", "label": "informs", "label_style": "offset" },
+    { "id": "decision-sar", "source": "decision", "target": "sar", "source_port": "left", "target_port": "top", "flow": "control", "label": "SUSPICIOUS" },
+    { "id": "decision-closed", "source": "decision", "target": "case_closed", "source_port": "right", "target_port": "top", "flow": "control", "label": "FALSE POSITIVE / MORE INFO", "label_style": "offset", "label_dy": -14 },
+    { "id": "decision-gov", "source": "decision", "target": "governance", "source_port": "bottom", "target_port": "top", "flow": "feedback", "label": "annotation logged", "label_style": "offset" },
+
+    { "id": "gov-mrm", "source": "governance", "target": "mrm", "source_port": "left", "target_port": "right", "flow": "data", "label": "drift & perf metrics" },
+    { "id": "mrm-gov", "source": "mrm", "target": "governance", "source_port": "top", "target_port": "top", "flow": "control", "label": "approve retrain", "label_style": "offset", "corridor_y": [605], "label_dy": -10 },
+    { "id": "gov-scoring", "source": "governance", "target": "scoring", "source_port": "left", "target_port": "left", "flow": "feedback", "label": "promoted model", "corridor_x": [20] }
+  ],
+  "legend_orientation": "horizontal",
+  "legend_x": 48,
+  "legend_y": 770,
+  "legend": [
+    { "flow": "data", "label": "information flow" },
+    { "flow": "control", "label": "action / trigger" },
+    { "flow": "read", "label": "source data" },
+    { "flow": "feedback", "label": "governance loop" }
+  ],
+  "footer": "Business value: faster, evidence-backed decisions on real risk; every disposition improves the model that finds the next one.",
+  "footer_x": 48,
+  "footer_y": 820
+}

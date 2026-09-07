@@ -1,0 +1,110 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 820" width="960" height="820" data-generator="fireworks-tech-graph" data-schema-version="1" data-text-metrics="heuristic-v1" data-style-id="1" data-visual-theme="Flat Icon" data-diagram-type="architecture" data-motion-scene="" data-semantic-profile="generic" data-semantic-valid="true" data-quality-profile="standard" data-max-bends-per-edge="12" data-max-total-bends="100" data-max-route-stretch="5.0" data-max-bridged-crossings="8" data-min-node-gap="0.0" data-min-container-gutter="0.0" data-min-label-clearance="2.0" data-min-segment-length="0.0">
+  <defs>
+    <marker id="arrowA" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#7c3aed"/>
+    </marker>
+    <marker id="arrowB" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#10b981"/>
+    </marker>
+    <marker id="arrowC" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#2563eb"/>
+    </marker>
+    <marker id="arrowE" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#f97316"/>
+    </marker>
+    <marker id="arrowF" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#7c3aed"/>
+    </marker>
+    <marker id="arrowG" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#ef4444"/>
+    </marker>
+    <marker id="arrowH" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#6b7280"/>
+    </marker>
+    <filter id="shadowSoft" x="-20%" y="-20%" width="140%" height="160%">
+      <feDropShadow dx="0" dy="3" stdDeviation="6" flood-color="#0f172a" flood-opacity="0.12"/>
+    </filter>
+    <filter id="shadowGlass" x="-20%" y="-20%" width="140%" height="160%">
+      <feDropShadow dx="0" dy="10" stdDeviation="16" flood-color="#020617" flood-opacity="0.28"/>
+    </filter>
+    <style>
+    text { font-family: 'Helvetica Neue', Helvetica, Arial, 'PingFang SC', 'Microsoft YaHei', 'Microsoft JhengHei', 'SimHei', sans-serif; }
+    .title { font-size: 30px; font-weight: 700; fill: #111827; }
+    .subtitle { font-size: 14px; font-weight: 500; fill: #6b7280; }
+    .section { font-size: 13px; font-weight: 700; fill: #2563eb; letter-spacing: 1.4px; }
+    .section-sub { font-size: 12px; font-weight: 500; fill: #94a3b8; }
+    .node-title { font-weight: 700; fill: #111827; }
+    .node-sub { font-size: 12px; font-weight: 500; fill: #6b7280; }
+    .node-type { font-size: 12px; font-weight: 700; fill: #9ca3af; letter-spacing: 0.08em; }
+    .arrow-label { font-size: 12px; font-weight: 600; fill: #6b7280; }
+    .legend { font-size: 12px; font-weight: 500; fill: #6b7280; }
+    .footnote { font-size: 12px; font-weight: 500; fill: #94a3b8; }
+    .metric-label { font-size: 8.5px; font-weight: 700; fill: #94a3b8; text-transform: uppercase; }
+    .metric-value { font-size: 9.5px; font-weight: 700; fill: #111827; }
+    </style>
+  </defs>
+  <rect data-graph-role="background" width="960.0" height="820.0" fill="#ffffff"/>
+  <text x="480.0" y="56" text-anchor="middle" class="title">How the AML Platform Works — A Simple Overview</text>
+  <text x="480.0" y="82" text-anchor="middle" class="subtitle">spotting suspicious money movement, one case at a time</text>
+  <path id="a1" data-graph-role="edge" data-edge-id="a1" data-source="s1" data-target="s2" data-edge-kind="flow" data-topic-id="" data-flow="data" data-motion-role="" data-motion-stage="" data-motion-order="" data-protocol="" data-via="" data-critical-path-id="" data-critical-hop="" data-critical-hops="" data-critical="false" data-bends="0" data-route-stretch="1.0" data-bridges="" d="M 480,184 L 480,238" fill="none" stroke="#f97316" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrowE)"/>
+  <path id="a2" data-graph-role="edge" data-edge-id="a2" data-source="s2" data-target="s3" data-edge-kind="flow" data-topic-id="" data-flow="data" data-motion-role="" data-motion-stage="" data-motion-order="" data-protocol="" data-via="" data-critical-path-id="" data-critical-hop="" data-critical-hops="" data-critical="false" data-bends="0" data-route-stretch="1.0" data-bridges="" d="M 480,314 L 480,368" fill="none" stroke="#f97316" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrowE)"/>
+  <path id="a3" data-graph-role="edge" data-edge-id="a3" data-source="s3" data-target="s4" data-edge-kind="flow" data-topic-id="" data-flow="data" data-motion-role="" data-motion-stage="" data-motion-order="" data-protocol="" data-via="" data-critical-path-id="" data-critical-hop="" data-critical-hops="" data-critical="false" data-bends="0" data-route-stretch="1.0" data-bridges="" d="M 480,444 L 480,498" fill="none" stroke="#f97316" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrowE)"/>
+  <path id="a4" data-graph-role="edge" data-edge-id="a4" data-source="s4" data-target="report" data-edge-kind="flow" data-topic-id="" data-flow="data" data-motion-role="" data-motion-stage="" data-motion-order="" data-protocol="" data-via="" data-critical-path-id="" data-critical-hop="" data-critical-hops="" data-critical="false" data-bends="4" data-route-stretch="1.164" data-bridges="" d="M 471,574 L 471,594.4 L 494.32,594.4 L 494.32,643.92 L 260,643.92 L 260,648" fill="none" stroke="#f97316" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrowE)"/>
+  <path id="a5" data-graph-role="edge" data-edge-id="a5" data-source="s4" data-target="close" data-edge-kind="flow" data-topic-id="" data-flow="data" data-motion-role="" data-motion-stage="" data-motion-order="" data-protocol="" data-via="" data-critical-path-id="" data-critical-hop="" data-critical-hops="" data-critical="false" data-bends="2" data-route-stretch="1.0" data-bridges="" d="M 489,574 L 489,584.4 L 700,584.4 L 700,648" fill="none" stroke="#f97316" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrowE)"/>
+  <path id="loop" data-graph-role="edge" data-edge-id="loop" data-source="s4" data-target="s2" data-edge-kind="flow" data-topic-id="" data-flow="feedback" data-motion-role="" data-motion-stage="" data-motion-order="" data-protocol="" data-via="" data-critical-path-id="" data-critical-hop="" data-critical-hops="" data-critical="false" data-bends="2" data-route-stretch="1.185" data-bridges="" d="M 620,536 L 644,536 L 644,276 L 620,276" fill="none" stroke="#2563eb" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrowC)"/>
+  <g id="node-s1" data-graph-role="node" data-node-id="s1" data-semantic-role="rect" data-motion-role="" data-motion-stage="" data-motion-order="" data-parent="" data-deployment-id="" data-topic-id="" data-span-id="" data-station-order="" data-status="" data-start-ms="" data-duration-ms="" data-parent-span="" data-graph-bounds="340,108,620,184">
+  <rect x="340.0" y="108.0" width="280.0" height="76.0" rx="10.0" fill="#f0fdf4" stroke="#16a34a" stroke-width="1.8" filter="url(#shadowSoft)"/>
+  <text x="480.0" y="146.0" text-anchor="middle" class="node-title" font-size="18.0">1 · Transactions</text>
+  <text x="480.0" y="168.0" text-anchor="middle" class="node-sub">every payment &amp; transfer comes in</text>
+  </g>
+  <g id="node-s2" data-graph-role="node" data-node-id="s2" data-semantic-role="rect" data-motion-role="" data-motion-stage="" data-motion-order="" data-parent="" data-deployment-id="" data-topic-id="" data-span-id="" data-station-order="" data-status="" data-start-ms="" data-duration-ms="" data-parent-span="" data-graph-bounds="340,238,620,314">
+  <rect x="340.0" y="238.0" width="280.0" height="76.0" rx="10.0" fill="#fff7ed" stroke="#ea580c" stroke-width="1.8" filter="url(#shadowSoft)"/>
+  <text x="480.0" y="276.0" text-anchor="middle" class="node-title" font-size="18.0">2 · Automatic Risk Check</text>
+  <text x="480.0" y="298.0" text-anchor="middle" class="node-sub">AI scores each one, flags the risky</text>
+  </g>
+  <g id="node-s3" data-graph-role="node" data-node-id="s3" data-semantic-role="rect" data-motion-role="" data-motion-stage="" data-motion-order="" data-parent="" data-deployment-id="" data-topic-id="" data-span-id="" data-station-order="" data-status="" data-start-ms="" data-duration-ms="" data-parent-span="" data-graph-bounds="340,368,620,444">
+  <rect x="340.0" y="368.0" width="280.0" height="76.0" rx="10.0" fill="#faf5ff" stroke="#9333ea" stroke-width="1.8" filter="url(#shadowSoft)"/>
+  <text x="480.0" y="406.0" text-anchor="middle" class="node-title" font-size="18.0">3 · Expert Investigation</text>
+  <text x="480.0" y="428.0" text-anchor="middle" class="node-sub">analyst + AI review flagged cases</text>
+  </g>
+  <g id="node-s4" data-graph-role="node" data-node-id="s4" data-semantic-role="rect" data-motion-role="" data-motion-stage="" data-motion-order="" data-parent="" data-deployment-id="" data-topic-id="" data-span-id="" data-station-order="" data-status="" data-start-ms="" data-duration-ms="" data-parent-span="" data-graph-bounds="340,498,620,574">
+  <rect x="340.0" y="498.0" width="280.0" height="76.0" rx="10.0" fill="#f0fdfa" stroke="#0d9488" stroke-width="1.8" filter="url(#shadowSoft)"/>
+  <text x="480.0" y="536.0" text-anchor="middle" class="node-title" font-size="18.0">4 · Decision</text>
+  <text x="480.0" y="558.0" text-anchor="middle" class="node-sub">suspicious, or all clear?</text>
+  </g>
+  <g id="node-report" data-graph-role="node" data-node-id="report" data-semantic-role="rect" data-motion-role="" data-motion-stage="" data-motion-order="" data-parent="" data-deployment-id="" data-topic-id="" data-span-id="" data-station-order="" data-status="" data-start-ms="" data-duration-ms="" data-parent-span="" data-graph-bounds="120,648,400,728">
+  <rect x="120.0" y="648.0" width="280.0" height="80.0" rx="10.0" fill="#fef2f2" stroke="#dc2626" stroke-width="1.8" filter="url(#shadowSoft)"/>
+  <text x="260.0" y="688.0" text-anchor="middle" class="node-title" font-size="18.0">Report to Regulator</text>
+  <text x="260.0" y="710.0" text-anchor="middle" class="node-sub">file a suspicious activity report</text>
+  </g>
+  <g id="node-close" data-graph-role="node" data-node-id="close" data-semantic-role="rect" data-motion-role="" data-motion-stage="" data-motion-order="" data-parent="" data-deployment-id="" data-topic-id="" data-span-id="" data-station-order="" data-status="" data-start-ms="" data-duration-ms="" data-parent-span="" data-graph-bounds="560,648,840,728">
+  <rect x="560.0" y="648.0" width="280.0" height="80.0" rx="10.0" fill="#f0fdf4" stroke="#16a34a" stroke-width="1.8" filter="url(#shadowSoft)"/>
+  <text x="700.0" y="688.0" text-anchor="middle" class="node-title" font-size="18.0">Close the Case</text>
+  <text x="700.0" y="710.0" text-anchor="middle" class="node-sub">customer cleared</text>
+  </g>
+  <g id="a2-label" data-graph-role="label" data-owner="a2" data-graph-bounds="378.28,327,477,347">
+  <text x="427.64" y="341.0" text-anchor="middle" class="arrow-label">flagged cases</text>
+  </g>
+  <g id="a3-label" data-graph-role="label" data-owner="a3" data-graph-bounds="410.44,457,477,477">
+  <text x="443.72" y="471.0" text-anchor="middle" class="arrow-label">evidence</text>
+  </g>
+  <g id="a4-label" data-graph-role="label" data-owner="a4" data-graph-bounds="417.34,650.92,494.7,670.92">
+  <text x="456.02" y="664.92" text-anchor="middle" class="arrow-label">suspicious</text>
+  </g>
+  <g id="a5-label" data-graph-role="label" data-owner="a5" data-graph-bounds="562.18,587.4,626.82,607.4">
+  <text x="594.5" y="601.4" text-anchor="middle" class="arrow-label">all clear</text>
+  </g>
+  <g id="loop-label" data-graph-role="label" data-owner="loop" data-graph-bounds="647,392,873.88,412">
+  <text x="760.44" y="406.0" text-anchor="middle" class="arrow-label">every decision teaches the system</text>
+  </g>
+  <g id="legend" data-graph-role="legend">
+    <rect id="legend-zone" data-graph-role="reserved" data-reserved-kind="legend" x="40" y="596" width="454.32" height="46" rx="10" fill="none" stroke="none"/>
+    <line data-graph-role="decoration" x1="50.0" y1="610.0" x2="80.0" y2="610.0" stroke="#f97316" stroke-width="2.4" marker-end="url(#arrowE)"/>
+    <text data-graph-role="decoration" x="90.0" y="614.0" class="legend">how a case moves through</text>
+    <line data-graph-role="decoration" x1="274.48" y1="610.0" x2="304.48" y2="610.0" stroke="#2563eb" stroke-width="2.4" marker-end="url(#arrowC)"/>
+    <text data-graph-role="decoration" x="314.48" y="614.0" class="legend">the system keeps learning</text>
+  </g>
+  <g id="footer" data-graph-role="reserved" data-graph-bounds="48,788,909,804">
+  <text x="48.0" y="800.0" class="footnote">The more cases people decide, the sharper the risk check becomes — good money passes through, suspicious money gets caught.</text>
+  </g>
+</svg>

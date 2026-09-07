@@ -1,0 +1,264 @@
+{
+  "canvas": {
+    "height": 640.0,
+    "width": 1200.0
+  },
+  "composition": {
+    "limits": {
+      "max_bends_per_edge": 12,
+      "max_bridged_crossings": 8,
+      "max_route_stretch": 5.0,
+      "max_total_bends": 100,
+      "min_container_gutter": 0.0,
+      "min_label_clearance": 2.0,
+      "min_node_gap": 0.0,
+      "min_segment_length": 0.0,
+      "profile": "standard"
+    },
+    "metrics": {
+      "bridged_crossings": 0,
+      "max_route_stretch": 1.0,
+      "minimum_container_gutter": 20.0,
+      "minimum_node_gap": 90.0,
+      "shortest_segment": 20.4,
+      "total_bends": 4
+    },
+    "ok": true,
+    "profile": "standard",
+    "score": 100,
+    "violations": []
+  },
+  "edges": [
+    {
+      "bends": 0,
+      "bridges": [],
+      "crossings": [],
+      "id": "data-model",
+      "length": 130.0,
+      "route": [
+        [
+          340.0,
+          454.0
+        ],
+        [
+          470.0,
+          454.0
+        ]
+      ],
+      "route_stretch": 1.0,
+      "source": "data",
+      "source_port": [
+        340.0,
+        454.0
+      ],
+      "target": "model",
+      "target_port": [
+        470.0,
+        454.0
+      ],
+      "waypoints": []
+    },
+    {
+      "bends": 0,
+      "bridges": [],
+      "crossings": [],
+      "id": "train-model",
+      "length": 130.0,
+      "route": [
+        [
+          830.0,
+          454.0
+        ],
+        [
+          700.0,
+          454.0
+        ]
+      ],
+      "route_stretch": 1.0,
+      "source": "train",
+      "source_port": [
+        830.0,
+        454.0
+      ],
+      "target": "model",
+      "target_port": [
+        700.0,
+        454.0
+      ],
+      "waypoints": []
+    },
+    {
+      "bends": 0,
+      "bridges": [],
+      "crossings": [],
+      "id": "queue-invest",
+      "length": 140.0,
+      "route": [
+        [
+          450.0,
+          214.0
+        ],
+        [
+          590.0,
+          214.0
+        ]
+      ],
+      "route_stretch": 1.0,
+      "source": "queue",
+      "source_port": [
+        450.0,
+        214.0
+      ],
+      "target": "invest",
+      "target_port": [
+        590.0,
+        214.0
+      ],
+      "waypoints": []
+    },
+    {
+      "bends": 0,
+      "bridges": [],
+      "crossings": [],
+      "id": "invest-decide",
+      "length": 90.0,
+      "route": [
+        [
+          810.0,
+          214.0
+        ],
+        [
+          900.0,
+          214.0
+        ]
+      ],
+      "route_stretch": 1.0,
+      "source": "invest",
+      "source_port": [
+        810.0,
+        214.0
+      ],
+      "target": "decide",
+      "target_port": [
+        900.0,
+        214.0
+      ],
+      "waypoints": []
+    },
+    {
+      "bends": 2,
+      "bridges": [],
+      "crossings": [],
+      "id": "model-queue",
+      "length": 393.0,
+      "route": [
+        [
+          585.0,
+          408.0
+        ],
+        [
+          585.0,
+          284.0
+        ],
+        [
+          340.0,
+          284.0
+        ],
+        [
+          340.0,
+          260.0
+        ]
+      ],
+      "route_stretch": 1.0,
+      "source": "model",
+      "source_port": [
+        585.0,
+        408.0
+      ],
+      "target": "queue",
+      "target_port": [
+        340.0,
+        260.0
+      ],
+      "waypoints": []
+    },
+    {
+      "bends": 2,
+      "bridges": [],
+      "crossings": [],
+      "id": "decide-train",
+      "length": 213.0,
+      "route": [
+        [
+          1020.0,
+          260.0
+        ],
+        [
+          1020.0,
+          280.4
+        ],
+        [
+          955.0,
+          280.4
+        ],
+        [
+          955.0,
+          408.0
+        ]
+      ],
+      "route_stretch": 1.0,
+      "source": "decide",
+      "source_port": [
+        1020.0,
+        260.0
+      ],
+      "target": "train",
+      "target_port": [
+        955.0,
+        408.0
+      ],
+      "waypoints": []
+    }
+  ],
+  "input_schema": "v1",
+  "issues": [],
+  "mode": "architecture",
+  "ok": true,
+  "placements": {
+    "legend": {
+      "actual": [
+        50.0,
+        562.0
+      ],
+      "bounds": [
+        40.0,
+        548.0,
+        819.84,
+        594.0
+      ],
+      "moved": true,
+      "requested": [
+        48.0,
+        578.0
+      ]
+    }
+  },
+  "schema_version": 1,
+  "semantics": {
+    "details": {},
+    "ok": true,
+    "profile": "generic",
+    "style": 1,
+    "visual_theme": "Flat Icon"
+  },
+  "style": {
+    "id": 1,
+    "name": "Flat Icon"
+  },
+  "summary": {
+    "bridged_crossings": 0,
+    "edges": 6,
+    "nodes": 6
+  },
+  "text_metrics": "heuristic-v1"
+}

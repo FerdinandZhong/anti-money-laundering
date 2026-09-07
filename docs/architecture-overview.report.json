@@ -1,0 +1,610 @@
+{
+  "canvas": {
+    "height": 840.0,
+    "width": 1200.0
+  },
+  "composition": {
+    "limits": {
+      "max_bends_per_edge": 12,
+      "max_bridged_crossings": 8,
+      "max_route_stretch": 5.0,
+      "max_total_bends": 100,
+      "min_container_gutter": 0.0,
+      "min_label_clearance": 2.0,
+      "min_node_gap": 0.0,
+      "min_segment_length": 0.0,
+      "profile": "standard"
+    },
+    "metrics": {
+      "bridged_crossings": 6,
+      "max_route_stretch": 3.927,
+      "minimum_container_gutter": 0.0,
+      "minimum_node_gap": 56.0,
+      "shortest_segment": 6.0,
+      "total_bends": 21
+    },
+    "ok": true,
+    "profile": "standard",
+    "score": 34,
+    "violations": []
+  },
+  "edges": [
+    {
+      "bends": 0,
+      "bridges": [],
+      "crossings": [],
+      "id": "ui-api",
+      "length": 56.0,
+      "route": [
+        [
+          590.0,
+          170.0
+        ],
+        [
+          590.0,
+          226.0
+        ]
+      ],
+      "route_stretch": 1.0,
+      "source": "frontend",
+      "source_port": [
+        590.0,
+        170.0
+      ],
+      "target": "fastapi",
+      "target_port": [
+        590.0,
+        226.0
+      ],
+      "waypoints": []
+    },
+    {
+      "bends": 1,
+      "bridges": [],
+      "crossings": [],
+      "id": "api-scorer",
+      "length": 395.0,
+      "route": [
+        [
+          480.0,
+          244.0
+        ],
+        [
+          185.0,
+          244.0
+        ],
+        [
+          185.0,
+          344.0
+        ]
+      ],
+      "route_stretch": 1.0,
+      "source": "fastapi",
+      "source_port": [
+        480.0,
+        244.0
+      ],
+      "target": "scorer",
+      "target_port": [
+        185.0,
+        344.0
+      ],
+      "waypoints": []
+    },
+    {
+      "bends": 2,
+      "bridges": [],
+      "crossings": [],
+      "id": "api-supervisor",
+      "length": 179.0,
+      "route": [
+        [
+          590.0,
+          280.0
+        ],
+        [
+          590.0,
+          292.0
+        ],
+        [
+          475.0,
+          292.0
+        ],
+        [
+          475.0,
+          344.0
+        ]
+      ],
+      "route_stretch": 1.0,
+      "source": "fastapi",
+      "source_port": [
+        590.0,
+        280.0
+      ],
+      "target": "supervisor",
+      "target_port": [
+        475.0,
+        344.0
+      ],
+      "waypoints": []
+    },
+    {
+      "bends": 0,
+      "bridges": [],
+      "crossings": [],
+      "id": "supervisor-workers",
+      "length": 90.0,
+      "route": [
+        [
+          570.0,
+          390.0
+        ],
+        [
+          660.0,
+          390.0
+        ]
+      ],
+      "route_stretch": 1.0,
+      "source": "supervisor",
+      "source_port": [
+        570.0,
+        390.0
+      ],
+      "target": "workers",
+      "target_port": [
+        660.0,
+        390.0
+      ],
+      "waypoints": []
+    },
+    {
+      "bends": 0,
+      "bridges": [],
+      "crossings": [],
+      "id": "workers-llm",
+      "length": 90.0,
+      "route": [
+        [
+          850.0,
+          390.0
+        ],
+        [
+          940.0,
+          390.0
+        ]
+      ],
+      "route_stretch": 1.0,
+      "source": "workers",
+      "source_port": [
+        850.0,
+        390.0
+      ],
+      "target": "llm",
+      "target_port": [
+        940.0,
+        390.0
+      ],
+      "waypoints": []
+    },
+    {
+      "bends": 2,
+      "bridges": [],
+      "crossings": [],
+      "id": "supervisor-sse",
+      "length": 240.0,
+      "route": [
+        [
+          380.0,
+          390.0
+        ],
+        [
+          374.0,
+          390.0
+        ],
+        [
+          374.0,
+          262.0
+        ],
+        [
+          480.0,
+          262.0
+        ]
+      ],
+      "route_stretch": 1.053,
+      "source": "supervisor",
+      "source_port": [
+        380.0,
+        390.0
+      ],
+      "target": "fastapi",
+      "target_port": [
+        480.0,
+        262.0
+      ],
+      "waypoints": []
+    },
+    {
+      "bends": 2,
+      "bridges": [],
+      "crossings": [],
+      "id": "scorer-source",
+      "length": 139.0,
+      "route": [
+        [
+          185.0,
+          436.0
+        ],
+        [
+          185.0,
+          456.4
+        ],
+        [
+          220.0,
+          456.4
+        ],
+        [
+          220.0,
+          540.0
+        ]
+      ],
+      "route_stretch": 1.0,
+      "source": "scorer",
+      "source_port": [
+        185.0,
+        436.0
+      ],
+      "target": "source_db",
+      "target_port": [
+        220.0,
+        540.0
+      ],
+      "waypoints": []
+    },
+    {
+      "bends": 3,
+      "bridges": [],
+      "crossings": [],
+      "id": "scorer-ops",
+      "length": 498.0,
+      "route": [
+        [
+          280.0,
+          390.0
+        ],
+        [
+          300.4,
+          390.0
+        ],
+        [
+          300.4,
+          460.0
+        ],
+        [
+          628.0,
+          460.0
+        ],
+        [
+          628.0,
+          540.0
+        ]
+      ],
+      "route_stretch": 1.0,
+      "source": "scorer",
+      "source_port": [
+        280.0,
+        390.0
+      ],
+      "target": "ops_db",
+      "target_port": [
+        628.0,
+        540.0
+      ],
+      "waypoints": []
+    },
+    {
+      "bends": 3,
+      "bridges": [],
+      "crossings": [],
+      "id": "workers-source",
+      "length": 716.0,
+      "route": [
+        [
+          764.0,
+          436.0
+        ],
+        [
+          764.0,
+          664.0
+        ],
+        [
+          370.4,
+          664.0
+        ],
+        [
+          370.4,
+          590.0
+        ],
+        [
+          350.0,
+          590.0
+        ]
+      ],
+      "route_stretch": 1.261,
+      "source": "workers",
+      "source_port": [
+        764.0,
+        436.0
+      ],
+      "target": "source_db",
+      "target_port": [
+        350.0,
+        590.0
+      ],
+      "waypoints": []
+    },
+    {
+      "bends": 2,
+      "bridges": [
+        [
+          764.0,
+          460.0
+        ]
+      ],
+      "crossings": [
+        [
+          764.0,
+          460.0
+        ]
+      ],
+      "id": "workers-evidence",
+      "length": 347.0,
+      "route": [
+        [
+          746.0,
+          436.0
+        ],
+        [
+          746.0,
+          460.0
+        ],
+        [
+          989.0,
+          460.0
+        ],
+        [
+          989.0,
+          540.0
+        ]
+      ],
+      "route_stretch": 1.0,
+      "source": "workers",
+      "source_port": [
+        746.0,
+        436.0
+      ],
+      "target": "evidence",
+      "target_port": [
+        989.0,
+        540.0
+      ],
+      "waypoints": []
+    },
+    {
+      "bends": 2,
+      "bridges": [
+        [
+          628.0,
+          528.2
+        ],
+        [
+          764.0,
+          528.2
+        ]
+      ],
+      "crossings": [
+        [
+          628.0,
+          528.2
+        ],
+        [
+          764.0,
+          528.2
+        ]
+      ],
+      "id": "evidence-ops",
+      "length": 384.6,
+      "route": [
+        [
+          971.0,
+          540.0
+        ],
+        [
+          971.0,
+          528.2
+        ],
+        [
+          610.0,
+          528.2
+        ],
+        [
+          610.0,
+          540.0
+        ]
+      ],
+      "route_stretch": 1.065,
+      "source": "evidence",
+      "source_port": [
+        971.0,
+        540.0
+      ],
+      "target": "ops_db",
+      "target_port": [
+        610.0,
+        540.0
+      ],
+      "waypoints": []
+    },
+    {
+      "bends": 4,
+      "bridges": [
+        [
+          628.0,
+          540.0
+        ],
+        [
+          740.0,
+          664.0
+        ],
+        [
+          610.0,
+          540.0
+        ]
+      ],
+      "crossings": [
+        [
+          628.0,
+          540.0
+        ],
+        [
+          740.0,
+          664.0
+        ],
+        [
+          610.0,
+          540.0
+        ]
+      ],
+      "id": "api-ops",
+      "length": 1551.0,
+      "route": [
+        [
+          700.0,
+          253.0
+        ],
+        [
+          1144.0,
+          253.0
+        ],
+        [
+          1144.0,
+          674.0
+        ],
+        [
+          740.0,
+          674.0
+        ],
+        [
+          740.0,
+          540.0
+        ],
+        [
+          592.0,
+          540.0
+        ],
+        [
+          592.0,
+          540.0
+        ]
+      ],
+      "route_stretch": 3.927,
+      "source": "fastapi",
+      "source_port": [
+        700.0,
+        253.0
+      ],
+      "target": "ops_db",
+      "target_port": [
+        592.0,
+        540.0
+      ],
+      "waypoints": []
+    }
+  ],
+  "input_schema": "v1",
+  "issues": [
+    {
+      "code": "EDGE_CROSSING_BRIDGED",
+      "coordinates": [
+        [
+          764.0,
+          460.0
+        ]
+      ],
+      "element": "workers-evidence",
+      "severity": "info"
+    },
+    {
+      "code": "EDGE_CROSSING_BRIDGED",
+      "coordinates": [
+        [
+          628.0,
+          528.2
+        ],
+        [
+          764.0,
+          528.2
+        ]
+      ],
+      "element": "evidence-ops",
+      "severity": "info"
+    },
+    {
+      "code": "EDGE_CROSSING_BRIDGED",
+      "coordinates": [
+        [
+          628.0,
+          540.0
+        ],
+        [
+          740.0,
+          664.0
+        ],
+        [
+          610.0,
+          540.0
+        ]
+      ],
+      "element": "api-ops",
+      "severity": "info"
+    }
+  ],
+  "mode": "architecture",
+  "ok": true,
+  "placements": {
+    "legend": {
+      "actual": [
+        48.0,
+        740.0
+      ],
+      "bounds": [
+        38.0,
+        726.0,
+        576.72,
+        772.0
+      ],
+      "moved": false,
+      "requested": [
+        48.0,
+        740.0
+      ]
+    }
+  },
+  "schema_version": 1,
+  "semantics": {
+    "details": {},
+    "ok": true,
+    "profile": "generic",
+    "style": 1,
+    "visual_theme": "Flat Icon"
+  },
+  "style": {
+    "id": 1,
+    "name": "Flat Icon"
+  },
+  "summary": {
+    "bridged_crossings": 6,
+    "edges": 12,
+    "nodes": 9
+  },
+  "text_metrics": "heuristic-v1"
+}

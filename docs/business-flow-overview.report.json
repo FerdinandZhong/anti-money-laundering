@@ -1,0 +1,566 @@
+{
+  "canvas": {
+    "height": 860.0,
+    "width": 1200.0
+  },
+  "composition": {
+    "limits": {
+      "max_bends_per_edge": 12,
+      "max_bridged_crossings": 8,
+      "max_route_stretch": 5.0,
+      "max_total_bends": 100,
+      "min_container_gutter": 0.0,
+      "min_label_clearance": 2.0,
+      "min_node_gap": 0.0,
+      "min_segment_length": 0.0,
+      "profile": "standard"
+    },
+    "metrics": {
+      "bridged_crossings": 2,
+      "max_route_stretch": 2.791,
+      "minimum_container_gutter": 8.0,
+      "minimum_node_gap": 32.0,
+      "shortest_segment": 9.0,
+      "total_bends": 17
+    },
+    "ok": true,
+    "profile": "standard",
+    "score": 76,
+    "violations": []
+  },
+  "edges": [
+    {
+      "bends": 1,
+      "bridges": [],
+      "crossings": [],
+      "id": "data-scoring",
+      "length": 349.0,
+      "route": [
+        [
+          490.0,
+          125.0
+        ],
+        [
+          200.0,
+          125.0
+        ],
+        [
+          200.0,
+          184.0
+        ]
+      ],
+      "route_stretch": 1.0,
+      "source": "txn_data",
+      "source_port": [
+        490.0,
+        125.0
+      ],
+      "target": "scoring",
+      "target_port": [
+        200.0,
+        184.0
+      ],
+      "waypoints": []
+    },
+    {
+      "bends": 0,
+      "bridges": [],
+      "crossings": [],
+      "id": "scoring-queue",
+      "length": 150.0,
+      "route": [
+        [
+          310.0,
+          230.0
+        ],
+        [
+          460.0,
+          230.0
+        ]
+      ],
+      "route_stretch": 1.0,
+      "source": "scoring",
+      "source_port": [
+        310.0,
+        230.0
+      ],
+      "target": "alert_queue",
+      "target_port": [
+        460.0,
+        230.0
+      ],
+      "waypoints": []
+    },
+    {
+      "bends": 0,
+      "bridges": [],
+      "crossings": [],
+      "id": "queue-analyst",
+      "length": 150.0,
+      "route": [
+        [
+          660.0,
+          230.0
+        ],
+        [
+          810.0,
+          230.0
+        ]
+      ],
+      "route_stretch": 1.0,
+      "source": "alert_queue",
+      "source_port": [
+        660.0,
+        230.0
+      ],
+      "target": "analyst",
+      "target_port": [
+        810.0,
+        230.0
+      ],
+      "waypoints": []
+    },
+    {
+      "bends": 0,
+      "bridges": [],
+      "crossings": [],
+      "id": "analyst-case",
+      "length": 38.0,
+      "route": [
+        [
+          920.0,
+          276.0
+        ],
+        [
+          920.0,
+          314.0
+        ]
+      ],
+      "route_stretch": 1.0,
+      "source": "analyst",
+      "source_port": [
+        920.0,
+        276.0
+      ],
+      "target": "case_file",
+      "target_port": [
+        920.0,
+        314.0
+      ],
+      "waypoints": []
+    },
+    {
+      "bends": 0,
+      "bridges": [],
+      "crossings": [],
+      "id": "case-ai",
+      "length": 130.0,
+      "route": [
+        [
+          810.0,
+          360.0
+        ],
+        [
+          680.0,
+          360.0
+        ]
+      ],
+      "route_stretch": 1.0,
+      "source": "case_file",
+      "source_port": [
+        810.0,
+        360.0
+      ],
+      "target": "ai_team",
+      "target_port": [
+        680.0,
+        360.0
+      ],
+      "waypoints": []
+    },
+    {
+      "bends": 0,
+      "bridges": [],
+      "crossings": [],
+      "id": "ai-evidence",
+      "length": 170.0,
+      "route": [
+        [
+          460.0,
+          360.0
+        ],
+        [
+          290.0,
+          360.0
+        ]
+      ],
+      "route_stretch": 1.0,
+      "source": "ai_team",
+      "source_port": [
+        460.0,
+        360.0
+      ],
+      "target": "evidence",
+      "target_port": [
+        290.0,
+        360.0
+      ],
+      "waypoints": []
+    },
+    {
+      "bends": 1,
+      "bridges": [],
+      "crossings": [],
+      "id": "evidence-decision",
+      "length": 367.0,
+      "route": [
+        [
+          190.0,
+          406.0
+        ],
+        [
+          190.0,
+          483.0
+        ],
+        [
+          480.0,
+          483.0
+        ]
+      ],
+      "route_stretch": 1.0,
+      "source": "evidence",
+      "source_port": [
+        190.0,
+        406.0
+      ],
+      "target": "decision",
+      "target_port": [
+        480.0,
+        483.0
+      ],
+      "waypoints": []
+    },
+    {
+      "bends": 3,
+      "bridges": [
+        [
+          388.8,
+          483.0
+        ]
+      ],
+      "crossings": [
+        [
+          388.8,
+          483.0
+        ]
+      ],
+      "id": "decision-sar",
+      "length": 253.0,
+      "route": [
+        [
+          480.0,
+          465.0
+        ],
+        [
+          388.8,
+          465.0
+        ],
+        [
+          388.8,
+          507.6
+        ],
+        [
+          290.0,
+          507.6
+        ],
+        [
+          290.0,
+          528.0
+        ]
+      ],
+      "route_stretch": 1.0,
+      "source": "decision",
+      "source_port": [
+        480.0,
+        465.0
+      ],
+      "target": "sar",
+      "target_port": [
+        290.0,
+        528.0
+      ],
+      "waypoints": []
+    },
+    {
+      "bends": 1,
+      "bridges": [],
+      "crossings": [],
+      "id": "decision-closed",
+      "length": 204.0,
+      "route": [
+        [
+          720.0,
+          474.0
+        ],
+        [
+          870.0,
+          474.0
+        ],
+        [
+          870.0,
+          528.0
+        ]
+      ],
+      "route_stretch": 1.0,
+      "source": "decision",
+      "source_port": [
+        720.0,
+        474.0
+      ],
+      "target": "case_closed",
+      "target_port": [
+        870.0,
+        528.0
+      ],
+      "waypoints": []
+    },
+    {
+      "bends": 2,
+      "bridges": [],
+      "crossings": [],
+      "id": "decision-gov",
+      "length": 149.0,
+      "route": [
+        [
+          600.0,
+          504.0
+        ],
+        [
+          600.0,
+          524.4
+        ],
+        [
+          581.0,
+          524.4
+        ],
+        [
+          581.0,
+          634.0
+        ]
+      ],
+      "route_stretch": 1.0,
+      "source": "decision",
+      "source_port": [
+        600.0,
+        504.0
+      ],
+      "target": "governance",
+      "target_port": [
+        581.0,
+        634.0
+      ],
+      "waypoints": []
+    },
+    {
+      "bends": 1,
+      "bridges": [],
+      "crossings": [],
+      "id": "gov-mrm",
+      "length": 159.0,
+      "route": [
+        [
+          460.0,
+          671.0
+        ],
+        [
+          310.0,
+          671.0
+        ],
+        [
+          310.0,
+          680.0
+        ],
+        [
+          310.0,
+          680.0
+        ]
+      ],
+      "route_stretch": 1.0,
+      "source": "governance",
+      "source_port": [
+        460.0,
+        671.0
+      ],
+      "target": "mrm",
+      "target_port": [
+        310.0,
+        680.0
+      ],
+      "waypoints": []
+    },
+    {
+      "bends": 2,
+      "bridges": [
+        [
+          581.0,
+          616.0
+        ]
+      ],
+      "crossings": [
+        [
+          581.0,
+          616.0
+        ]
+      ],
+      "id": "mrm-gov",
+      "length": 435.0,
+      "route": [
+        [
+          200.0,
+          634.0
+        ],
+        [
+          200.0,
+          616.0
+        ],
+        [
+          599.0,
+          616.0
+        ],
+        [
+          599.0,
+          634.0
+        ]
+      ],
+      "route_stretch": 1.09,
+      "source": "mrm",
+      "source_port": [
+        200.0,
+        634.0
+      ],
+      "target": "governance",
+      "target_port": [
+        599.0,
+        634.0
+      ],
+      "waypoints": []
+    },
+    {
+      "bends": 6,
+      "bridges": [],
+      "crossings": [],
+      "id": "gov-scoring",
+      "length": 2313.8,
+      "route": [
+        [
+          460.0,
+          689.0
+        ],
+        [
+          439.6,
+          689.0
+        ],
+        [
+          439.6,
+          732.0
+        ],
+        [
+          947.0,
+          732.0
+        ],
+        [
+          947.0,
+          848.0
+        ],
+        [
+          14.0,
+          848.0
+        ],
+        [
+          14.0,
+          230.0
+        ],
+        [
+          90.0,
+          230.0
+        ]
+      ],
+      "route_stretch": 2.791,
+      "source": "governance",
+      "source_port": [
+        460.0,
+        689.0
+      ],
+      "target": "scoring",
+      "target_port": [
+        90.0,
+        230.0
+      ],
+      "waypoints": []
+    }
+  ],
+  "input_schema": "v1",
+  "issues": [
+    {
+      "code": "EDGE_CROSSING_BRIDGED",
+      "coordinates": [
+        [
+          388.8,
+          483.0
+        ]
+      ],
+      "element": "decision-sar",
+      "severity": "info"
+    },
+    {
+      "code": "EDGE_CROSSING_BRIDGED",
+      "coordinates": [
+        [
+          581.0,
+          616.0
+        ]
+      ],
+      "element": "mrm-gov",
+      "severity": "info"
+    }
+  ],
+  "mode": "architecture",
+  "ok": true,
+  "placements": {
+    "legend": {
+      "actual": [
+        48.0,
+        770.0
+      ],
+      "bounds": [
+        38.0,
+        756.0,
+        683.76,
+        802.0
+      ],
+      "moved": false,
+      "requested": [
+        48.0,
+        770.0
+      ]
+    }
+  },
+  "schema_version": 1,
+  "semantics": {
+    "details": {},
+    "ok": true,
+    "profile": "generic",
+    "style": 1,
+    "visual_theme": "Flat Icon"
+  },
+  "style": {
+    "id": 1,
+    "name": "Flat Icon"
+  },
+  "summary": {
+    "bridged_crossings": 2,
+    "edges": 13,
+    "nodes": 12
+  },
+  "text_metrics": "heuristic-v1"
+}

@@ -1,0 +1,59 @@
+{
+  "schema_version": 1,
+  "mode": "architecture",
+  "template_type": "architecture",
+  "style": 1,
+  "quality_profile": "standard",
+  "width": 1200,
+  "height": 840,
+  "title": "AML Investigation Platform — Architecture Overview",
+  "subtitle": "batch scoring + multi-agent investigation, source/ops data split",
+  "containers": [
+    { "id": "client", "x": 40, "y": 90, "width": 1120, "height": 80, "label": "Client" },
+    { "id": "api", "x": 40, "y": 200, "width": 1120, "height": 80, "label": "API" },
+    { "id": "logic", "x": 40, "y": 310, "width": 1120, "height": 160, "label": "Business Logic" },
+    { "id": "storage", "x": 40, "y": 500, "width": 1120, "height": 200, "label": "Storage" }
+  ],
+  "nodes": [
+    { "id": "frontend", "kind": "rect", "x": 480, "y": 116, "width": 220, "height": 54, "label": "React Frontend", "sublabel": "Vite + Tailwind · :8100", "fill": "#eff6ff", "stroke": "#2563eb" },
+
+    { "id": "fastapi", "kind": "hexagon", "x": 480, "y": 226, "width": 220, "height": 54, "label": "FastAPI Backend", "sublabel": "api/main.py · :7078", "fill": "#eff6ff", "stroke": "#2563eb" },
+
+    { "id": "scorer", "kind": "rect", "x": 90, "y": 344, "width": 190, "height": 92, "label": "Batch Scorer", "sublabel": "ml/scorer.py\nCHAMPION XGBoost", "fill": "#fff7ed", "stroke": "#ea580c" },
+    { "id": "supervisor", "kind": "double_rect", "x": 380, "y": 344, "width": 190, "height": 92, "label": "Agent Supervisor", "sublabel": "supervisor.py\n4 parallel workers", "fill": "#faf5ff", "stroke": "#9333ea" },
+    { "id": "workers", "kind": "rect", "x": 660, "y": 344, "width": 190, "height": 92, "label": "Workers", "sublabel": "profile · pattern\nnetwork · screening", "fill": "#faf5ff", "stroke": "#9333ea" },
+    { "id": "llm", "kind": "rect", "x": 940, "y": 344, "width": 180, "height": 92, "label": "LLM Client", "sublabel": "llm_client.py\nswitchable provider", "fill": "#f0fdfa", "stroke": "#0d9488" },
+
+    { "id": "source_db", "kind": "cylinder", "x": 90, "y": 540, "width": 260, "height": 100, "label": "Source Layer", "sublabel": "common/source.py\nImpala/Iceberg → CSV fallback", "fill": "#f0fdf4", "stroke": "#16a34a" },
+    { "id": "ops_db", "kind": "cylinder", "x": 480, "y": 540, "width": 260, "height": 100, "label": "Ops SQLite", "sublabel": "common/db.py\nalerts · cases · evidence · runs", "fill": "#fef2f2", "stroke": "#dc2626" },
+    { "id": "evidence", "kind": "rect", "x": 870, "y": 540, "width": 220, "height": 100, "label": "Evidence Writer", "sublabel": "common/evidence.py\nworker findings → ops SQLite", "fill": "#fef2f2", "stroke": "#dc2626" }
+  ],
+  "arrows": [
+    { "id": "ui-api", "source": "frontend", "target": "fastapi", "source_port": "bottom", "target_port": "top", "flow": "data", "label": "/api/*" },
+
+    { "id": "api-scorer", "source": "fastapi", "target": "scorer", "source_port": "left", "target_port": "top", "flow": "control", "label": "python -m ml.scorer" },
+    { "id": "api-supervisor", "source": "fastapi", "target": "supervisor", "source_port": "bottom", "target_port": "top", "flow": "control", "label": "investigate", "label_style": "offset", "corridor_x": [430] },
+    { "id": "supervisor-workers", "source": "supervisor", "target": "workers", "source_port": "right", "target_port": "left", "flow": "control", "label": "dispatch", "label_style": "offset" },
+    { "id": "workers-llm", "source": "workers", "target": "llm", "source_port": "right", "target_port": "left", "flow": "data", "label": "LLM calls" },
+    { "id": "supervisor-sse", "source": "supervisor", "target": "fastapi", "source_port": "left", "target_port": "left", "flow": "feedback", "label": "SSE events", "corridor_x": [330] },
+
+    { "id": "scorer-source", "source": "scorer", "target": "source_db", "source_port": "bottom", "target_port": "top", "flow": "read", "label": "read tx" },
+    { "id": "scorer-ops", "source": "scorer", "target": "ops_db", "source_port": "right", "target_port": "top", "flow": "data", "label": "write alerts + scores" },
+    { "id": "workers-source", "source": "workers", "target": "source_db", "source_port": "bottom", "target_port": "right", "flow": "read", "label": "read profile/tx", "corridor_x": [820] },
+    { "id": "workers-evidence", "source": "workers", "target": "evidence", "source_port": "bottom", "target_port": "top", "flow": "data", "label": "save evidence" },
+    { "id": "evidence-ops", "source": "evidence", "target": "ops_db", "source_port": "top", "target_port": "top", "flow": "data", "label": "evidence rows", "label_style": "offset", "corridor_y": [510] },
+    { "id": "api-ops", "source": "fastapi", "target": "ops_db", "source_port": "right", "target_port": "top", "flow": "read", "label": "read/write cases", "corridor_x": [900] }
+  ],
+  "legend_orientation": "horizontal",
+  "legend_x": 48,
+  "legend_y": 740,
+  "legend": [
+    { "flow": "data", "label": "request / data path" },
+    { "flow": "control", "label": "trigger" },
+    { "flow": "read", "label": "read" },
+    { "flow": "feedback", "label": "SSE stream" }
+  ],
+  "footer": "Source (read-only): customers, accounts, transactions, devices — Impala/CSV. Ops (read/write): alerts, cases, evidence, model_runs — SQLite.",
+  "footer_x": 48,
+  "footer_y": 800
+}

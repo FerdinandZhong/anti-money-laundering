@@ -2,15 +2,61 @@ import sqlite3
 import os
 from common.config import get_db_path
 
+_TRANSACTION_SCORES_SQL = """
+CREATE TABLE IF NOT EXISTS transaction_scores (
+    transaction_id TEXT PRIMARY KEY,
+    score REAL NOT NULL,
+    model_version TEXT,
+    scored_at TEXT DEFAULT (datetime('now'))
+);
+"""
+
+_TRANSACTION_LABELS_SQL = """
+CREATE TABLE IF NOT EXISTS transaction_labels (
+    transaction_id TEXT PRIMARY KEY,
+    label INTEGER NOT NULL,
+    case_id TEXT REFERENCES cases(case_id),
+    labeled_by TEXT,
+    created_at TEXT DEFAULT (datetime('now'))
+);
+"""
+
+_LLM_MODELS_SQL = """
+CREATE TABLE IF NOT EXISTS llm_models (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    alias TEXT UNIQUE NOT NULL,
+    provider TEXT NOT NULL,
+    model_identifier TEXT NOT NULL,
+    api_base TEXT,
+    api_key TEXT,
+    is_active INTEGER DEFAULT 0,
+    created_at TEXT DEFAULT (datetime('now'))
+);
+"""
+
 
 def get_connection() -> sqlite3.Connection:
     path = get_db_path()
     if not os.path.exists(path):
         raise RuntimeError(f"Database file not found: {path}. Run init_db() first.")
-    conn = sqlite3.connect(path)
+    # check_same_thread=False: FastAPI runs sync endpoints in a threadpool, so a
+    # per-request connection may be used on a different worker thread than it was
+    # created on. Each request still gets its own conn via get_db, so this is safe.
+    conn = sqlite3.connect(path, check_same_thread=False)
     conn.row_factory = sqlite3.Row
     conn.execute("PRAGMA journal_mode=WAL")
     conn.execute("PRAGMA foreign_keys=ON")
+    # ponytail: heals pre-existing local DBs created before these tables existed;
+    # drop once every dev DB has been regenerated via init_db().
+    conn.execute(_TRANSACTION_SCORES_SQL)
+    conn.execute(_TRANSACTION_LABELS_SQL)
+    conn.execute(_LLM_MODELS_SQL)
+    for col in ("analysis TEXT", "analyzed_at TEXT", "disposition TEXT"):
+        try:
+            conn.execute(f"ALTER TABLE cases ADD COLUMN {col}")
+        except sqlite3.OperationalError as e:
+            if "duplicate column" not in str(e).lower():
+                raise
     return conn
 
 
@@ -18,7 +64,7 @@ def init_db() -> None:
     from data_generation.schema import init_schema
     path = get_db_path()
     os.makedirs(os.path.dirname(path), exist_ok=True)
-    conn = sqlite3.connect(path)
+    conn = sqlite3.connect(path, check_same_thread=False)
     conn.row_factory = sqlite3.Row
     conn.execute("PRAGMA journal_mode=WAL")
     conn.execute("PRAGMA foreign_keys=ON")

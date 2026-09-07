@@ -20,9 +20,40 @@ data:
   n_accounts: 3000
   n_transactions: 100000
   suspicious_rate: 0.04
-  db_path: data/aml.db
+  db_path: data/aml.db          # ops store (alerts/cases/evidence/annotations/model registry)
   raw_dir: data/raw
   processed_dir: data/processed
+
+source:
+  # Source (reference) bank data: customers, accounts, transactions, devices.
+  # Read from Impala/Iceberg in prod; fall back to local CSV when unreachable.
+  backend: auto                 # auto | impala | csv
+  csv_dir: data/raw             # fallback CSVs (export with scripts/export_source_csv.py)
+  impala:
+    host: qzhong-datahub-gateway.qzhong-a.a465-9q4k.cloudera.site
+    port: 443
+    http_path: qzhong-datahub/cdp-proxy-api/impala   # confirm with impala_smoke.py
+    user: qzhong
+    database: default
+    auth_mechanism: LDAP
+    # password from $IMPALA_PASSWORD or ~/tokens/workload_password (never in yaml)
+
+workbench:
+  # Cloudera AI Workbench (CML API v2) — auto-retraining job + canary deploy.
+  # Leave host blank for local dev: the retrain workflow falls back to a local
+  # train_model() + simulated canary (like source/caii do). Fill these (or set
+  # $CAI_WORKBENCH_HOST / _PROJECT_ID / _API_KEY) to drive the real Workbench.
+  host: ""                       # e.g. https://ml-xxxx.cloudera.site  (or <workspace-domain>)
+  project_id: ""                 # $CAI_WORKBENCH_PROJECT_ID overrides
+  train_script: 02_backend/ml/train.py   # script the CML Job runs to retrain
+  job_name: aml-retrain
+  model_name: aml-risk-model
+  serving_function: predict      # model-serving entrypoint for the CML deployment
+  runtime_id: ""                 # optional CML runtime identifier
+  canary_traffic_pct: 10.0
+  poll_interval_s: 10            # job-run status poll cadence
+  max_polls: 30                  # ponytail: fixed cap; make async/webhook if runs exceed it
+  # api_key via $CAI_WORKBENCH_API_KEY or /tmp/jwt (never in yaml)
 
 model:
   db_path: data/aml.db
@@ -33,8 +64,3 @@ model:
   test_size: 0.2
   val_size: 0.1
   decision_threshold: 0.5
-
-demo:
-  label_count_preset: 499   # bumps to 500 on first disposition → triggers retrain
-  nightfall_case_id: "CASE-NIGHTFALL-001"
-  auto_replay: false

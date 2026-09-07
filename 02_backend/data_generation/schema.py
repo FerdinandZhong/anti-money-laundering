@@ -76,6 +76,9 @@ CREATE TABLE IF NOT EXISTS cases (
     state TEXT DEFAULT 'ALERT_CREATED',
     assignee TEXT,
     priority TEXT DEFAULT 'MEDIUM',
+    analysis TEXT,
+    analyzed_at TEXT,
+    disposition TEXT,
     created_at TEXT DEFAULT (datetime('now')),
     updated_at TEXT DEFAULT (datetime('now'))
 );
@@ -126,6 +129,32 @@ CREATE TABLE IF NOT EXISTS deployments (
     rolled_back_at TEXT,
     created_at TEXT DEFAULT (datetime('now'))
 );
+
+CREATE TABLE IF NOT EXISTS transaction_scores (
+    transaction_id TEXT PRIMARY KEY,
+    score REAL NOT NULL,
+    model_version TEXT,
+    scored_at TEXT DEFAULT (datetime('now'))
+);
+
+CREATE TABLE IF NOT EXISTS transaction_labels (
+    transaction_id TEXT PRIMARY KEY,
+    label INTEGER NOT NULL,          -- 1 = suspicious, 0 = clean (analyst verdict)
+    case_id TEXT REFERENCES cases(case_id),
+    labeled_by TEXT,
+    created_at TEXT DEFAULT (datetime('now'))
+);
+
+CREATE TABLE IF NOT EXISTS llm_models (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    alias TEXT UNIQUE NOT NULL,
+    provider TEXT NOT NULL,          -- openai | openai_compatible | caii | vllm | ollama
+    model_identifier TEXT NOT NULL,
+    api_base TEXT,
+    api_key TEXT,                    -- ponytail: plaintext for local demo; secret store in prod
+    is_active INTEGER DEFAULT 0,
+    created_at TEXT DEFAULT (datetime('now'))
+);
 """
 
 TABLE_NAMES: list[str] = [
@@ -139,6 +168,9 @@ TABLE_NAMES: list[str] = [
     "annotations",
     "model_runs",
     "deployments",
+    "transaction_scores",
+    "transaction_labels",
+    "llm_models",
 ]
 
 
@@ -151,6 +183,6 @@ if __name__ == "__main__":
     conn = sqlite3.connect(":memory:")
     init_schema(conn)
     tables = conn.execute("SELECT name FROM sqlite_master WHERE type='table'").fetchall()
-    assert len(tables) == 10, f"Expected 10 tables, got {len(tables)}"
+    assert len(tables) == 12, f"Expected 12 tables, got {len(tables)}"
     print(f"Schema OK — {len(tables)} tables created")
     conn.close()

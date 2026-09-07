@@ -1,88 +1,153 @@
 import { useEffect, useState } from 'react'
-import type { Alert } from './api'
+import { Activity, FlaskConical, Circle, Boxes, Inbox } from 'lucide-react'
+import type { Alert, EnvironmentHealth } from './api'
+import { getAlerts, getEnvironmentHealth } from './api'
 import { AlertQueue } from './components/AlertQueue'
 import { CaseWorkbench } from './components/CaseWorkbench'
 import { ModelDashboard } from './components/ModelDashboard'
+import { ModelsView } from './components/ModelsView'
 
-const DEFAULT_ALERT: Alert = {
-  alert_id: 'ALERT-NIGHTFALL-001',
-  case_id: 'CASE-NIGHTFALL-001',
-  customer_id: 'CUST-NIGHTFALL-001',
-  risk_score: 0.91,
-  risk_band: 'CRITICAL',
-  status: 'OPEN',
-  created_at: new Date().toISOString(),
-}
+type Tab = 'investigation' | 'model' | 'models'
 
 export default function App() {
-  const [tab, setTab] = useState<'investigation' | 'model'>('investigation')
-  const [selected, setSelected] = useState<Alert>(DEFAULT_ALERT)
+  const [tab, setTab] = useState<Tab>('investigation')
+  const [selected, setSelected] = useState<Alert | null>(null)
+  const [hasLoaded, setHasLoaded] = useState(false)
+  const [env, setEnv] = useState<EnvironmentHealth | null>(null)
 
-  useEffect(() => { setSelected(DEFAULT_ALERT) }, [])
+  useEffect(() => {
+    getAlerts().then(r => setSelected(r.alerts[0] ?? null)).finally(() => setHasLoaded(true))
+    getEnvironmentHealth().then(setEnv).catch(() => setEnv(null))
+  }, [])
 
   return (
-    <div style={{
-      minHeight: '100vh',
-      background: '#0f1117',
-      fontFamily: "'Inter', 'Segoe UI', sans-serif",
-      color: '#ccc',
-    }}>
-      {/* Top nav */}
-      <div style={{
-        background: '#1a1d27',
-        borderBottom: '1px solid #2a2d3a',
-        padding: '0 24px',
-        display: 'flex',
-        alignItems: 'center',
-      }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginRight: 32, padding: '14px 0' }}>
-          <div style={{
-            width: 28, height: 28, borderRadius: 6,
-            background: '#ff6d00',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            fontWeight: 900, color: '#fff', fontSize: 14,
-          }}>C</div>
-          <span style={{ color: '#fff', fontWeight: 700, fontSize: 15 }}>AML Intelligence Platform</span>
+    <div className="h-screen overflow-hidden flex flex-col bg-surface-0 font-sans">
+
+      {/* ── Cloudera header ── */}
+      <header className="bg-header border-b-[3px] border-accent flex items-center px-6 py-0 shrink-0 h-14">
+        {/* Logo */}
+        <div className="flex items-center gap-3 pr-8 border-r border-white/10">
+          <span className="text-white font-black text-lg tracking-[0.06em] leading-none select-none">
+            CLOUDERA
+          </span>
         </div>
 
-        {[
-          { key: 'investigation', label: 'Dashboard A: Investigation' },
-          { key: 'model', label: 'Dashboard B: Model Health' },
-        ].map(t => (
-          <button
-            key={t.key}
-            onClick={() => setTab(t.key as typeof tab)}
-            style={{
-              background: 'none',
-              border: 'none',
-              borderBottom: tab === t.key ? '2px solid #ff6d00' : '2px solid transparent',
-              color: tab === t.key ? '#fff' : '#888',
-              padding: '16px 20px',
-              cursor: 'pointer',
-              fontWeight: tab === t.key ? 600 : 400,
-              fontSize: 13,
-              transition: 'color 0.15s',
-            }}
-          >
-            {t.label}
-          </button>
-        ))}
-      </div>
+        {/* App name */}
+        <div className="px-6">
+          <p className="text-white font-semibold text-sm leading-tight">AML Investigation Platform</p>
+          <p className="text-white/40 text-2xs leading-tight">
+            Intelligent AML investigation · Cloudera AI Applied ML Prototype
+          </p>
+        </div>
 
+        {/* Spacer */}
+        <div className="flex-1" />
+
+        {/* Status indicators — reflect GET /api/health/environment, not hardcoded */}
+        <div className="flex items-center gap-5 mr-5">
+          <StatusDot label="Backend" ok={env !== null} />
+          <StatusDot label="Model" ok={env?.active_model.reachable ?? false} title={env?.active_model.message} />
+          <StatusDot
+            label={env ? `Source (${env.source_backend})` : 'Source'}
+            ok={env?.source_ok ?? false}
+          />
+        </div>
+
+        {/* Tab buttons */}
+        <div className="flex items-center gap-2">
+          <TabBtn
+            active={tab === 'investigation'}
+            icon={<Activity className="w-3.5 h-3.5" />}
+            label="Investigation"
+            onClick={() => setTab('investigation')}
+          />
+          <TabBtn
+            active={tab === 'model'}
+            icon={<FlaskConical className="w-3.5 h-3.5" />}
+            label="ModelOps"
+            onClick={() => setTab('model')}
+            primary
+          />
+          <TabBtn
+            active={tab === 'models'}
+            icon={<Boxes className="w-3.5 h-3.5" />}
+            label="Models"
+            onClick={() => setTab('models')}
+            primary
+          />
+        </div>
+      </header>
+
+      {/* ── Body ── */}
       {tab === 'investigation' ? (
-        <div style={{
-          display: 'flex',
-          gap: 16,
-          padding: 16,
-          height: 'calc(100vh - 57px)',
-          boxSizing: 'border-box',
-        }}>
-          <AlertQueue selectedAlertId={selected.alert_id} onSelect={setSelected} />
-          <CaseWorkbench caseId={selected.case_id} alertId={selected.alert_id} />
+        hasLoaded && !selected ? (
+          <div className="flex-1 flex items-center justify-center">
+            <div className="text-center">
+              <Inbox className="w-10 h-10 mx-auto mb-3 text-ink-faint" />
+              <p className="text-sm text-ink-muted">No open alerts</p>
+            </div>
+          </div>
+        ) : (
+          <div className="flex flex-1 min-h-0 gap-4 p-5">
+            <AlertQueue selectedAlertId={selected?.alert_id ?? null} onSelect={setSelected} />
+            <CaseWorkbench alertId={selected?.alert_id ?? null} />
+          </div>
+        )
+      ) : tab === 'model' ? (
+        <div className="flex-1 min-h-0 overflow-y-auto">
+          <ModelDashboard />
         </div>
       ) : (
-        <ModelDashboard />
+        <div className="flex-1 min-h-0 overflow-y-auto">
+          <ModelsView />
+        </div>
       )}
     </div>
+  )
+}
+
+function StatusDot({ label, ok, title }: { label: string; ok?: boolean; title?: string }) {
+  return (
+    <div className="flex items-center gap-1.5" title={title}>
+      <Circle
+        className={`w-2 h-2 fill-current ${ok ? 'text-aml-green' : 'text-ink-muted'}`}
+      />
+      <span className="text-white/50 text-xs">{label}</span>
+    </div>
+  )
+}
+
+function TabBtn({
+  active, icon, label, onClick, primary,
+}: {
+  active: boolean; icon: React.ReactNode; label: string;
+  onClick: () => void; primary?: boolean;
+}) {
+  if (primary) {
+    return (
+      <button
+        onClick={onClick}
+        className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-colors
+          ${active
+            ? 'bg-accent text-white'
+            : 'bg-white/10 text-white/70 hover:bg-white/20 hover:text-white'
+          }`}
+      >
+        {icon}{label}
+      </button>
+    )
+  }
+  return (
+    <button
+      onClick={onClick}
+      className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-colors
+        border
+        ${active
+          ? 'border-white/30 bg-white/15 text-white'
+          : 'border-white/10 text-white/50 hover:border-white/20 hover:text-white/80'
+        }`}
+    >
+      {icon}{label}
+    </button>
   )
 }

@@ -1,43 +1,112 @@
-import React, { useRef, useState } from 'react'
-import { disposeCase, investigateCase } from '../api'
+import React, { useEffect, useState } from 'react'
+import { Play, Loader2, CheckCircle2, Settings } from 'lucide-react'
+import { disposeCase, investigateCase, streamSSE, api, getCaiiEndpoints, setLlmProvider } from '../api'
+import type { CaiiEndpoint } from '../api'
+import { PipelineStream, type PipelineItem } from './PipelineStream'
+import type { WorkflowNode } from './WorkflowGraph'
 
 interface Props {
   caseId: string
+  savedAnalysis?: { text: string; at: string }
 }
 
-export const AgentPanel: React.FC<Props> = ({ caseId }) => {
-  const [output, setOutput] = useState('')
+const DISPOSITIONS = [
+  { value: 'SUSPICIOUS',      label: 'Suspicious — File STR',   desc: 'Escalate for SAR/STR filing.' },
+  { value: 'FALSE_POSITIVE',  label: 'False Positive — Close',  desc: 'Alert is not indicative of money laundering.' },
+  { value: 'NEEDS_MORE_INFO', label: 'Needs More Info',          desc: 'Request additional documents or review.' },
+]
+
+// Fixed worker order for the pipeline (matches supervisor dispatch).
+const WORKER_ORDER = ['profile', 'pattern', 'network', 'screening']
+const PHASES = ['COLLECTING', 'ANALYZING', 'REVIEWED']
+
+// Mirrors WORKER_TOOLS in 02_backend/agents/workers.py — tool chips per worker node.
+const WORKER_TOOLS: Record<string, string[]> = {
+  profile:   ['get_alert_detail', 'get_customer_profile'],
+  pattern:   ['get_transaction_history', 'get_model_explanation'],
+  network:   ['get_network_graph', 'get_device_overlap'],
+  screening: ['get_customer_profile'],
+}
+const GRAPH_NODE_ORDER = [...WORKER_ORDER, 'narrate']
+
+interface LlmCfg { provider: string; model: string; available_providers: Record<string, { model: string }> }
+
+export const AgentPanel: React.FC<Props> = ({ caseId, savedAnalysis }) => {
+  const [phase, setPhase] = useState<string | null>(null)
+  const [workers, setWorkers] = useState<Record<string, PipelineItem>>({})
+  const [narrative, setNarrative] = useState('')
   const [running, setRunning] = useState(false)
+  const [err, setErr] = useState('')
+
   const [disposition, setDisposition] = useState('SUSPICIOUS')
   const [notes, setNotes] = useState('')
   const [adjudicator, setAdjudicator] = useState('')
-  const [disposeMsg, setDisposeMsg] = useState('')
-  const termRef = useRef<HTMLDivElement>(null)
+  const [disposeMsg, setDisposeMsg] = useState<{ ok: boolean; text: string } | null>(null)
+  const [llmCfg, setLlmCfg] = useState<LlmCfg | null>(null)
+  const [showLlm, setShowLlm] = useState(false)
+  const [caiiEndpoints, setCaiiEndpoints] = useState<CaiiEndpoint[]>([])
+  const [picked, setPicked] = useState<{ name: string; model: string } | null>(null)
+
+  useEffect(() => {
+    api.get<LlmCfg>('/config/llm').then(r => setLlmCfg(r.data)).catch(() => null)
+  }, [])
+
+  useEffect(() => {
+    if (showLlm && caiiEndpoints.length === 0) {
+      getCaiiEndpoints().then(setCaiiEndpoints).catch(() => null)
+    }
+  }, [showLlm, caiiEndpoints.length])
+
+  const switchProvider = async (provider: string) => {
+    await setLlmProvider({ provider })
+    setPicked(null)
+    const r = await api.get<LlmCfg>('/config/llm')
+    setLlmCfg(r.data)
+    setShowLlm(false)
+  }
+
+  const pickEndpoint = async (ep: CaiiEndpoint) => {
+    await setLlmProvider({ provider: 'caii', base_url: ep.base_url, model: ep.model })
+    setPicked({ name: ep.name, model: ep.model })
+    setShowLlm(false)
+  }
+
+  const handleEvent = (e: Record<string, unknown>) => {
+    switch (e.type) {
+      case 'phase':
+        setPhase(String(e.phase))
+        break
+      case 'worker_start': {
+        const w = String(e.worker)
+        setWorkers(prev => ({ ...prev, [w]: { key: w, label: w, status: 'running', mono: true } }))
+        break
+      }
+      case 'worker_done': {
+        const w = String(e.worker)
+        setWorkers(prev => ({
+          ...prev,
+          [w]: {
+            key: w, label: w, status: 'ok', mono: true,
+            detail: String(e.findings ?? ''),
+            chips: (e.evidence_ids as string[]) ?? [],
+          },
+        }))
+        break
+      }
+      case 'token':
+        setNarrative(prev => prev + String(e.text ?? ''))
+        break
+    }
+  }
 
   const runInvestigation = async () => {
-    setOutput('')
+    setPhase(null); setWorkers({}); setNarrative(''); setErr('')
     setRunning(true)
     try {
       const res = await investigateCase(caseId)
-      if (!res.body) { setRunning(false); return }
-      const reader = res.body.getReader()
-      const dec = new TextDecoder()
-      while (true) {
-        const { done, value } = await reader.read()
-        if (done) break
-        const chunk = dec.decode(value, { stream: true })
-        // handle SSE "data: ..." lines or raw text
-        const lines = chunk.split('\n')
-        for (const line of lines) {
-          const text = line.startsWith('data: ') ? line.slice(6) : line
-          if (text && text !== '[DONE]') {
-            setOutput(prev => prev + text + (line.startsWith('data: ') ? '\n' : ''))
-          }
-        }
-        if (termRef.current) termRef.current.scrollTop = termRef.current.scrollHeight
-      }
+      await streamSSE(res, handleEvent)
     } catch {
-      setOutput('[Error: backend not reachable. Start the API server on port 8000.]')
+      setErr('Backend not reachable — start the API server and try again.')
     }
     setRunning(false)
   }
@@ -45,126 +114,211 @@ export const AgentPanel: React.FC<Props> = ({ caseId }) => {
   const handleDispose = async () => {
     try {
       await disposeCase(caseId, { disposition, notes, adjudicator })
-      setDisposeMsg(`Case disposed as ${disposition}. Annotation recorded.`)
+      setDisposeMsg({ ok: true, text: `Decision recorded: ${disposition}. Case closed.` })
     } catch {
-      setDisposeMsg('[Error: dispose failed — check backend]')
+      setDisposeMsg({ ok: false, text: 'Submit failed — check that the backend is running.' })
     }
   }
 
+  const items = WORKER_ORDER.filter(w => workers[w]).map(w => workers[w])
+
+  // Live DAG nodes: 4 workers + a final "narrate" node for the streamed narrative.
+  const graphNodes: WorkflowNode[] = running || items.length > 0 || narrative
+    ? GRAPH_NODE_ORDER.map(id => {
+        if (id === 'narrate') {
+          const status: WorkflowNode['status'] =
+            narrative ? (running ? 'running' : 'completed') : running && items.length === WORKER_ORDER.length ? 'running' : 'pending'
+          return { id, label: 'narrate', status, llmCalls: 1 }
+        }
+        const w = workers[id]
+        const status: WorkflowNode['status'] = !w
+          ? 'pending'
+          : w.status === 'running'
+          ? 'running'
+          : (w.detail ?? '').startsWith('Error:')
+          ? 'error'
+          : 'completed'
+        return { id, label: id, status, llmCalls: 1, tools: (WORKER_TOOLS[id] ?? []).map(name => ({ name })) }
+      })
+    : []
+
   return (
-    <div style={{ marginTop: 20 }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12 }}>
-        <h3 style={{ color: '#fff', margin: 0, fontSize: 15 }}>Agent Investigation</h3>
-        <button
-          onClick={runInvestigation}
-          disabled={running}
-          style={{
-            background: running ? '#444' : '#ff6d00',
-            color: '#fff',
-            border: 'none',
-            borderRadius: 5,
-            padding: '6px 16px',
-            cursor: running ? 'not-allowed' : 'pointer',
-            fontWeight: 600,
-            fontSize: 13,
-          }}
-        >
-          {running ? 'Investigating…' : 'Run AI Investigation'}
-        </button>
+    <div className="space-y-5">
+      {/* Section header + LLM badge */}
+      <div className="flex items-start justify-between">
+        <div>
+          <div className="w-8 h-0.5 bg-accent mb-2" />
+          <h3 className="text-sm font-bold text-ink tracking-tight">AI Investigation</h3>
+          <p className="text-xs text-ink-muted mt-0.5">
+            4 specialist workers investigate in parallel, then compose a narrative
+          </p>
+        </div>
+        {llmCfg && (
+          <div className="relative">
+            <button
+              onClick={() => setShowLlm(v => !v)}
+              className="flex items-center gap-1 text-2xs text-ink-muted bg-surface-2
+                         px-2 py-1 rounded-lg hover:text-accent transition-colors"
+            >
+              <Settings className="w-3 h-3" />
+              {picked ? `caii · ${picked.name}` : `${llmCfg.provider} · ${llmCfg.model}`}
+            </button>
+            {showLlm && (
+              <div className="absolute right-0 top-7 z-10 bg-surface-1 rounded-lg shadow-soft p-2 min-w-[180px]">
+                <p className="text-2xs text-ink-faint uppercase tracking-wider px-2 pb-1">Switch provider</p>
+                {Object.entries(llmCfg.available_providers).map(([p, info]) => (
+                  <button
+                    key={p}
+                    onClick={() => switchProvider(p)}
+                    className={`w-full text-left px-2 py-1.5 rounded-lg text-xs transition-colors
+                      ${p === llmCfg.provider && !picked ? 'bg-accent/10 text-accent font-semibold' : 'hover:bg-surface-2 text-ink-muted'}`}
+                  >
+                    {p} <span className="text-ink-faint">· {info.model}</span>
+                  </button>
+                ))}
+                {caiiEndpoints.length > 0 && (
+                  <>
+                    <p className="text-2xs text-ink-faint uppercase tracking-wider px-2 pt-2 pb-1 mt-1">
+                      Live CAII endpoints
+                    </p>
+                    {caiiEndpoints.map(ep => (
+                      <button
+                        key={ep.name}
+                        onClick={() => pickEndpoint(ep)}
+                        className={`w-full text-left px-2 py-1.5 rounded-lg text-xs transition-colors
+                          ${picked?.name === ep.name ? 'bg-accent/10 text-accent font-semibold' : 'hover:bg-surface-2 text-ink-muted'}`}
+                      >
+                        {ep.name} <span className="text-ink-faint">· {ep.model || 'model?'}</span>
+                      </button>
+                    ))}
+                  </>
+                )}
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
-      <div
-        ref={termRef}
-        style={{
-          background: '#0a0c14',
-          border: '1px solid #2a2d3a',
-          borderRadius: 6,
-          padding: 16,
-          minHeight: 140,
-          maxHeight: 320,
-          overflowY: 'auto',
-          fontFamily: 'monospace',
-          fontSize: 13,
-          color: '#00e676',
-          whiteSpace: 'pre-wrap',
-          lineHeight: 1.6,
-        }}
+      {/* Run button */}
+      <button
+        onClick={runInvestigation}
+        disabled={running}
+        className={`flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-semibold transition-colors w-full justify-center
+          ${running
+            ? 'bg-surface-3 text-ink-faint cursor-not-allowed'
+            : 'bg-accent text-white hover:bg-accent-dim'
+          }`}
       >
-        {output || <span style={{ color: '#555' }}>// Click "Run AI Investigation" to start streaming analysis…</span>}
-      </div>
+        {running
+          ? <><Loader2 className="w-4 h-4 animate-spin" />Investigating…</>
+          : <><Play className="w-4 h-4" />Run inference</>
+        }
+      </button>
+
+      {/* Structured stream — saved analysis takes the idle slot until a fresh run starts */}
+      {!running && !narrative && savedAnalysis ? (
+        <div className="border-l-2 border-accent/60 pl-4">
+          <div className="bg-surface-1 rounded-lg shadow-soft p-4">
+            <p className="text-2xs uppercase tracking-wider text-ink-faint mb-1.5">
+              Saved analysis{savedAnalysis.at ? ` · ${new Date(savedAnalysis.at).toLocaleString()}` : ''}
+            </p>
+            <p className="text-xs text-ink leading-relaxed whitespace-pre-wrap">{savedAnalysis.text}</p>
+          </div>
+        </div>
+      ) : (
+        <PipelineStream
+          phases={PHASES}
+          activePhase={phase}
+          items={items}
+          narrative={narrative}
+          narrativeTitle="Analyst narrative"
+          running={running}
+          idle={'// Run inference to stream the agent analysis…'}
+          graphNodes={graphNodes}
+        />
+      )}
+      {err && (
+        <p className="text-xs text-aml-red bg-aml-red/5 px-3 py-2 rounded-lg">{err}</p>
+      )}
 
       {/* Dispose form */}
-      <div style={{ marginTop: 20, background: '#1a1d27', borderRadius: 6, padding: 16 }}>
-        <h4 style={{ color: '#fff', margin: '0 0 12px', fontSize: 14 }}>Dispose Case</h4>
-        <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' as const, alignItems: 'flex-end' }}>
-          <div>
-            <label style={labelStyle}>Disposition</label>
-            <select
-              value={disposition}
-              onChange={e => setDisposition(e.target.value)}
-              style={inputStyle}
+      <div className="rounded-lg p-5 bg-surface-2">
+        <div className="mb-3">
+          <div className="w-8 h-0.5 bg-accent mb-2" />
+          <h4 className="text-sm font-bold text-ink tracking-tight">Record Decision</h4>
+          <p className="text-xs text-ink-muted mt-0.5">
+            After reviewing the agent report, select an outcome and submit to close the case.
+          </p>
+        </div>
+
+        {/* Disposition picker — radio-style cards */}
+        <div className="space-y-1.5 mb-3">
+          {DISPOSITIONS.map(d => (
+            <label
+              key={d.value}
+              className={`flex items-start gap-2.5 p-2.5 rounded-lg border cursor-pointer transition-colors
+                ${disposition === d.value
+                  ? 'border-accent bg-accent/5'
+                  : 'border-surface-3 bg-surface-1 hover:border-surface-4'}`}
             >
-              <option value="SUSPICIOUS">SUSPICIOUS</option>
-              <option value="FALSE_POSITIVE">FALSE_POSITIVE</option>
-              <option value="NEEDS_MORE_INFO">NEEDS_MORE_INFO</option>
-            </select>
-          </div>
-          <div style={{ flex: 1, minWidth: 160 }}>
-            <label style={labelStyle}>Notes</label>
-            <textarea
-              value={notes}
-              onChange={e => setNotes(e.target.value)}
-              rows={2}
-              style={{ ...inputStyle, resize: 'vertical' as const, width: '100%' }}
-              placeholder="Investigation notes…"
-            />
-          </div>
-          <div>
-            <label style={labelStyle}>Adjudicator</label>
+              <input
+                type="radio"
+                name="disposition"
+                value={d.value}
+                checked={disposition === d.value}
+                onChange={() => setDisposition(d.value)}
+                className="mt-0.5 accent-accent"
+              />
+              <div>
+                <p className="text-xs font-semibold text-ink">{d.label}</p>
+                <p className="text-2xs text-ink-muted">{d.desc}</p>
+              </div>
+            </label>
+          ))}
+        </div>
+
+        <div className="flex gap-2 mb-3">
+          <div className="space-y-1 flex-1">
+            <label className="text-2xs text-ink-muted uppercase tracking-wider">Analyst ID</label>
             <input
               value={adjudicator}
               onChange={e => setAdjudicator(e.target.value)}
-              style={inputStyle}
-              placeholder="analyst_id"
+              placeholder="e.g. jsmith"
+              className="w-full bg-surface-1 border border-surface-3 rounded-lg text-xs text-ink
+                         px-3 py-2 outline-none focus:border-accent placeholder-ink-faint"
             />
           </div>
-          <button
-            onClick={handleDispose}
-            style={{
-              background: '#00c853',
-              color: '#fff',
-              border: 'none',
-              borderRadius: 5,
-              padding: '8px 18px',
-              cursor: 'pointer',
-              fontWeight: 600,
-              fontSize: 13,
-              height: 36,
-            }}
-          >
-            Submit
-          </button>
+          <div className="space-y-1 flex-[2]">
+            <label className="text-2xs text-ink-muted uppercase tracking-wider">Notes</label>
+            <input
+              value={notes}
+              onChange={e => setNotes(e.target.value)}
+              placeholder="Brief rationale for this decision…"
+              className="w-full bg-surface-1 border border-surface-3 rounded-lg text-xs text-ink
+                         px-3 py-2 outline-none focus:border-accent placeholder-ink-faint"
+            />
+          </div>
         </div>
+
+        <button
+          onClick={handleDispose}
+          className="flex items-center gap-1.5 px-4 py-2 bg-accent text-white
+                     text-xs font-semibold rounded-lg hover:bg-accent-dim transition-colors w-full justify-center"
+        >
+          <CheckCircle2 className="w-3.5 h-3.5" />
+          Submit Decision
+        </button>
+
         {disposeMsg && (
-          <div style={{ marginTop: 10, color: '#00c853', fontSize: 13 }}>{disposeMsg}</div>
+          <p className={`mt-3 text-xs px-3 py-2 rounded-lg ${
+            disposeMsg.ok
+              ? 'text-aml-green-dim bg-aml-green/10'
+              : 'text-aml-red-dim bg-aml-red/10'
+          }`}>
+            {disposeMsg.text}
+          </p>
         )}
       </div>
     </div>
   )
-}
-
-const labelStyle: React.CSSProperties = {
-  display: 'block',
-  color: '#888',
-  fontSize: 11,
-  marginBottom: 4,
-}
-
-const inputStyle: React.CSSProperties = {
-  background: '#0f1117',
-  border: '1px solid #2a2d3a',
-  borderRadius: 4,
-  color: '#fff',
-  padding: '6px 10px',
-  fontSize: 13,
 }

@@ -84,7 +84,7 @@ def serve_production():
     import httpx
     from fastapi import FastAPI, Request
     from fastapi.staticfiles import StaticFiles
-    from fastapi.responses import FileResponse, Response, JSONResponse
+    from fastapi.responses import FileResponse, Response, JSONResponse, StreamingResponse
 
     app = FastAPI(title="AML Investigation Platform")
 
@@ -92,7 +92,15 @@ def serve_production():
     backend_url = f"http://127.0.0.1:{backend_port}"
     _start_backend(backend_port)
 
-    client = httpx.AsyncClient(base_url=backend_url, timeout=120.0, follow_redirects=True)
+    # read=None: the /investigate and /model/retrain/stream endpoints are long-lived
+    # SSE streams; a fixed read timeout would cut them off mid-run.
+    client = httpx.AsyncClient(
+        base_url=backend_url, follow_redirects=True,
+        timeout=httpx.Timeout(connect=10.0, read=None, write=None, pool=10.0),
+    )
+
+    _HOP_BY_HOP = {"content-length", "transfer-encoding", "connection",
+                   "keep-alive", "content-encoding", "upgrade"}
 
     @app.api_route("/api/{path:path}", methods=["GET", "POST", "PUT", "DELETE", "PATCH"])
     async def proxy_api(path: str, request: Request):
@@ -102,13 +110,24 @@ def serve_production():
         body = await request.body()
         headers = {k: v for k, v in request.headers.items()
                    if k.lower() not in ("host", "content-length")}
-        resp = await client.request(request.method, url, content=body, headers=headers)
-        _hop_by_hop = {"content-length", "transfer-encoding", "connection",
-                       "keep-alive", "content-encoding", "upgrade"}
+        # Stream the upstream response through so SSE (chunked, long-lived) works
+        # and never gets buffered — buffering broke with RemoteProtocolError.
+        req = client.build_request(request.method, url, content=body, headers=headers)
+        resp = await client.send(req, stream=True)
         response_headers = {k: v for k, v in resp.headers.items()
-                            if k.lower() not in _hop_by_hop}
-        return Response(content=resp.content, status_code=resp.status_code,
-                        headers=response_headers)
+                            if k.lower() not in _HOP_BY_HOP}
+
+        async def _stream():
+            try:
+                async for chunk in resp.aiter_raw():
+                    yield chunk
+            finally:
+                await resp.aclose()
+
+        return StreamingResponse(
+            _stream(), status_code=resp.status_code, headers=response_headers,
+            media_type=resp.headers.get("content-type"),
+        )
 
     @app.get("/api/health-proxy")
     async def health_proxy():
@@ -121,12 +140,18 @@ def serve_production():
 
     dist_root = os.path.realpath(DIST_DIR)
 
+    # index.html has no content hash in its URL, so browsers must always
+    # revalidate it — otherwise a stale cached copy (with old asset hashes)
+    # can be served indefinitely across normal reloads. /assets/* is safe to
+    # cache aggressively since its filenames are content-hashed by Vite.
+    _no_cache_headers = {"Cache-Control": "no-cache, must-revalidate"}
+
     @app.get("/{full_path:path}")
     async def serve_react(full_path: str):
         file_path = os.path.realpath(os.path.join(dist_root, full_path))
         if file_path.startswith(dist_root + os.sep) and os.path.isfile(file_path):
             return FileResponse(file_path)
-        return FileResponse(os.path.join(dist_root, "index.html"))
+        return FileResponse(os.path.join(dist_root, "index.html"), headers=_no_cache_headers)
 
     host = "127.0.0.1" if os.path.expanduser("~") == "/home/cdsw" else "0.0.0.0"
     print(f"Serving production build on {host}:{port}")

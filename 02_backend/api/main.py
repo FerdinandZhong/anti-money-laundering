@@ -72,6 +72,15 @@ def list_alerts(
     return {"alerts": [dict(r) for r in rows], "total": total}
 
 
+@app.get("/api/alerts/counts")
+def alert_counts(conn=Depends(get_db)):
+    rows = conn.execute("SELECT status, COUNT(*) AS n FROM alerts GROUP BY status").fetchall()
+    counts = {"OPEN": 0, "PROPOSED": 0, "PENDING": 0, "CLOSED": 0}
+    for r in rows:
+        counts[r["status"]] = r["n"]
+    return {"counts": counts}
+
+
 @app.get("/api/alerts/{alert_id}")
 def get_alert(alert_id: str, conn=Depends(get_db)):
     alert = conn.execute("SELECT * FROM alerts WHERE alert_id = ?", (alert_id,)).fetchone()

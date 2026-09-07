@@ -1,7 +1,0 @@
-{
-  "tool_name": "Bash",
-  "tool_input_preview": "{\"command\":\"python -c \\\"\\nimport sys\\nsys.path.insert(0, '02_backend')\\nfrom common.db import get_connection, init_db\\nfrom common.config import get_config\\nfrom common.evidence import create_evidence...",
-  "error": "Exit code 1\nTraceback (most recent call last):\n  File \"<string>\", line 8, in <module>\n    from ml.scorer import score_transaction\nImportError: cannot import name 'score_transaction' from 'ml.scorer' (/Users/zhongqishuai/Projects/cldr_projects/anti_money_laundry_blueprint/02_backend/ml/scorer.py)",
-  "timestamp": "2026-08-31T08:54:13.123Z",
-  "retry_count": 1
-}

@@ -4,6 +4,8 @@ import os
 PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 sys.path.insert(0, os.path.join(PROJECT_ROOT, "02_backend"))
 
+import json
+import sqlite3
 import threading
 from datetime import datetime, timezone
 from uuid import uuid4
@@ -14,9 +16,11 @@ from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 
 from common.db import get_connection
-from agents.investigator import run_investigation
+from common import source
+from agents.supervisor import run_investigation
+from agents import llm_client
 from ml.drift_monitor import get_drift_summary
-from ml.train import train_model
+from agents.retraining import run_retraining
 
 app = FastAPI(title="AML Investigation Platform")
 
@@ -38,10 +42,24 @@ def get_db():
 
 # ── Dashboard A: Alert Queue & Investigation ──────────────────────────────────
 
+_ALERT_SORTS = {
+    "risk_score": "risk_score DESC",
+    "newest": "created_at DESC",
+    "oldest": "created_at ASC",
+}
+
+
 @app.get("/api/alerts")
-def list_alerts(status: str = "OPEN", limit: int = 20, offset: int = 0, conn=Depends(get_db)):
+def list_alerts(
+    status: str = "OPEN",
+    limit: int = 20,
+    offset: int = 0,
+    sort: str = "risk_score",
+    conn=Depends(get_db),
+):
+    order_by = _ALERT_SORTS.get(sort, _ALERT_SORTS["risk_score"])
     rows = conn.execute(
-        "SELECT * FROM alerts WHERE status = ? ORDER BY created_at DESC LIMIT ? OFFSET ?",
+        f"SELECT * FROM alerts WHERE status = ? ORDER BY {order_by} LIMIT ? OFFSET ?",
         (status, limit, offset),
     ).fetchall()
     total = conn.execute("SELECT COUNT(*) FROM alerts WHERE status = ?", (status,)).fetchone()[0]
@@ -57,31 +75,106 @@ def get_alert(alert_id: str, conn=Depends(get_db)):
     return {"alert": dict(alert), "case": dict(case) if case else None}
 
 
-@app.get("/api/cases/{case_id}")
-def get_case(case_id: str, conn=Depends(get_db)):
-    case = conn.execute("SELECT * FROM cases WHERE case_id = ?", (case_id,)).fetchone()
-    if not case:
-        raise HTTPException(404, "Case not found")
+def _json_list(raw) -> list:
+    try:
+        v = json.loads(raw) if raw else []
+        return v if isinstance(v, list) else []
+    except (json.JSONDecodeError, TypeError):
+        return []
+
+
+def _json_obj(raw) -> dict:
+    try:
+        v = json.loads(raw) if raw else {}
+        return v if isinstance(v, dict) else {}
+    except (json.JSONDecodeError, TypeError):
+        return {}
+
+
+@app.get("/api/alerts/{alert_id}/detail")
+def get_alert_detail(alert_id: str, conn=Depends(get_db)):
+    """Flat, alert-driven case detail. Creates the case on first open so the
+    investigate/dispose endpoints (which key off cases) work for any alert."""
+    alert = conn.execute("SELECT * FROM alerts WHERE alert_id = ?", (alert_id,)).fetchone()
+    if not alert:
+        raise HTTPException(404, "Alert not found")
+    alert = dict(alert)
+
+    # Find or create the case for this alert (on-open case creation).
+    case = conn.execute("SELECT * FROM cases WHERE alert_id = ?", (alert_id,)).fetchone()
+    if case is None:
+        case_id = "CASE-" + alert_id.replace("ALERT-", "", 1)
+        now = datetime.now(timezone.utc).isoformat()
+        conn.execute(
+            "INSERT OR IGNORE INTO cases (case_id, alert_id, customer_id, state, priority, created_at, updated_at) "
+            "VALUES (?, ?, ?, 'ALERT_CREATED', ?, ?, ?)",
+            (case_id, alert_id, alert["customer_id"], alert.get("risk_band") or "MEDIUM", now, now),
+        )
+        conn.commit()
+        case = conn.execute("SELECT * FROM cases WHERE case_id = ?", (case_id,)).fetchone()
     case = dict(case)
+    case_id = case["case_id"]
 
-    alert = conn.execute("SELECT * FROM alerts WHERE alert_id = ?", (case["alert_id"],)).fetchone()
-    customer = conn.execute("SELECT * FROM customers WHERE customer_id = ?", (case["customer_id"],)).fetchone()
+    # Source (reference) data comes from the source layer (Impala/CSV), not SQLite.
+    customer = source.get_customer(alert["customer_id"]) or {}
 
-    # Recent 20 transactions for this customer's accounts
-    txns = conn.execute(
-        """SELECT t.* FROM transactions t
-           JOIN accounts a ON t.from_account_id = a.account_id
-           JOIN customers c ON a.customer_id = c.customer_id
-           WHERE c.customer_id = ?
-           ORDER BY t.event_time DESC LIMIT 20""",
-        (case["customer_id"],),
-    ).fetchall()
+    customer_txns = source.customer_transactions(alert["customer_id"], limit=20)
+    tx_ids = [t.get("transaction_id") for t in customer_txns if t.get("transaction_id")]
+    tx_scores = {}
+    tx_labels = {}
+    if tx_ids:
+        placeholders = ",".join("?" * len(tx_ids))
+        tx_scores = {
+            r["transaction_id"]: r["score"]
+            for r in conn.execute(
+                f"SELECT transaction_id, score FROM transaction_scores WHERE transaction_id IN ({placeholders})",
+                tx_ids,
+            ).fetchall()
+        }
+        # analyst per-transaction labels (ML training signal); None if unlabeled
+        tx_labels = {
+            r["transaction_id"]: r["label"]
+            for r in conn.execute(
+                f"SELECT transaction_id, label FROM transaction_labels WHERE transaction_id IN ({placeholders})",
+                tx_ids,
+            ).fetchall()
+        }
+
+    transactions = [
+        {
+            "transaction_id": t.get("transaction_id"),
+            "event_time": t.get("event_time"),
+            "direction": t.get("direction"),
+            "amount": t.get("amount"),
+            "channel": t.get("channel"),
+            "counterparty_name": t.get("counterparty_name"),
+            "counterparty_country": t.get("counterparty_country"),
+            "typology": t.get("typology"),
+            "is_suspicious": t.get("is_suspicious"),
+            "score": tx_scores.get(t.get("transaction_id")),
+            "label": tx_labels.get(t.get("transaction_id")),
+        }
+        for t in customer_txns
+    ]
 
     return {
-        "case": case,
-        "alert": dict(alert) if alert else None,
-        "customer": dict(customer) if customer else None,
-        "transactions": [dict(t) for t in txns],
+        "case_id": case_id,
+        "alert_id": alert_id,
+        "customer_id": alert["customer_id"],
+        "customer_name": customer.get("name", alert["customer_id"]),
+        "customer_kyc_rating": customer.get("risk_rating", "MEDIUM"),
+        "risk_score": alert.get("risk_score", 0.0),
+        "risk_band": alert.get("risk_band", "MEDIUM"),
+        "triggered_rules": _json_list(alert.get("triggered_rules")),
+        "reason_codes": _json_list(alert.get("reason_codes")),
+        "top_features": _json_obj(alert.get("top_features")),
+        "model_version": alert.get("model_version"),
+        "account_age_days": customer.get("account_age_days", 0),
+        "expected_monthly_turnover": customer.get("expected_monthly_turnover", 0),
+        "transactions": transactions,
+        "analysis": case.get("analysis"),
+        "analyzed_at": case.get("analyzed_at"),
+        "disposition": case.get("disposition"),
     }
 
 
@@ -91,19 +184,40 @@ class InvestigateBody(BaseModel):
 
 @app.post("/api/cases/{case_id}/investigate")
 def investigate_case(case_id: str, body: InvestigateBody, conn=Depends(get_db)):
-    case = conn.execute("SELECT 1 FROM cases WHERE case_id = ?", (case_id,)).fetchone()
+    case = conn.execute("SELECT * FROM cases WHERE case_id = ?", (case_id,)).fetchone()
     if not case:
         raise HTTPException(404, "Case not found")
+    case = dict(case)
 
-    result = run_investigation(case_id, conn, stream=body.stream)
+    alert_id    = case["alert_id"]
+    customer_id = case["customer_id"]
 
-    if body.stream:
-        def event_stream():
-            for token in result:
-                yield f"data: {token}\n\n"
-        return StreamingResponse(event_stream(), media_type="text/event-stream")
+    # first account for this customer (needed by tx/network tools)
+    accounts   = source.get_accounts(customer_id)
+    account_id = accounts[0]["account_id"] if accounts else customer_id
 
-    return {"report": result}
+    def event_stream():
+        narrative_parts: list[str] = []
+        findings_parts: list[str] = []
+        for evt in run_investigation(case_id, alert_id, customer_id, account_id):
+            if evt.get("type") == "token":
+                narrative_parts.append(evt.get("text", ""))
+            elif evt.get("type") == "worker_done":
+                findings_parts.append(f"[{evt.get('worker', '').upper()}]\n{evt.get('findings', '')}")
+            elif evt.get("type") == "done":
+                analysis = ("\n\n".join(findings_parts) + "\n\n" + "".join(narrative_parts)).strip()
+                write_conn = get_connection()
+                try:
+                    write_conn.execute(
+                        "UPDATE cases SET analysis = ?, analyzed_at = ? WHERE case_id = ?",
+                        (analysis, datetime.now(timezone.utc).isoformat(), case_id),
+                    )
+                    write_conn.commit()
+                finally:
+                    write_conn.close()
+            yield f"data: {json.dumps(evt)}\n\n"
+
+    return StreamingResponse(event_stream(), media_type="text/event-stream")
 
 
 class DisposeBody(BaseModel):
@@ -126,27 +240,60 @@ def dispose_case(case_id: str, body: DisposeBody, conn=Depends(get_db)):
         (annotation_id, case_id, body.disposition, body.notes, body.adjudicator),
     )
     conn.execute(
-        "UPDATE cases SET state = 'CLOSED', updated_at = ? WHERE case_id = ?",
-        (datetime.now(timezone.utc).isoformat(), case_id),
+        "UPDATE cases SET state = 'CLOSED', disposition = ?, updated_at = ? WHERE case_id = ?",
+        (body.disposition, datetime.now(timezone.utc).isoformat(), case_id),
     )
     conn.commit()
-
-    total_annotations = conn.execute("SELECT COUNT(*) FROM annotations").fetchone()[0]
-    if total_annotations >= 500:
-        t = threading.Thread(target=_bg_retrain, daemon=True)
-        t.start()
 
     return {"ok": True, "annotation_id": annotation_id}
 
 
-def _bg_retrain():
-    conn = get_connection()
+def _bg_retrain(triggered_by: str = "threshold"):
+    """Drain the retraining agent workflow in a daemon thread (non-streaming).
+    The workflow opens its own DB connection and handles the local fallback."""
     try:
-        train_model(conn)
+        for evt in run_retraining(triggered_by):
+            if evt.get("type") != "token":
+                print(f"[retrain] {evt}")
     except Exception as e:
         print(f"[bg retrain] error: {e}")
-    finally:
-        conn.close()
+
+
+class TxLabel(BaseModel):
+    transaction_id: str
+    label: int | None = None  # 1=suspicious, 0=clean, None=unset (delete)
+
+
+class TxLabelsBody(BaseModel):
+    labels: list[TxLabel]
+    labeled_by: str = ""
+
+
+@app.post("/api/cases/{case_id}/transaction-labels")
+def set_transaction_labels(case_id: str, body: TxLabelsBody, conn=Depends(get_db)):
+    """Upsert analyst per-transaction labels (the ML training signal). label=None
+    clears a previously-set label. Account-level disposition is separate (dispose)."""
+    case = conn.execute("SELECT 1 FROM cases WHERE case_id = ?", (case_id,)).fetchone()
+    if not case:
+        raise HTTPException(404, "Case not found")
+
+    upserts = 0
+    deletes = 0
+    for item in body.labels:
+        if item.label is None:
+            conn.execute("DELETE FROM transaction_labels WHERE transaction_id = ?", (item.transaction_id,))
+            deletes += 1
+        else:
+            if item.label not in (0, 1):
+                raise HTTPException(400, f"Invalid label {item.label}; must be 0 or 1")
+            conn.execute(
+                "INSERT OR REPLACE INTO transaction_labels (transaction_id, label, case_id, labeled_by) "
+                "VALUES (?, ?, ?, ?)",
+                (item.transaction_id, item.label, case_id, body.labeled_by),
+            )
+            upserts += 1
+    conn.commit()
+    return {"ok": True, "labeled": upserts, "cleared": deletes}
 
 
 @app.get("/api/cases/{case_id}/evidence")
@@ -178,14 +325,32 @@ def model_deployments(conn=Depends(get_db)):
 
 @app.get("/api/model/drift")
 def model_drift(conn=Depends(get_db)):
-    return get_drift_summary(conn)
+    # get_drift_summary → {feat: {psi, drift_detected, threshold}}; reshape to the
+    # typed DriftResult contract the frontend expects ({features:[...], computed_at}).
+    summary = get_drift_summary(conn)
+    features = [{"feature": k, "psi": (v.get("psi", 0.0) if isinstance(v, dict) else v)}
+                for k, v in summary.items()]
+    return {"features": features, "computed_at": datetime.now(timezone.utc).isoformat()}
 
 
 @app.post("/api/model/retrain")
-def retrain(conn=Depends(get_db)):  # conn needed to satisfy lifespan; thread opens its own
-    t = threading.Thread(target=_bg_retrain, daemon=True)
+def retrain():
+    """Fire-and-forget: run the retrain → canary → promote workflow in a thread."""
+    t = threading.Thread(target=_bg_retrain, args=("manual",), daemon=True)
     t.start()
     return {"ok": True, "message": "Training started"}
+
+
+@app.post("/api/model/retrain/stream")
+def retrain_stream():
+    """Same workflow, streamed as SSE so Dashboard B can show live
+    create-job → run → canary → promote progress. run_retraining opens its own
+    DB connection, so no get_db dependency here (it would close mid-stream)."""
+    def event_stream():
+        for evt in run_retraining("manual"):
+            yield f"data: {json.dumps(evt)}\n\n"
+
+    return StreamingResponse(event_stream(), media_type="text/event-stream")
 
 
 @app.get("/api/stats")
@@ -195,14 +360,197 @@ def stats(conn=Depends(get_db)):
     critical_alerts = conn.execute("SELECT COUNT(*) FROM alerts WHERE risk_band = 'CRITICAL'").fetchone()[0]
     total_cases = conn.execute("SELECT COUNT(*) FROM cases").fetchone()[0]
     total_annotations = conn.execute("SELECT COUNT(*) FROM annotations").fetchone()[0]
+    human_labelled = conn.execute("SELECT COUNT(*) FROM transaction_labels").fetchone()[0]
     return {
         "total_alerts": total_alerts,
         "open_alerts": open_alerts,
         "critical_alerts": critical_alerts,
         "total_cases": total_cases,
         "total_annotations": total_annotations,
-        "annotations_to_retrain": max(0, 500 - total_annotations),
+        "suspicious_labelled": source.count_suspicious(),
+        "human_labelled": human_labelled,
+        "total_labelled": source.count_transactions(),
     }
+
+
+@app.get("/api/model/score-histogram")
+def score_histogram(conn=Depends(get_db)):
+    rows = conn.execute("SELECT score FROM transaction_scores").fetchall()
+    buckets = [0] * 10
+    for r in rows:
+        idx = min(int(r["score"] * 10), 9)
+        buckets[max(idx, 0)] += 1
+    return {
+        "bins": [
+            {"bucket": f"{i/10:.1f}–{(i+1)/10:.1f}", "count": buckets[i]}
+            for i in range(10)
+        ]
+    }
+
+
+@app.get("/api/model/alert-bands")
+def alert_bands(conn=Depends(get_db)):
+    rows = conn.execute(
+        "SELECT risk_band, COUNT(*) AS n FROM alerts GROUP BY risk_band"
+    ).fetchall()
+    counts = {r["risk_band"]: r["n"] for r in rows}
+    order = ["CRITICAL", "HIGH", "MEDIUM", "LOW"]
+    return {"bands": [{"band": b, "count": counts[b]} for b in order if b in counts]}
+
+
+# ── LLM config ───────────────────────────────────────────────────────────────
+
+@app.get("/api/config/llm")
+def get_llm_config(conn=Depends(get_db)):
+    from common.config import get_config
+    cfg = get_config()["llm"]
+    from agents.llm_client import _provider_override
+    providers = [k for k in cfg if isinstance(cfg[k], dict)]
+    # A registered model (Models view) is the source of truth when one is active.
+    active = conn.execute(
+        "SELECT alias, model_identifier FROM llm_models WHERE is_active=1 LIMIT 1"
+    ).fetchone()
+    if active:
+        provider, model, endpoint = active["alias"], active["model_identifier"], ""
+    else:
+        provider = _provider_override or cfg.get("provider", "caii")
+        pcfg = cfg.get(provider, {})
+        model, endpoint = pcfg.get("model", ""), pcfg.get("endpoint", "")
+    return {
+        "provider": provider,
+        "model": model,
+        "endpoint": endpoint,
+        "available_providers": {
+            p: {"model": cfg[p].get("model", ""), "endpoint": cfg[p].get("endpoint", "")}
+            for p in providers
+        },
+    }
+
+
+@app.get("/api/config/llm/caii-endpoints")
+def caii_endpoints():
+    """Live CAII inference endpoints discovered from the workspace (empty locally)."""
+    from common.caii import list_caii_endpoints
+    return {"endpoints": list_caii_endpoints()}
+
+
+class LlmProviderBody(BaseModel):
+    provider: str
+    base_url: str | None = None   # optional: pin a specific CAII endpoint
+    model: str | None = None
+
+
+@app.post("/api/config/llm")
+def set_llm_config(body: LlmProviderBody):
+    from common.config import get_config
+    cfg = get_config()["llm"]
+    if body.provider not in cfg or not isinstance(cfg[body.provider], dict):
+        raise HTTPException(400, f"Unknown provider: {body.provider}")
+    llm_client.set_provider(body.provider)
+    if body.base_url and body.model:
+        llm_client.set_endpoint(body.base_url, body.model)
+        return {"ok": True, "provider": body.provider, "model": body.model, "endpoint": body.base_url}
+    return {"ok": True, "provider": body.provider, "model": cfg[body.provider].get("model", "")}
+
+
+# ── Registered LLM models (Models view) ───────────────────────────────────────
+
+class RegisterModelBody(BaseModel):
+    alias: str
+    provider: str                       # openai | openai_compatible | caii | vllm | ollama
+    model_identifier: str
+    api_base: str | None = None
+    api_key: str | None = None
+
+
+def _mask_key(k: str | None) -> str:
+    if not k:
+        return ""
+    return ("••••" + k[-4:]) if len(k) > 4 else "••••"
+
+
+@app.get("/api/config/llm/models")
+def list_llm_models(conn=Depends(get_db)):
+    rows = conn.execute(
+        "SELECT id, alias, provider, model_identifier, api_base, api_key, is_active "
+        "FROM llm_models ORDER BY created_at DESC"
+    ).fetchall()
+    return {"models": [{**dict(r), "api_key": _mask_key(r["api_key"])} for r in rows]}
+
+
+@app.post("/api/config/llm/models")
+def register_llm_model(body: RegisterModelBody, conn=Depends(get_db)):
+    """Register a model and make it active. Agents resolve the active row on each call."""
+    if not body.alias.strip() or not body.model_identifier.strip():
+        raise HTTPException(400, "alias and model_identifier are required")
+    try:
+        conn.execute("UPDATE llm_models SET is_active=0")
+        conn.execute(
+            "INSERT INTO llm_models (alias, provider, model_identifier, api_base, api_key, is_active) "
+            "VALUES (?, ?, ?, ?, ?, 1)",
+            (body.alias.strip(), body.provider, body.model_identifier.strip(),
+             body.api_base, body.api_key),
+        )
+        conn.commit()
+    except sqlite3.IntegrityError:
+        raise HTTPException(400, f"Alias '{body.alias}' already exists")
+    return {"ok": True, "alias": body.alias, "model": body.model_identifier, "active": True}
+
+
+class UpdateModelBody(BaseModel):
+    alias: str | None = None
+    provider: str | None = None
+    model_identifier: str | None = None
+    api_base: str | None = None
+    api_key: str | None = None   # blank/omitted = keep existing (list masks it)
+
+
+@app.put("/api/config/llm/models/{model_id}")
+def update_llm_model(model_id: int, body: UpdateModelBody, conn=Depends(get_db)):
+    """Edit a registered model (e.g. fix a typo'd api_base). api_key is kept when
+    left blank, since the list only ever returns a masked key."""
+    row = conn.execute("SELECT * FROM llm_models WHERE id=?", (model_id,)).fetchone()
+    if not row:
+        raise HTTPException(404, "Model not found")
+    cur = dict(row)
+    alias = (body.alias or cur["alias"]).strip()
+    provider = body.provider or cur["provider"]
+    model_identifier = (body.model_identifier or cur["model_identifier"]).strip()
+    # form always sends api_base; empty string clears it to NULL (OpenAI default)
+    api_base = (body.api_base or "").strip() or None
+    api_key = body.api_key.strip() if (body.api_key and body.api_key.strip()) else cur["api_key"]
+    try:
+        conn.execute(
+            "UPDATE llm_models SET alias=?, provider=?, model_identifier=?, api_base=?, api_key=? WHERE id=?",
+            (alias, provider, model_identifier, api_base, api_key, model_id),
+        )
+        conn.commit()
+    except sqlite3.IntegrityError:
+        raise HTTPException(400, f"Alias '{alias}' already exists")
+    return {"ok": True, "id": model_id, "alias": alias}
+
+
+@app.post("/api/config/llm/models/{model_id}/activate")
+def activate_llm_model(model_id: int, conn=Depends(get_db)):
+    row = conn.execute("SELECT alias, model_identifier FROM llm_models WHERE id=?", (model_id,)).fetchone()
+    if not row:
+        raise HTTPException(404, "Model not found")
+    conn.execute("UPDATE llm_models SET is_active=0")
+    conn.execute("UPDATE llm_models SET is_active=1 WHERE id=?", (model_id,))
+    conn.commit()
+    return {"ok": True, "alias": row["alias"], "model": row["model_identifier"], "active": True}
+
+
+@app.post("/api/config/llm/models/{model_id}/test")
+def test_llm_model(model_id: int, conn=Depends(get_db)):
+    """Probe a registered model's endpoint without changing which model is active."""
+    row = conn.execute(
+        "SELECT provider, model_identifier, api_base, api_key FROM llm_models WHERE id=?", (model_id,)
+    ).fetchone()
+    if not row:
+        raise HTTPException(404, "Model not found")
+    ok, message = llm_client.probe(row["api_base"], row["model_identifier"], row["api_key"])
+    return {"ok": ok, "message": message}
 
 
 # ── Utility ───────────────────────────────────────────────────────────────────
@@ -211,6 +559,50 @@ def stats(conn=Depends(get_db)):
 def health(conn=Depends(get_db)):
     conn.execute("SELECT 1").fetchone()  # verify DB reachable
     return {"status": "ok", "db": "connected", "timestamp": datetime.now(timezone.utc).isoformat()}
+
+
+@app.get("/api/health/environment")
+def health_environment(conn=Depends(get_db)):
+    """First-run health check: surfaces today's silent fallbacks (CSV-when-
+    Impala-expected, unreachable model, missing champion artifact) as explicit
+    booleans instead of quiet degradation."""
+    from common.config import get_config
+
+    try:
+        source_backend = source.backend()
+        source_ok = True
+    except Exception:  # noqa: BLE001 — backend=impala forced but unreachable
+        source_backend = "csv"
+        source_ok = False
+
+    cfg = get_config()["llm"]
+    active = conn.execute(
+        "SELECT alias, model_identifier, api_base, api_key FROM llm_models WHERE is_active=1 LIMIT 1"
+    ).fetchone()
+    if active:
+        alias, model, base_url, api_key = active["alias"], active["model_identifier"], active["api_base"], active["api_key"]
+    else:
+        provider = llm_client._provider_override or cfg.get("provider", "caii")
+        pcfg = cfg.get(provider, {})
+        alias, model, base_url, api_key = provider, pcfg.get("model", ""), pcfg.get("endpoint"), pcfg.get("api_key")
+    reachable, message = llm_client.probe(base_url, model, api_key)
+
+    dep = conn.execute(
+        "SELECT model_version FROM deployments WHERE status='CHAMPION' ORDER BY created_at DESC LIMIT 1"
+    ).fetchone()
+    champion_artifact_present = False
+    if dep:
+        model_dir = os.path.join(PROJECT_ROOT, get_config()["model"].get("model_dir", "models"))
+        champion_artifact_present = os.path.exists(
+            os.path.join(model_dir, f"aml_model_{dep['model_version']}.json")
+        )
+
+    return {
+        "source_backend": source_backend,
+        "source_ok": source_ok,
+        "active_model": {"alias": alias, "reachable": reachable, "message": message},
+        "champion_artifact_present": champion_artifact_present,
+    }
 
 
 if __name__ == "__main__":

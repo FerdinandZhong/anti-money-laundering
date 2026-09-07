@@ -18,6 +18,13 @@ export interface AlertsResponse {
   open_count: number
 }
 
+export interface NetworkNode { id: string; type: string; is_root?: boolean; country?: string }
+export interface NetworkEdge {
+  source: string; target: string; relation: 'shared_device' | 'fund_flow'
+  amount?: number; count?: number
+}
+export interface NetworkGraph { nodes: NetworkNode[]; edges: NetworkEdge[] }
+
 export interface CaseDetail {
   case_id: string
   alert_id: string
@@ -33,10 +40,13 @@ export interface CaseDetail {
   account_age_days: number
   expected_monthly_turnover: number
   transactions: Transaction[]
+  network?: NetworkGraph
   analysis?: string | null
   analyzed_at?: string | null
   disposition?: string | null
 }
+
+export interface TxFlag { key: string; label: string; why: string }
 
 export interface Transaction {
   transaction_id?: string
@@ -50,6 +60,12 @@ export interface Transaction {
   is_suspicious: number
   score: number | null
   label?: number | null   // analyst per-tx label: 1 suspicious, 0 clean, null unset
+  from_account_id?: string | null
+  to_account_id?: string | null
+  currency?: string | null
+  mcc?: string | null
+  reference?: string | null
+  flags?: TxFlag[]
 }
 
 export interface Stats {
@@ -94,12 +110,16 @@ export interface EnvironmentHealth {
 }
 
 export type AlertSort = 'risk_score' | 'newest' | 'oldest'
+export type AlertStatus = 'OPEN' | 'PROPOSED' | 'PENDING' | 'CLOSED'
 
 export const getEnvironmentHealth = () =>
   api.get<EnvironmentHealth>('/health/environment').then(r => r.data)
 
-export const getAlerts = (status = 'OPEN', limit = 50, sort: AlertSort = 'risk_score') =>
+export const getAlerts = (status: string = 'OPEN', limit = 50, sort: AlertSort = 'risk_score') =>
   api.get<AlertsResponse>('/alerts', { params: { status, limit, sort } }).then(r => r.data)
+
+export const getAlertCounts = () =>
+  api.get<{ counts: Record<AlertStatus, number> }>('/alerts/counts').then(r => r.data.counts)
 
 export const getAlertDetail = (alertId: string) =>
   api.get<CaseDetail>(`/alerts/${alertId}/detail`).then(r => r.data)
@@ -221,3 +241,41 @@ export const updateLlmModel = (id: number, body: RegisterModelBody) =>
 
 export const testLlmModel = (id: number) =>
   api.post<{ ok: boolean; message: string }>(`/config/llm/models/${id}/test`).then(r => r.data)
+
+// ── MCP tool servers (Tools view) ──────────────────────────────────────────
+
+export interface ToolConfig {
+  id: number
+  kind: string
+  name: string
+  transport: string
+  url: string
+  api_key: string        // masked from the server
+  enabled: number
+}
+
+export interface ToolConfigBody {
+  name: string
+  url: string
+  api_key?: string
+  enabled: boolean
+}
+
+export interface ToolTestResult {
+  ok: boolean
+  tools?: string[]
+  count?: number
+  message?: string
+}
+
+export const getTools = () =>
+  api.get<{ tools: ToolConfig[] }>('/config/tools').then(r => r.data.tools)
+
+export const registerTool = (body: ToolConfigBody) =>
+  api.post('/config/tools', body).then(r => r.data)
+
+export const updateTool = (id: number, body: ToolConfigBody) =>
+  api.put(`/config/tools/${id}`, body).then(r => r.data)
+
+export const testTool = (id: number) =>
+  api.post<ToolTestResult>(`/config/tools/${id}/test`).then(r => r.data)

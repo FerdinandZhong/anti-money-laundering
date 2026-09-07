@@ -1,59 +1,14 @@
 import React, { useEffect, useState } from 'react'
-import type { Alert } from '../api'
+import { Bell, RefreshCw } from 'lucide-react'
+import type { Alert, AlertSort } from '../api'
 import { getAlerts } from '../api'
 import { RiskBadge } from './Badge'
 
-const S = {
-  panel: {
-    width: '30%',
-    background: '#1a1d27',
-    borderRadius: 8,
-    display: 'flex',
-    flexDirection: 'column' as const,
-    overflow: 'hidden',
-  },
-  header: {
-    padding: '16px 20px',
-    borderBottom: '1px solid #2a2d3a',
-    display: 'flex',
-    alignItems: 'center',
-    gap: 10,
-  },
-  title: { color: '#fff', fontWeight: 700, fontSize: 16, margin: 0 },
-  countBadge: {
-    background: '#ff6d00',
-    color: '#fff',
-    borderRadius: 12,
-    padding: '1px 8px',
-    fontSize: 12,
-    fontWeight: 700,
-  },
-  list: { overflowY: 'auto' as const, flex: 1 },
-  card: (selected: boolean) => ({
-    padding: '12px 16px',
-    borderBottom: '1px solid #2a2d3a',
-    cursor: 'pointer',
-    background: selected ? '#252838' : 'transparent',
-    borderLeft: selected ? '3px solid #ff6d00' : '3px solid transparent',
-    transition: 'background 0.15s',
-  }),
-  row: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 },
-  alertId: { color: '#aaa', fontSize: 11, fontFamily: 'monospace' },
-  customerId: { color: '#ccc', fontSize: 12, marginTop: 2 },
-  barBg: { background: '#2a2d3a', borderRadius: 3, height: 4, marginTop: 8 },
-  barFill: (pct: number, color: string) => ({
-    width: `${pct}%`,
-    height: '100%',
-    background: color,
-    borderRadius: 3,
-  }),
-}
-
-const scoreColor = (score: number) => {
-  if (score >= 0.8) return '#f44336'
-  if (score >= 0.6) return '#ff6d00'
-  if (score >= 0.4) return '#ff9800'
-  return '#00c853'
+const RISK_COLOR: Record<string, string> = {
+  CRITICAL: '#dc2626',
+  HIGH:     '#ea580c',
+  MEDIUM:   '#d97706',
+  LOW:      '#16a34a',
 }
 
 interface Props {
@@ -64,52 +19,95 @@ interface Props {
 export const AlertQueue: React.FC<Props> = ({ selectedAlertId, onSelect }) => {
   const [alerts, setAlerts] = useState<Alert[]>([])
   const [openCount, setOpenCount] = useState(0)
+  const [loading, setLoading] = useState(true)
+  const [sort, setSort] = useState<AlertSort>('risk_score')
+  const [error, setError] = useState(false)
 
-  useEffect(() => {
-    getAlerts('OPEN', 50).then(r => {
-      setAlerts(r.alerts)
-      setOpenCount(r.open_count ?? r.total)
-    }).catch(() => {
-      // backend not running — show placeholder
-      setAlerts([{
-        alert_id: 'ALERT-NIGHTFALL-001',
-        case_id: 'CASE-NIGHTFALL-001',
-        customer_id: 'CUST-NIGHTFALL-001',
-        risk_score: 0.91,
-        risk_band: 'CRITICAL',
-        status: 'OPEN',
-        created_at: new Date().toISOString(),
-      }])
-      setOpenCount(148)
-    })
-  }, [])
+  const load = (nextSort: AlertSort = sort) => {
+    setLoading(true)
+    setError(false)
+    getAlerts('OPEN', 50, nextSort)
+      .then(r => { setAlerts(r.alerts); setOpenCount(r.open_count ?? r.total) })
+      .catch(() => {
+        setAlerts([])
+        setOpenCount(0)
+        setError(true)
+      })
+      .finally(() => setLoading(false))
+  }
+
+  useEffect(() => { load() }, [])
 
   return (
-    <div style={S.panel}>
-      <div style={S.header}>
-        <h2 style={S.title}>Alert Queue</h2>
-        <span style={S.countBadge}>{openCount}</span>
+    <div className="w-[28%] shrink-0 flex flex-col bg-surface-1 rounded-lg overflow-hidden shadow-soft min-h-0">
+      {/* Header */}
+      <div className="flex items-center gap-2.5 px-4 py-3 border-b border-surface-3 shrink-0 bg-surface-2">
+        <Bell className="w-3.5 h-3.5 text-accent" />
+        <h2 className="text-sm font-semibold text-ink flex-1">Alert Queue</h2>
+        <span className="px-2 py-0.5 text-xs font-bold rounded-full bg-accent/10 text-accent border border-accent/20">
+          {openCount}
+        </span>
+        <select
+          value={sort}
+          onChange={e => { const next = e.target.value as AlertSort; setSort(next); load(next) }}
+          className="text-2xs text-ink-muted border border-surface-3 rounded-lg px-1.5 py-0.5 bg-surface-1"
+          title="Sort alerts"
+        >
+          <option value="risk_score">Risk score</option>
+          <option value="newest">Newest</option>
+          <option value="oldest">Oldest</option>
+        </select>
+        <button
+          onClick={() => load()}
+          className="p-1 text-ink-faint hover:text-ink-muted rounded-lg hover:bg-surface-3 transition-colors"
+          title="Refresh"
+        >
+          <RefreshCw className={`w-3 h-3 ${loading ? 'animate-spin' : ''}`} />
+        </button>
       </div>
-      <div style={S.list}>
-        {alerts.map(a => (
-          <div
-            key={a.alert_id}
-            style={S.card(a.alert_id === selectedAlertId)}
-            onClick={() => onSelect(a)}
-          >
-            <div style={S.row}>
-              <RiskBadge band={a.risk_band} small />
-              <span style={S.alertId}>{a.alert_id.slice(-12)}</span>
+
+      {/* List */}
+      <div className="flex-1 overflow-y-auto divide-y divide-surface-3">
+        {alerts.map(a => {
+          const isSelected = a.alert_id === selectedAlertId
+          return (
+            <div
+              key={a.alert_id}
+              onClick={() => onSelect(a)}
+              className={`px-4 py-3 cursor-pointer transition-colors border-l-2 animate-fade-in
+                ${isSelected
+                  ? 'bg-accent/5 border-l-accent'
+                  : 'border-l-transparent hover:bg-surface-2'
+                }`}
+            >
+              <div className="flex items-center justify-between mb-1.5">
+                <RiskBadge band={a.risk_band} small />
+                <span className="text-2xs text-ink-faint font-mono">{a.alert_id.slice(-12)}</span>
+              </div>
+              <div className="text-xs text-ink-muted mb-2 truncate">{a.customer_id}</div>
+              <div className="flex items-center gap-2">
+                <div className="flex-1 h-1.5 rounded-full bg-surface-3">
+                  <div
+                    className="h-full rounded-full"
+                    style={{
+                      width: `${a.risk_score * 100}%`,
+                      background: RISK_COLOR[a.risk_band] ?? '#9ca3af',
+                    }}
+                  />
+                </div>
+                <span className="text-2xs text-ink-muted tabular-nums w-7 text-right">
+                  {(a.risk_score * 100).toFixed(0)}%
+                </span>
+              </div>
             </div>
-            <div style={S.customerId}>{a.customer_id}</div>
-            <div style={S.barBg}>
-              <div style={S.barFill(a.risk_score * 100, scoreColor(a.risk_score))} />
-            </div>
-            <div style={{ color: '#888', fontSize: 10, marginTop: 3 }}>
-              {(a.risk_score * 100).toFixed(0)}% risk
-            </div>
+          )
+        })}
+
+        {alerts.length === 0 && !loading && (
+          <div className="flex items-center justify-center h-32 text-sm text-ink-faint">
+            {error ? "Couldn't load alerts" : 'No open alerts'}
           </div>
-        ))}
+        )}
       </div>
     </div>
   )

@@ -186,6 +186,49 @@ it is already drawn from `/detail`).
 
 ---
 
+## Section 3 — Expandable transaction detail
+
+### Interaction
+
+Each row in the Transaction Timeline (`CaseWorkbench.tsx`) becomes clickable to expand an
+inline detail panel beneath it (chevron affordance; **one row open at a time**). Expansion
+must not disturb the existing per-row S/C label buttons or the "Mark all suspicious / clean"
+actions. No modal.
+
+### Expanded content — two parts
+
+1. **Raw fields already in the `/detail` payload** (small key/value grid):
+   `transaction_id`, `from_account → to_account`, `currency`, `MCC`, `reference/memo`.
+   Shown as-is; null/sparse values render as "—". (These are honest but low-value on
+   synthetic data — recipient names are random, references are generic constants.)
+
+2. **Derived typology flags** (the signal-dense part) — chips computed at read time from the
+   row's own fields, **no schema/storage change**:
+   - **Near-threshold** — `amount` within $5k below the $50k structuring line.
+   - **Off-hours** — `event_time` hour ∈ [0, 6].
+   - **Cross-border** — `counterparty_country ≠ "SG"`.
+   - **Repeat counterparty** — same `counterparty_name` occurs >1× in the case's tx set.
+
+   Each chip carries a one-line "why it matters." Chips render only when the condition holds,
+   so a clean row (e.g. the $60 Grab VISA) shows none — itself informative. This reinforces
+   the STRUCTURING story behind the "label suspicious rows to train the next model" workflow.
+
+### Where the derive lives
+
+A pure frontend helper `deriveTxFlags(tx, allTxs)` — the fields are already in `/detail`, so
+**no backend change**. These are presentation-layer heuristics. One small unit test asserts
+near-threshold / off-hours / cross-border / repeat-counterparty fire correctly and that a
+clean row yields no flags.
+
+### Explicitly NOT included
+
+Any per-transaction model/SHAP explanation. `get_model_explanation` returns **global** top-5
+feature importances (identical for every row), so a row-specific "why the model scored this"
+would be fabricated. Left out honestly — deferred (real per-row SHAP needs stored
+per-transaction contributions).
+
+---
+
 ## Files touched (representative)
 
 **Backend**
@@ -202,6 +245,8 @@ it is already drawn from `/detail`).
 - `03_frontend/src/components/CaseWorkbench.tsx` — `onDisposed`, read-only-when-closed,
   render `NetworkGraph`.
 - `03_frontend/src/components/NetworkGraph.tsx` — **new**, layered SVG funnel.
+- `03_frontend/src/components/CaseWorkbench.tsx` — expandable tx row (chevron, one-open) +
+  `deriveTxFlags` helper + flag chips (Section 3).
 - `03_frontend/src/App.tsx` — wire `onDisposed` → queue reload.
 - `03_frontend/src/api.ts` — `network` on `CaseDetail`, `getAlertCounts`, status enum.
 
@@ -215,6 +260,8 @@ it is already drawn from `/detail`).
 - Force-directed / draggable graph (`react-flow`/`d3`) — only if free-form topologies needed.
 - Multi-hop layering beyond 3 columns (source → intermediary → collector → offshore).
 - SAR/STR filing workflow off the Proposed queue (today it is just a bucket + chip).
+- Real per-transaction SHAP explanation (needs stored per-row feature contributions; current
+  `get_model_explanation` is global-only).
 
 ## Tests (pytest offline + `npm run build`)
 - `test_dispose_routes_alert_status` — each disposition sets the mapped `alerts.status`;
@@ -226,8 +273,10 @@ it is already drawn from `/detail`).
   both edge relations, fund-flow amounts; a lone account returns a single node (fail-soft).
 - `test_fund_flow_edges` — aggregates transfers between the network accounts into directional
   edges with amount/count.
+- `deriveTxFlags` unit test (frontend) — near-threshold / off-hours / cross-border /
+  repeat-counterparty fire on the right rows; a clean row yields no flags.
 - `npm run build` clean; Network card renders on case open; queue buckets switch and the
-  just-closed case moves Open → Proposed.
+  just-closed case moves Open → Proposed; a tx row expands to fields + flag chips.
 
 ## Verification (end-to-end)
 1. `pytest 02_backend/tests -q` green (new + existing).
@@ -236,3 +285,5 @@ it is already drawn from `/detail`).
 4. Dispose `SUSPICIOUS` → case leaves **Open**, appears under **Proposed** with SAR/STR chip;
    `FALSE_POSITIVE` → Archived; `NEEDS_MORE_INFO` → Pending. Counts update.
 5. Unlinked account → single node, no errors (fail-soft). Legacy DB → backfilled on startup.
+6. Click a tx row → expands to raw fields + derived flag chips; a structuring row shows
+   Near-threshold (+ Off-hours / Cross-border where applicable); the $60 Grab row shows none.

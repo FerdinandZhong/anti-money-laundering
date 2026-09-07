@@ -1,0 +1,38 @@
+{
+  "schema_version": 1,
+  "mode": "architecture",
+  "template_type": "architecture",
+  "style": 1,
+  "quality_profile": "standard",
+  "width": 960,
+  "height": 820,
+  "title": "How the AML Platform Works — A Simple Overview",
+  "subtitle": "spotting suspicious money movement, one case at a time",
+  "nodes": [
+    { "id": "s1", "kind": "rect", "x": 340, "y": 108, "width": 280, "height": 76, "label": "1 · Transactions", "sublabel": "every payment & transfer comes in", "fill": "#f0fdf4", "stroke": "#16a34a" },
+    { "id": "s2", "kind": "rect", "x": 340, "y": 238, "width": 280, "height": 76, "label": "2 · Automatic Risk Check", "sublabel": "AI scores each one, flags the risky", "fill": "#fff7ed", "stroke": "#ea580c" },
+    { "id": "s3", "kind": "rect", "x": 340, "y": 368, "width": 280, "height": 76, "label": "3 · Expert Investigation", "sublabel": "analyst + AI review flagged cases", "fill": "#faf5ff", "stroke": "#9333ea" },
+    { "id": "s4", "kind": "rect", "x": 340, "y": 498, "width": 280, "height": 76, "label": "4 · Decision", "sublabel": "suspicious, or all clear?", "fill": "#f0fdfa", "stroke": "#0d9488" },
+
+    { "id": "report", "kind": "rect", "x": 120, "y": 648, "width": 280, "height": 80, "label": "Report to Regulator", "sublabel": "file a suspicious activity report", "fill": "#fef2f2", "stroke": "#dc2626" },
+    { "id": "close", "kind": "rect", "x": 560, "y": 648, "width": 280, "height": 80, "label": "Close the Case", "sublabel": "customer cleared", "fill": "#f0fdf4", "stroke": "#16a34a" }
+  ],
+  "arrows": [
+    { "id": "a1", "source": "s1", "target": "s2", "source_port": "bottom", "target_port": "top", "flow": "data" },
+    { "id": "a2", "source": "s2", "target": "s3", "source_port": "bottom", "target_port": "top", "flow": "data", "label": "flagged cases", "label_style": "offset" },
+    { "id": "a3", "source": "s3", "target": "s4", "source_port": "bottom", "target_port": "top", "flow": "data", "label": "evidence", "label_style": "offset" },
+    { "id": "a4", "source": "s4", "target": "report", "source_port": "bottom", "target_port": "top", "flow": "data", "label": "suspicious", "label_style": "offset" },
+    { "id": "a5", "source": "s4", "target": "close", "source_port": "bottom", "target_port": "top", "flow": "data", "label": "all clear", "label_style": "offset" },
+    { "id": "loop", "source": "s4", "target": "s2", "source_port": "right", "target_port": "right", "flow": "feedback", "color": "#2563eb", "label": "every decision teaches the system", "label_style": "offset", "corridor_x": [860] }
+  ],
+  "legend_orientation": "horizontal",
+  "legend_x": 48,
+  "legend_y": 760,
+  "legend": [
+    { "flow": "data", "label": "how a case moves through" },
+    { "flow": "feedback", "color": "#2563eb", "label": "the system keeps learning" }
+  ],
+  "footer": "The more cases people decide, the sharper the risk check becomes — good money passes through, suspicious money gets caught.",
+  "footer_x": 48,
+  "footer_y": 800
+}

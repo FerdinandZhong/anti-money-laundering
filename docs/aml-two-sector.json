@@ -1,0 +1,45 @@
+{
+  "schema_version": 1,
+  "mode": "architecture",
+  "template_type": "architecture",
+  "style": 1,
+  "quality_profile": "standard",
+  "width": 1200,
+  "height": 640,
+  "title": "AML Platform — How Two Teams Work Together",
+  "subtitle": "the Business team judges risk; the IT / MLOps team builds the model that finds it",
+  "containers": [
+    { "id": "business", "x": 40, "y": 92, "width": 1120, "height": 208, "label": "BUSINESS  ·  Compliance & Investigation", "fill": "#f5f8ff", "stroke": "#2563eb" },
+    { "id": "mlops", "x": 40, "y": 332, "width": 1120, "height": 208, "label": "IT / MLOps  ·  Data Science & Model Operations", "fill": "#fff8f2", "stroke": "#ea580c" }
+  ],
+  "nodes": [
+    { "id": "queue", "kind": "rect", "x": 230, "y": 168, "width": 220, "height": 92, "label": "Alert Queue", "sublabel": "risk-ranked cases to review", "fill": "#eff6ff", "stroke": "#2563eb" },
+    { "id": "invest", "kind": "rect", "x": 590, "y": 168, "width": 220, "height": 92, "label": "Investigation", "sublabel": "AI report + tag transactions", "fill": "#eff6ff", "stroke": "#2563eb" },
+    { "id": "decide", "kind": "rect", "x": 900, "y": 168, "width": 240, "height": 92, "label": "Decision", "sublabel": "file SAR, or clear customer", "fill": "#eff6ff", "stroke": "#2563eb" },
+
+    { "id": "data", "kind": "rect", "x": 110, "y": 408, "width": 230, "height": 92, "label": "Transaction Data", "sublabel": "payments & transfers", "fill": "#fff7ed", "stroke": "#ea580c" },
+    { "id": "model", "kind": "rect", "x": 470, "y": 408, "width": 230, "height": 92, "label": "Risk Scoring Model", "sublabel": "scores every transaction", "fill": "#fff7ed", "stroke": "#ea580c" },
+    { "id": "train", "kind": "rect", "x": 830, "y": 408, "width": 250, "height": 92, "label": "Model Training & Deploy", "sublabel": "retrain · canary · promote", "fill": "#fff7ed", "stroke": "#ea580c" }
+  ],
+  "arrows": [
+    { "id": "data-model", "source": "data", "target": "model", "source_port": "right", "target_port": "left", "flow": "data", "label": "feeds" },
+    { "id": "train-model", "source": "train", "target": "model", "source_port": "left", "target_port": "right", "flow": "data", "label": "improved model", "label_style": "offset" },
+
+    { "id": "queue-invest", "source": "queue", "target": "invest", "source_port": "right", "target_port": "left", "flow": "data", "label": "next case", "label_style": "offset" },
+    { "id": "invest-decide", "source": "invest", "target": "decide", "source_port": "right", "target_port": "left", "flow": "data", "label": "evidence", "label_style": "offset" },
+
+    { "id": "model-queue", "source": "model", "target": "queue", "source_port": "top", "target_port": "bottom", "flow": "control", "color": "#10b981", "label": "flagged as alerts", "label_style": "offset" },
+    { "id": "decide-train", "source": "decide", "target": "train", "source_port": "bottom", "target_port": "top", "flow": "feedback", "color": "#2563eb", "label": "per-transaction labels", "label_style": "offset" }
+  ],
+  "legend_orientation": "horizontal",
+  "legend_x": 48,
+  "legend_y": 578,
+  "legend": [
+    { "flow": "data", "label": "work within a team" },
+    { "flow": "control", "color": "#10b981", "label": "IT hands flagged cases to Business" },
+    { "flow": "feedback", "color": "#2563eb", "label": "analyst-labelled transactions retrain it" }
+  ],
+  "footer": "Foundation: two teams, one loop. AI writes the account report; analyst-tagged transactions train the next model.",
+  "footer_x": 48,
+  "footer_y": 616
+}

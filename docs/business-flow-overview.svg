@@ -1,0 +1,218 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 860" width="1200" height="860" data-generator="fireworks-tech-graph" data-schema-version="1" data-text-metrics="heuristic-v1" data-style-id="1" data-visual-theme="Flat Icon" data-diagram-type="architecture" data-motion-scene="" data-semantic-profile="generic" data-semantic-valid="true" data-quality-profile="standard" data-max-bends-per-edge="12" data-max-total-bends="100" data-max-route-stretch="5.0" data-max-bridged-crossings="8" data-min-node-gap="0.0" data-min-container-gutter="0.0" data-min-label-clearance="2.0" data-min-segment-length="0.0">
+  <defs>
+    <marker id="arrowA" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#7c3aed"/>
+    </marker>
+    <marker id="arrowB" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#10b981"/>
+    </marker>
+    <marker id="arrowC" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#2563eb"/>
+    </marker>
+    <marker id="arrowE" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#f97316"/>
+    </marker>
+    <marker id="arrowF" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#7c3aed"/>
+    </marker>
+    <marker id="arrowG" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#ef4444"/>
+    </marker>
+    <marker id="arrowH" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#6b7280"/>
+    </marker>
+    <filter id="shadowSoft" x="-20%" y="-20%" width="140%" height="160%">
+      <feDropShadow dx="0" dy="3" stdDeviation="6" flood-color="#0f172a" flood-opacity="0.12"/>
+    </filter>
+    <filter id="shadowGlass" x="-20%" y="-20%" width="140%" height="160%">
+      <feDropShadow dx="0" dy="10" stdDeviation="16" flood-color="#020617" flood-opacity="0.28"/>
+    </filter>
+    <style>
+    text { font-family: 'Helvetica Neue', Helvetica, Arial, 'PingFang SC', 'Microsoft YaHei', 'Microsoft JhengHei', 'SimHei', sans-serif; }
+    .title { font-size: 30px; font-weight: 700; fill: #111827; }
+    .subtitle { font-size: 14px; font-weight: 500; fill: #6b7280; }
+    .section { font-size: 13px; font-weight: 700; fill: #2563eb; letter-spacing: 1.4px; }
+    .section-sub { font-size: 12px; font-weight: 500; fill: #94a3b8; }
+    .node-title { font-weight: 700; fill: #111827; }
+    .node-sub { font-size: 12px; font-weight: 500; fill: #6b7280; }
+    .node-type { font-size: 12px; font-weight: 700; fill: #9ca3af; letter-spacing: 0.08em; }
+    .arrow-label { font-size: 12px; font-weight: 600; fill: #6b7280; }
+    .legend { font-size: 12px; font-weight: 500; fill: #6b7280; }
+    .footnote { font-size: 12px; font-weight: 500; fill: #94a3b8; }
+    .metric-label { font-size: 8.5px; font-weight: 700; fill: #94a3b8; text-transform: uppercase; }
+    .metric-value { font-size: 9.5px; font-weight: 700; fill: #111827; }
+    </style>
+  </defs>
+  <rect data-graph-role="background" width="1200.0" height="860.0" fill="#ffffff"/>
+  <text x="600.0" y="56" text-anchor="middle" class="title">AML Investigation Platform — Business Process &amp; Value Flow</text>
+  <text x="600.0" y="82" text-anchor="middle" class="subtitle">from raw transactions to regulatory action and continuous model improvement</text>
+  <g id="signals" data-graph-role="container" data-container-id="signals" data-semantic-role="boundary" data-graph-bounds="40,90,1160,160">
+  <rect data-graph-role="container" x="40.0" y="90.0" width="1120.0" height="70.0" rx="16.0" fill="none" stroke="#dbe5f1" stroke-width="1.4" stroke-dasharray="6 5"/>
+  <text x="58.0" y="114.0" class="section">SIGNALS</text>
+    <rect id="signals-header" data-graph-role="reserved" data-reserved-kind="container-header" x="48" y="96" width="79.4" height="30" fill="none" stroke="none"/>
+  </g>
+  <g id="detect" data-graph-role="container" data-container-id="detect" data-semantic-role="boundary" data-graph-bounds="40,170,1160,290">
+  <rect data-graph-role="container" x="40.0" y="170.0" width="1120.0" height="120.0" rx="16.0" fill="none" stroke="#dbe5f1" stroke-width="1.4" stroke-dasharray="6 5"/>
+  <text x="58.0" y="194.0" class="section">DETECT &amp; TRIAGE</text>
+    <rect id="detect-header" data-graph-role="reserved" data-reserved-kind="container-header" x="48" y="176" width="137.12" height="30" fill="none" stroke="none"/>
+  </g>
+  <g id="investigate" data-graph-role="container" data-container-id="investigate" data-semantic-role="boundary" data-graph-bounds="40,300,1160,420">
+  <rect data-graph-role="container" x="40.0" y="300.0" width="1120.0" height="120.0" rx="16.0" fill="none" stroke="#dbe5f1" stroke-width="1.4" stroke-dasharray="6 5"/>
+  <text x="58.0" y="324.0" class="section">INVESTIGATE</text>
+    <rect id="investigate-header" data-graph-role="reserved" data-reserved-kind="container-header" x="48" y="306" width="106.18" height="30" fill="none" stroke="none"/>
+  </g>
+  <g id="decide" data-graph-role="container" data-container-id="decide" data-semantic-role="boundary" data-graph-bounds="40,430,1160,610">
+  <rect data-graph-role="container" x="40.0" y="430.0" width="1120.0" height="180.0" rx="16.0" fill="none" stroke="#dbe5f1" stroke-width="1.4" stroke-dasharray="6 5"/>
+  <text x="58.0" y="454.0" class="section">DECIDE &amp; ACT</text>
+    <rect id="decide-header" data-graph-role="reserved" data-reserved-kind="container-header" x="48" y="436" width="114.5" height="30" fill="none" stroke="none"/>
+  </g>
+  <g id="govern" data-graph-role="container" data-container-id="govern" data-semantic-role="boundary" data-graph-bounds="40,620,1160,740">
+  <rect data-graph-role="container" x="40.0" y="620.0" width="1120.0" height="120.0" rx="16.0" fill="none" stroke="#dbe5f1" stroke-width="1.4" stroke-dasharray="6 5"/>
+  <text x="58.0" y="644.0" class="section">GOVERN &amp; IMPROVE</text>
+    <rect id="govern-header" data-graph-role="reserved" data-reserved-kind="container-header" x="48" y="626" width="147.78" height="30" fill="none" stroke="none"/>
+  </g>
+  <path id="data-scoring" data-graph-role="edge" data-edge-id="data-scoring" data-source="txn_data" data-target="scoring" data-edge-kind="flow" data-topic-id="" data-flow="read" data-motion-role="" data-motion-stage="" data-motion-order="" data-protocol="" data-via="" data-critical-path-id="" data-critical-hop="" data-critical-hops="" data-critical="false" data-bends="1" data-route-stretch="1.0" data-bridges="" d="M 490,125 L 200,125 L 200,184" fill="none" stroke="#2563eb" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrowC)"/>
+  <path id="scoring-queue" data-graph-role="edge" data-edge-id="scoring-queue" data-source="scoring" data-target="alert_queue" data-edge-kind="flow" data-topic-id="" data-flow="data" data-motion-role="" data-motion-stage="" data-motion-order="" data-protocol="" data-via="" data-critical-path-id="" data-critical-hop="" data-critical-hops="" data-critical="false" data-bends="0" data-route-stretch="1.0" data-bridges="" d="M 310,230 L 460,230" fill="none" stroke="#f97316" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrowE)"/>
+  <path id="queue-analyst" data-graph-role="edge" data-edge-id="queue-analyst" data-source="alert_queue" data-target="analyst" data-edge-kind="flow" data-topic-id="" data-flow="control" data-motion-role="" data-motion-stage="" data-motion-order="" data-protocol="" data-via="" data-critical-path-id="" data-critical-hop="" data-critical-hops="" data-critical="false" data-bends="0" data-route-stretch="1.0" data-bridges="" d="M 660,230 L 810,230" fill="none" stroke="#7c3aed" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrowA)"/>
+  <path id="analyst-case" data-graph-role="edge" data-edge-id="analyst-case" data-source="analyst" data-target="case_file" data-edge-kind="flow" data-topic-id="" data-flow="control" data-motion-role="" data-motion-stage="" data-motion-order="" data-protocol="" data-via="" data-critical-path-id="" data-critical-hop="" data-critical-hops="" data-critical="false" data-bends="0" data-route-stretch="1.0" data-bridges="" d="M 920,276 L 920,314" fill="none" stroke="#7c3aed" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrowA)"/>
+  <path id="case-ai" data-graph-role="edge" data-edge-id="case-ai" data-source="case_file" data-target="ai_team" data-edge-kind="flow" data-topic-id="" data-flow="control" data-motion-role="" data-motion-stage="" data-motion-order="" data-protocol="" data-via="" data-critical-path-id="" data-critical-hop="" data-critical-hops="" data-critical="false" data-bends="0" data-route-stretch="1.0" data-bridges="" d="M 810,360 L 680,360" fill="none" stroke="#7c3aed" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrowA)"/>
+  <path id="ai-evidence" data-graph-role="edge" data-edge-id="ai-evidence" data-source="ai_team" data-target="evidence" data-edge-kind="flow" data-topic-id="" data-flow="data" data-motion-role="" data-motion-stage="" data-motion-order="" data-protocol="" data-via="" data-critical-path-id="" data-critical-hop="" data-critical-hops="" data-critical="false" data-bends="0" data-route-stretch="1.0" data-bridges="" d="M 460,360 L 290,360" fill="none" stroke="#f97316" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrowE)"/>
+  <path id="evidence-decision" data-graph-role="edge" data-edge-id="evidence-decision" data-source="evidence" data-target="decision" data-edge-kind="flow" data-topic-id="" data-flow="data" data-motion-role="" data-motion-stage="" data-motion-order="" data-protocol="" data-via="" data-critical-path-id="" data-critical-hop="" data-critical-hops="" data-critical="false" data-bends="1" data-route-stretch="1.0" data-bridges="" d="M 190,406 L 190,483 L 480,483" fill="none" stroke="#f97316" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrowE)"/>
+  <path id="decision-sar-bridge-mask" data-graph-role="bridge-mask" data-owner="decision-sar" d="M 480,465 L 388.8,465 L 388.8,478 A 5 5 0 0 1 388.8,488 L 388.8,507.6 L 290,507.6 L 290,528" fill="none" stroke="#ffffff" stroke-width="6.9" stroke-linecap="round" stroke-linejoin="round"/>
+  <path id="decision-sar" data-graph-role="edge" data-edge-id="decision-sar" data-source="decision" data-target="sar" data-edge-kind="flow" data-topic-id="" data-flow="control" data-motion-role="" data-motion-stage="" data-motion-order="" data-protocol="" data-via="" data-critical-path-id="" data-critical-hop="" data-critical-hops="" data-critical="false" data-bends="3" data-route-stretch="1.0" data-bridges="388.8,483" d="M 480,465 L 388.8,465 L 388.8,478 A 5 5 0 0 1 388.8,488 L 388.8,507.6 L 290,507.6 L 290,528" fill="none" stroke="#7c3aed" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrowA)"/>
+  <path id="decision-closed" data-graph-role="edge" data-edge-id="decision-closed" data-source="decision" data-target="case_closed" data-edge-kind="flow" data-topic-id="" data-flow="control" data-motion-role="" data-motion-stage="" data-motion-order="" data-protocol="" data-via="" data-critical-path-id="" data-critical-hop="" data-critical-hops="" data-critical="false" data-bends="1" data-route-stretch="1.0" data-bridges="" d="M 720,474 L 870,474 L 870,528" fill="none" stroke="#7c3aed" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrowA)"/>
+  <path id="decision-gov" data-graph-role="edge" data-edge-id="decision-gov" data-source="decision" data-target="governance" data-edge-kind="flow" data-topic-id="" data-flow="feedback" data-motion-role="" data-motion-stage="" data-motion-order="" data-protocol="" data-via="" data-critical-path-id="" data-critical-hop="" data-critical-hops="" data-critical="false" data-bends="2" data-route-stretch="1.0" data-bridges="" d="M 600,504 L 600,524.4 L 581,524.4 L 581,634" fill="none" stroke="#ef4444" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrowG)"/>
+  <path id="gov-mrm" data-graph-role="edge" data-edge-id="gov-mrm" data-source="governance" data-target="mrm" data-edge-kind="flow" data-topic-id="" data-flow="data" data-motion-role="" data-motion-stage="" data-motion-order="" data-protocol="" data-via="" data-critical-path-id="" data-critical-hop="" data-critical-hops="" data-critical="false" data-bends="1" data-route-stretch="1.0" data-bridges="" d="M 460,671 L 310,671 L 310,680 L 310,680" fill="none" stroke="#f97316" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrowE)"/>
+  <path id="mrm-gov-bridge-mask" data-graph-role="bridge-mask" data-owner="mrm-gov" d="M 200,634 L 200,616 L 576,616 A 5 5 0 0 0 586,616 L 599,616 L 599,634" fill="none" stroke="#ffffff" stroke-width="6.9" stroke-linecap="round" stroke-linejoin="round"/>
+  <path id="mrm-gov" data-graph-role="edge" data-edge-id="mrm-gov" data-source="mrm" data-target="governance" data-edge-kind="flow" data-topic-id="" data-flow="control" data-motion-role="" data-motion-stage="" data-motion-order="" data-protocol="" data-via="" data-critical-path-id="" data-critical-hop="" data-critical-hops="" data-critical="false" data-bends="2" data-route-stretch="1.09" data-bridges="581,616" d="M 200,634 L 200,616 L 576,616 A 5 5 0 0 0 586,616 L 599,616 L 599,634" fill="none" stroke="#7c3aed" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrowA)"/>
+  <path id="gov-scoring" data-graph-role="edge" data-edge-id="gov-scoring" data-source="governance" data-target="scoring" data-edge-kind="flow" data-topic-id="" data-flow="feedback" data-motion-role="" data-motion-stage="" data-motion-order="" data-protocol="" data-via="" data-critical-path-id="" data-critical-hop="" data-critical-hops="" data-critical="false" data-bends="6" data-route-stretch="2.791" data-bridges="" d="M 460,689 L 439.6,689 L 439.6,732 L 947,732 L 947,848 L 14,848 L 14,230 L 90,230" fill="none" stroke="#ef4444" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrowG)"/>
+  <g id="node-txn_data" data-graph-role="node" data-node-id="txn_data" data-semantic-role="rect" data-motion-role="" data-motion-stage="" data-motion-order="" data-parent="" data-deployment-id="" data-topic-id="" data-span-id="" data-station-order="" data-status="" data-start-ms="" data-duration-ms="" data-parent-span="" data-graph-bounds="490,98,710,152">
+  <rect x="490.0" y="98.0" width="220.0" height="54.0" rx="10.0" fill="#f0fdf4" stroke="#16a34a" stroke-width="1.8" filter="url(#shadowSoft)"/>
+  <text x="600.0" y="125.0" text-anchor="middle" class="node-title" font-size="12.11">Customer &amp; Transaction Data</text>
+  <text x="600.0" y="147.0" text-anchor="middle" class="node-sub">2,000 customers · 100k+ txns</text>
+  </g>
+  <g id="node-scoring" data-graph-role="node" data-node-id="scoring" data-semantic-role="rect" data-motion-role="" data-motion-stage="" data-motion-order="" data-parent="" data-deployment-id="" data-topic-id="" data-span-id="" data-station-order="" data-status="" data-start-ms="" data-duration-ms="" data-parent-span="" data-graph-bounds="90,184,310,276">
+  <rect x="90.0" y="184.0" width="220.0" height="92.0" rx="10.0" fill="#fff7ed" stroke="#ea580c" stroke-width="1.8" filter="url(#shadowSoft)"/>
+  <text x="200.0" y="230.0" text-anchor="middle" class="node-title" font-size="18.0">Risk Scoring Engine</text>
+  <text x="200.0" y="252.0" text-anchor="middle" class="node-sub">XGBoost composite · batch job</text>
+  </g>
+  <g id="node-alert_queue" data-graph-role="node" data-node-id="alert_queue" data-semantic-role="rect" data-motion-role="" data-motion-stage="" data-motion-order="" data-parent="" data-deployment-id="" data-topic-id="" data-span-id="" data-station-order="" data-status="" data-start-ms="" data-duration-ms="" data-parent-span="" data-graph-bounds="460,184,660,276">
+  <rect x="460.0" y="184.0" width="200.0" height="92.0" rx="10.0" fill="#fffbeb" stroke="#d97706" stroke-width="1.8" filter="url(#shadowSoft)"/>
+  <text x="560.0" y="230.0" text-anchor="middle" class="node-title" font-size="18.0">Alert Queue</text>
+  <text x="560.0" y="252.0" text-anchor="middle" class="node-sub">148 open · risk-ranked</text>
+  </g>
+  <g id="node-analyst" data-graph-role="node" data-node-id="analyst" data-semantic-role="user_avatar" data-motion-role="" data-motion-stage="" data-motion-order="" data-parent="" data-deployment-id="" data-topic-id="" data-span-id="" data-station-order="" data-status="" data-start-ms="" data-duration-ms="" data-parent-span="" data-graph-bounds="810,184,1030,276">
+  <rect x="810.0" y="184.0" width="220.0" height="92.0" rx="10.0" fill="#eff6ff" stroke="#2563eb" stroke-width="2.0" filter="url(#shadowSoft)"/>
+  <circle cx="836.0" cy="230.0" r="18" fill="#dbeafe" stroke="#2563eb" stroke-width="1.6"/>
+  <circle cx="836.0" cy="224.0" r="5" fill="#2563eb"/>
+  <path d="M 826.0 241.0 Q 836.0 232.0 846.0 241.0" fill="none" stroke="#2563eb" stroke-width="2"/>
+  <text x="874.0" y="236.0" text-anchor="start" class="node-title" font-size="18.0">Compliance Analyst</text>
+  <text x="874.0" y="258.0" text-anchor="start" class="node-sub">selects &amp; prioritizes case</text>
+  </g>
+  <g id="node-case_file" data-graph-role="node" data-node-id="case_file" data-semantic-role="rect" data-motion-role="" data-motion-stage="" data-motion-order="" data-parent="" data-deployment-id="" data-topic-id="" data-span-id="" data-station-order="" data-status="" data-start-ms="" data-duration-ms="" data-parent-span="" data-graph-bounds="810,314,1030,406">
+  <rect x="810.0" y="314.0" width="220.0" height="92.0" rx="10.0" fill="#f8fafc" stroke="#475569" stroke-width="1.8" filter="url(#shadowSoft)"/>
+  <text x="920.0" y="360.0" text-anchor="middle" class="node-title" font-size="18.0">Case File</text>
+  <text x="920.0" y="382.0" text-anchor="middle" class="node-sub">opened on first review</text>
+  </g>
+  <g id="node-ai_team" data-graph-role="node" data-node-id="ai_team" data-semantic-role="double_rect" data-motion-role="" data-motion-stage="" data-motion-order="" data-parent="" data-deployment-id="" data-topic-id="" data-span-id="" data-station-order="" data-status="" data-start-ms="" data-duration-ms="" data-parent-span="" data-graph-bounds="460,314,680,406">
+  <rect x="460.0" y="314.0" width="220.0" height="92.0" rx="10.0" fill="#faf5ff" stroke="#9333ea" stroke-width="2.0" filter="url(#shadowSoft)"/>
+  <rect x="466.0" y="320.0" width="208.0" height="80.0" rx="7.0" fill="none" stroke="#9333ea" stroke-width="1.2" opacity="0.65"/>
+  <text x="570.0" y="360.0" text-anchor="middle" class="node-title" font-size="16.26">AI Investigation Team</text>
+  <text x="570.0" y="382.0" text-anchor="middle" class="node-sub">4 parallel specialist agents</text>
+  </g>
+  <g id="node-evidence" data-graph-role="node" data-node-id="evidence" data-semantic-role="rect" data-motion-role="" data-motion-stage="" data-motion-order="" data-parent="" data-deployment-id="" data-topic-id="" data-span-id="" data-station-order="" data-status="" data-start-ms="" data-duration-ms="" data-parent-span="" data-graph-bounds="90,314,290,406">
+  <rect x="90.0" y="314.0" width="200.0" height="92.0" rx="10.0" fill="#f5f3ff" stroke="#7c3aed" stroke-width="1.8" filter="url(#shadowSoft)"/>
+  <text x="190.0" y="360.0" text-anchor="middle" class="node-title" font-size="14.97">Evidence &amp; Narrative</text>
+  <text x="190.0" y="382.0" text-anchor="middle" class="node-sub">findings · SHAP · network</text>
+  </g>
+  <g id="node-decision" data-graph-role="node" data-node-id="decision" data-semantic-role="speech" data-motion-role="" data-motion-stage="" data-motion-order="" data-parent="" data-deployment-id="" data-topic-id="" data-span-id="" data-station-order="" data-status="" data-start-ms="" data-duration-ms="" data-parent-span="" data-graph-bounds="480,444,720,504">
+  <path d="M 490.0 444.0 L 710.0 444.0 Q 720.0 444.0 720.0 454.0 L 720.0 494.0 Q 720.0 504.0 710.0 504.0 L 506.0 504.0 L 492.0 522.0 L 496.0 504.0 L 490.0 504.0 Q 480.0 504.0 480.0 494.0 L 480.0 454.0 Q 480.0 444.0 490.0 444.0 Z" fill="#f0fdfa" stroke="#0d9488" stroke-width="2.0" filter="url(#shadowSoft)"/>
+  <text x="600.0" y="474.0" text-anchor="middle" class="node-title" font-size="18.0">Disposition Decision</text>
+  <text x="600.0" y="496.0" text-anchor="middle" class="node-sub">analyst adjudicates</text>
+  </g>
+  <g id="node-sar" data-graph-role="node" data-node-id="sar" data-semantic-role="rect" data-motion-role="" data-motion-stage="" data-motion-order="" data-parent="" data-deployment-id="" data-topic-id="" data-span-id="" data-station-order="" data-status="" data-start-ms="" data-duration-ms="" data-parent-span="" data-graph-bounds="190,528,390,594">
+  <rect x="190.0" y="528.0" width="200.0" height="66.0" rx="10.0" fill="#fef2f2" stroke="#dc2626" stroke-width="1.8" filter="url(#shadowSoft)"/>
+  <text x="290.0" y="561.0" text-anchor="middle" class="node-title" font-size="18.0">SAR / STR Filing</text>
+  <text x="290.0" y="583.0" text-anchor="middle" class="node-sub">regulatory submission</text>
+  </g>
+  <g id="node-case_closed" data-graph-role="node" data-node-id="case_closed" data-semantic-role="rect" data-motion-role="" data-motion-stage="" data-motion-order="" data-parent="" data-deployment-id="" data-topic-id="" data-span-id="" data-station-order="" data-status="" data-start-ms="" data-duration-ms="" data-parent-span="" data-graph-bounds="770,528,970,594">
+  <rect x="770.0" y="528.0" width="200.0" height="66.0" rx="10.0" fill="#f0fdf4" stroke="#16a34a" stroke-width="1.8" filter="url(#shadowSoft)"/>
+  <text x="870.0" y="561.0" text-anchor="middle" class="node-title" font-size="18.0">Case Closed</text>
+  <text x="870.0" y="583.0" text-anchor="middle" class="node-sub">audit trail retained</text>
+  </g>
+  <g id="node-mrm" data-graph-role="node" data-node-id="mrm" data-semantic-role="user_avatar" data-motion-role="" data-motion-stage="" data-motion-order="" data-parent="" data-deployment-id="" data-topic-id="" data-span-id="" data-station-order="" data-status="" data-start-ms="" data-duration-ms="" data-parent-span="" data-graph-bounds="90,634,310,726">
+  <rect x="90.0" y="634.0" width="220.0" height="92.0" rx="10.0" fill="#eef2ff" stroke="#4f46e5" stroke-width="2.0" filter="url(#shadowSoft)"/>
+  <circle cx="116.0" cy="680.0" r="18" fill="#dbeafe" stroke="#4f46e5" stroke-width="1.6"/>
+  <circle cx="116.0" cy="674.0" r="5" fill="#4f46e5"/>
+  <path d="M 106.0 691.0 Q 116.0 682.0 126.0 691.0" fill="none" stroke="#4f46e5" stroke-width="2"/>
+  <text x="154.0" y="686.0" text-anchor="start" class="node-title" font-size="18.0">Model Risk Manager</text>
+  <text x="154.0" y="708.0" text-anchor="start" class="node-sub">monitors drift &amp; perf</text>
+  </g>
+  <g id="node-governance" data-graph-role="node" data-node-id="governance" data-semantic-role="rect" data-motion-role="" data-motion-stage="" data-motion-order="" data-parent="" data-deployment-id="" data-topic-id="" data-span-id="" data-station-order="" data-status="" data-start-ms="" data-duration-ms="" data-parent-span="" data-graph-bounds="460,634,720,726">
+  <rect x="460.0" y="634.0" width="260.0" height="92.0" rx="10.0" fill="#eef2ff" stroke="#1c0f43" stroke-width="1.8" filter="url(#shadowSoft)"/>
+  <text x="590.0" y="680.0" text-anchor="middle" class="node-title" font-size="18.0">Governance Pipeline</text>
+  <text x="590.0" y="702.0" text-anchor="middle" class="node-sub">retrain · canary · promote</text>
+  </g>
+  <g id="data-scoring-label" data-graph-role="label" data-owner="data-scoring" data-graph-bounds="297.8,106,392.2,126">
+  <rect x="297.8" y="106.0" width="94.4" height="20" rx="6" fill="#ffffff" opacity="0.94"/>
+  <text x="345.0" y="120.0" text-anchor="middle" class="arrow-label">transactions</text>
+  </g>
+  <g id="scoring-queue-label" data-graph-role="label" data-owner="scoring-queue" data-graph-bounds="319.8,199,450.2,219">
+  <rect x="319.8" y="199.0" width="130.4" height="20" rx="6" fill="#ffffff" opacity="0.94"/>
+  <text x="385.0" y="213.0" text-anchor="middle" class="arrow-label">risk-ranked alerts</text>
+  </g>
+  <g id="queue-analyst-label" data-graph-role="label" data-owner="queue-analyst" data-graph-bounds="692.6,199,777.4,219">
+  <rect x="692.6" y="199.0" width="84.80000000000001" height="20" rx="6" fill="#ffffff" opacity="0.94"/>
+  <text x="735.0" y="213.0" text-anchor="middle" class="arrow-label">select case</text>
+  </g>
+  <g id="analyst-case-label" data-graph-role="label" data-owner="analyst-case" data-graph-bounds="843,281,917,301">
+  <rect x="843.0" y="281.0" width="74.0" height="20" rx="6" fill="#ffffff" opacity="0.94"/>
+  <text x="880.0" y="295.0" text-anchor="middle" class="arrow-label">open case</text>
+  </g>
+  <g id="case-ai-label" data-graph-role="label" data-owner="case-ai" data-graph-bounds="702.84,329,787.16,349">
+  <rect x="702.84" y="329.0" width="84.32000000000001" height="20" rx="6" fill="#ffffff" opacity="0.94"/>
+  <text x="745.0" y="343.0" text-anchor="middle" class="arrow-label">investigate</text>
+  </g>
+  <g id="ai-evidence-label" data-graph-role="label" data-owner="ai-evidence" data-graph-bounds="343.28,329,406.72,349">
+  <rect x="343.28" y="329.0" width="63.44" height="20" rx="6" fill="#ffffff" opacity="0.94"/>
+  <text x="375.0" y="343.0" text-anchor="middle" class="arrow-label">findings</text>
+  </g>
+  <g id="evidence-decision-label" data-graph-role="label" data-owner="evidence-decision" data-graph-bounds="305.2,452,364.8,472">
+  <text x="335.0" y="466.0" text-anchor="middle" class="arrow-label">informs</text>
+  </g>
+  <g id="decision-sar-label" data-graph-role="label" data-owner="decision-sar" data-graph-bounds="300.72,494.6,378.08,514.6">
+  <rect x="300.72" y="494.6" width="77.35999999999999" height="20" rx="6" fill="#ffffff" opacity="0.94"/>
+  <text x="339.4" y="508.6" text-anchor="middle" class="arrow-label">SUSPICIOUS</text>
+  </g>
+  <g id="decision-closed-label" data-graph-role="label" data-owner="decision-closed" data-graph-bounds="724.04,443,901.96,463">
+  <text x="813.0" y="457.0" text-anchor="middle" class="arrow-label">FALSE POSITIVE / MORE INFO</text>
+  </g>
+  <g id="decision-gov-label" data-graph-role="label" data-owner="decision-gov" data-graph-bounds="454.56,565.2,578,585.2">
+  <text x="516.28" y="579.2" text-anchor="middle" class="arrow-label">annotation logged</text>
+  </g>
+  <g id="gov-mrm-label" data-graph-role="label" data-owner="gov-mrm" data-graph-bounds="314.04,640,455.96,660">
+  <rect x="314.04" y="640.0" width="141.92000000000002" height="20" rx="6" fill="#ffffff" opacity="0.94"/>
+  <text x="385.0" y="654.0" text-anchor="middle" class="arrow-label">drift &amp; perf metrics</text>
+  </g>
+  <g id="mrm-gov-label" data-graph-role="label" data-owner="mrm-gov" data-graph-bounds="343.18,603,455.82,623">
+  <text x="399.5" y="617.0" text-anchor="middle" class="arrow-label">approve retrain</text>
+  </g>
+  <g id="gov-scoring-label" data-graph-role="label" data-owner="gov-scoring" data-graph-bounds="427.66,835,533.34,855">
+  <rect x="427.66" y="835.0" width="105.68" height="20" rx="6" fill="#ffffff" opacity="0.94"/>
+  <text x="480.5" y="849.0" text-anchor="middle" class="arrow-label">promoted model</text>
+  </g>
+  <g id="legend" data-graph-role="legend">
+    <rect id="legend-zone" data-graph-role="reserved" data-reserved-kind="legend" x="38" y="756" width="645.76" height="46" rx="10" fill="none" stroke="none"/>
+    <line data-graph-role="decoration" x1="48.0" y1="770.0" x2="78.0" y2="770.0" stroke="#f97316" stroke-width="2.4" marker-end="url(#arrowE)"/>
+    <text data-graph-role="decoration" x="88.0" y="774.0" class="legend">information flow</text>
+    <line data-graph-role="decoration" x1="215.36" y1="770.0" x2="245.36" y2="770.0" stroke="#7c3aed" stroke-width="2.4" marker-end="url(#arrowA)"/>
+    <text data-graph-role="decoration" x="255.36" y="774.0" class="legend">action / trigger</text>
+    <line data-graph-role="decoration" x1="383.20000000000005" y1="770.0" x2="413.20000000000005" y2="770.0" stroke="#2563eb" stroke-width="2.4" marker-end="url(#arrowC)"/>
+    <text data-graph-role="decoration" x="423.20000000000005" y="774.0" class="legend">source data</text>
+    <line data-graph-role="decoration" x1="525.1200000000001" y1="770.0" x2="555.1200000000001" y2="770.0" stroke="#ef4444" stroke-width="2.4" marker-end="url(#arrowG)"/>
+    <text data-graph-role="decoration" x="565.1200000000001" y="774.0" class="legend">governance loop</text>
+  </g>
+  <g id="footer" data-graph-role="reserved" data-graph-bounds="48,808,923,824">
+  <text x="48.0" y="820.0" class="footnote">Business value: faster, evidence-backed decisions on real risk; every disposition improves the model that finds the next one.</text>
+  </g>
+</svg>

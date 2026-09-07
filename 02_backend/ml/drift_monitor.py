@@ -7,7 +7,7 @@ sys.path.insert(0, os.path.join(PROJECT_ROOT, "02_backend"))
 import numpy as np
 import pandas as pd
 
-from ml.feature_engineering import build_feature_matrix
+from common import source
 
 PSI_THRESHOLD = 0.2
 MIN_ROWS = 50
@@ -34,41 +34,20 @@ def _psi(expected: np.ndarray, actual: np.ndarray, n_bins: int) -> float:
     return psi_val
 
 
-def compute_psi(conn, feature: str = "amount_log", n_bins: int = 10) -> dict:
+def compute_psi(conn=None, feature: str = "amount_log", n_bins: int = 10) -> dict:
     """
     Compare feature distribution between reference (transactions older than 30 days)
     and current (last 30 days). Returns {"psi": float, "drift_detected": bool, "threshold": 0.2}.
+
+    Source data comes from the source layer (Impala/CSV); `conn` is unused.
     """
-    X, _ = build_feature_matrix(conn)
+    df = source.transactions_features_df()
+    df = df[df["transaction_id"].notna()]
 
-    # Re-fetch event_time to split reference vs current
-    tx_times = pd.read_sql_query(
-        "SELECT transaction_id, event_time FROM transactions WHERE transaction_id IS NOT NULL",
-        conn,
-    )
-    # build_feature_matrix does not preserve transaction_id in X; we split by index order
-    # Instead, rebuild event_time series in same order as X
-    # Simpler: just use a raw SQL split directly on the feature
+    # Split reference vs current on ISO event_time (string compare, same as before).
     cutoff = (pd.Timestamp.now() - pd.Timedelta(days=30)).strftime("%Y-%m-%dT%H:%M:%S")
-
-    tx_ref = pd.read_sql_query(
-        f"SELECT t.amount, t.channel, t.counterparty_country, t.event_time, "
-        f"c.risk_rating, c.account_age_days, c.expected_monthly_turnover "
-        f"FROM transactions t "
-        f"LEFT JOIN accounts a ON t.from_account_id = a.account_id "
-        f"LEFT JOIN customers c ON a.customer_id = c.customer_id "
-        f"WHERE t.transaction_id IS NOT NULL AND t.event_time < '{cutoff}'",
-        conn,
-    )
-    tx_cur = pd.read_sql_query(
-        f"SELECT t.amount, t.channel, t.counterparty_country, t.event_time, "
-        f"c.risk_rating, c.account_age_days, c.expected_monthly_turnover "
-        f"FROM transactions t "
-        f"LEFT JOIN accounts a ON t.from_account_id = a.account_id "
-        f"LEFT JOIN customers c ON a.customer_id = c.customer_id "
-        f"WHERE t.transaction_id IS NOT NULL AND t.event_time >= '{cutoff}'",
-        conn,
-    )
+    tx_ref = df[df["event_time"] < cutoff]
+    tx_cur = df[df["event_time"] >= cutoff]
 
     insufficient = {"psi": 0.0, "drift_detected": False, "threshold": PSI_THRESHOLD, "insufficient_data": True}
     if len(tx_ref) < MIN_ROWS or len(tx_cur) < MIN_ROWS:

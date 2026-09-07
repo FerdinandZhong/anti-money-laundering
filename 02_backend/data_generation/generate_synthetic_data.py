@@ -14,6 +14,13 @@ from data_generation.schema import init_schema
 
 random.seed(42)
 
+# H3 demo lift (docs/superpowers/specs/2026-09-06-preflight-hardening-design.md):
+# this many of the seeded structuring transactions start is_suspicious=0 despite
+# being genuinely part of the pattern, so the first-trained model under-learns
+# them. An analyst correcting the labels via the tx-label UI then retraining
+# produces a real, visible PR-AUC delta instead of a flat metric across runs.
+STRUCTURING_UNDERLABELED_N = 30
+
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
@@ -47,7 +54,7 @@ RISK_RATINGS = ["LOW", "MEDIUM", "HIGH"]
 
 def gen_customers(n: int) -> list[dict]:
     rows = []
-    n_suspicious = max(1, int(n * 0.06))
+    n_suspicious = max(1, int(n * 0.01))
     n_normal = n - n_suspicious - 1  # -1 for Nightfall
 
     # Nightfall anchor customer
@@ -377,6 +384,13 @@ def gen_nightfall_transactions(accounts: list[dict]) -> list[dict]:
 
 
 def gen_structuring_transactions(accounts: list[dict]) -> list[dict]:
+    """Structuring typology: many just-under-threshold transfers from one
+    account. A subset (STRUCTURING_UNDERLABELED_N) is seeded with
+    is_suspicious=0 despite being genuinely part of the pattern — simulating
+    a synthetic ground-truth gap the model under-learns from on first train.
+    An analyst tagging those transactions suspicious (existing tx-label UI)
+    and retraining is the demo's before/after PR-AUC lift; see H3 design spec.
+    """
     rows = []
     active = [a["account_id"] for a in accounts
               if a["status"] == "ACTIVE"
@@ -387,6 +401,7 @@ def gen_structuring_transactions(accounts: list[dict]) -> list[dict]:
 
     struct_acc = random.choice(active)
     n = random.randint(50, 100)
+    n_underlabeled = min(STRUCTURING_UNDERLABELED_N, n)
     for i in range(n):
         days_ago = random.uniform(0, 3)
         rows.append({
@@ -402,7 +417,7 @@ def gen_structuring_transactions(accounts: list[dict]) -> list[dict]:
             "event_time": _ts(days_ago),
             "mcc": None,
             "reference": f"TRANSFER {_uid()}",
-            "is_suspicious": 1,
+            "is_suspicious": 0 if i < n_underlabeled else 1,
             "typology": "STRUCTURING",
         })
     return rows
@@ -465,52 +480,14 @@ def gen_hard_negatives(accounts: list[dict]) -> list[dict]:
 
 
 def gen_alerts() -> list[dict]:
-    triggered = '["RAPID_FUND_MOVEMENT","MANY_TO_ONE_FUNNELING","KYC_TURNOVER_MISMATCH","SHARED_DEVICE_NETWORK"]'
-    rows = [
-        {
-            "alert_id": "ALERT-NIGHTFALL-001",
-            "customer_id": "CUST-NIGHTFALL-001",
-            "account_id": "ACC-NIGHTFALL-001",
-            "triggered_rules": triggered,
-            "risk_score": 0.93,
-            "risk_band": "CRITICAL",
-            "reason_codes": triggered,
-            "top_features": '{"velocity_24h": 46, "net_flow_ratio": 0.92, "shared_device_count": 5}',
-            "model_version": "v0.0.0-seed",
-            "status": "OPEN",
-            "sla_deadline": _ts(-72),  # 72h from now
-        }
-    ]
-    # Structuring alerts
-    for i in range(3):
-        risk_band = random.choice(["MEDIUM", "HIGH"])
-        rows.append({
-            "alert_id": f"ALERT-STR-{i:03d}",
-            "customer_id": f"CUST-{random.randint(0, 100):06d}",
-            "account_id": None,
-            "triggered_rules": '["STRUCTURING"]',
-            "risk_score": round(random.uniform(0.5, 0.8), 2),
-            "risk_band": risk_band,
-            "reason_codes": '["STRUCTURING"]',
-            "top_features": None,
-            "model_version": "v0.0.0-seed",
-            "status": "OPEN",
-            "sla_deadline": _ts(-48),
-        })
-    return rows
+    # No hand-seeded alerts — the scorer flags accounts (incl. Nightfall)
+    # from real transaction risk on first score_transactions() run.
+    return []
 
 
 def gen_cases() -> list[dict]:
-    return [
-        {
-            "case_id": "CASE-NIGHTFALL-001",
-            "alert_id": "ALERT-NIGHTFALL-001",
-            "customer_id": "CUST-NIGHTFALL-001",
-            "state": "ALERT_CREATED",
-            "assignee": None,
-            "priority": "CRITICAL",
-        }
-    ]
+    # No hand-seeded cases — cases are created when alerts are first opened.
+    return []
 
 
 def gen_annotations() -> list[dict]:
@@ -613,7 +590,7 @@ def main():
     # Ensure DB and schema exist
     init_db()
     conn = get_connection()
-    conn.execute("PRAGMA foreign_keys=OFF")  # allow historical annotations with dummy case ids
+    conn.execute("PRAGMA foreign_keys=OFF")  # bulk inserts happen out of FK order
 
     print("Generating customers...")
     customers = gen_customers(n_customers)
@@ -662,28 +639,19 @@ def main():
     insert_cases(conn, case_rows)
     conn.commit()
 
-    print("Pre-seeding 499 annotations...")
-    ann_rows = gen_annotations()
-    insert_annotations(conn, ann_rows)
-    conn.commit()
-
-    print("Seeding model_runs and deployments...")
-    conn.execute(
-        "INSERT OR IGNORE INTO model_runs (run_id,model_version,status,metrics) VALUES (?,?,?,?)",
-        ("RUN-V1-SEED", "v1.0.0", "COMPLETE",
-         '{"pr_auc": 0.847, "recall_top2pct": 0.823, "precision_top2pct": 0.412}'),
-    )
-    conn.execute(
-        "INSERT OR IGNORE INTO deployments (deployment_id,model_version,status,traffic_pct) VALUES (?,?,?,?)",
-        ("DEPLOY-V1", "v1.0.0", "CHAMPION", 100.0),
-    )
-    conn.commit()
+    # No hand-seeded model_runs/deployments row here: a fake "v1.0.0" run with
+    # no on-disk artifact (pr_auc=0.847, never trained) was exactly the bug
+    # H3 fixes — scorer.py/get_model_explanation silently fell back to the
+    # newest artifact because the champion pointer never matched a real train
+    # run. Run `python 02_backend/scripts/export_source_csv.py` then
+    # `python -m ml.train` (from 02_backend/) next; train.py's __main__ now
+    # promotes the freshly trained version to CHAMPION itself.
     conn.execute("PRAGMA foreign_keys=ON")
     conn.close()
 
     n_tx = len(normal_txs) + len(nf_txs) + len(str_txs) + len(hn_txs)
     print(f"\nGenerated: {len(customers)} customers, {len(accounts)} accounts, {n_tx} transactions")
-    print(f"Alerts: {len(alert_rows)}, Cases: {len(case_rows)}, Annotations (pre-seed): 499")
+    print(f"Alerts: {len(alert_rows)}, Cases: {len(case_rows)}")
 
 
 if __name__ == "__main__":

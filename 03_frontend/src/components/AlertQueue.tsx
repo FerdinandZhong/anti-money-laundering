@@ -1,42 +1,44 @@
 import React, { useEffect, useState } from 'react'
 import { Bell, RefreshCw } from 'lucide-react'
-import type { Alert, AlertSort } from '../api'
-import { getAlerts } from '../api'
+import type { Alert, AlertSort, AlertStatus } from '../api'
+import { getAlerts, getAlertCounts } from '../api'
 import { RiskBadge } from './Badge'
 
 const RISK_COLOR: Record<string, string> = {
-  CRITICAL: '#dc2626',
-  HIGH:     '#ea580c',
-  MEDIUM:   '#d97706',
-  LOW:      '#16a34a',
+  CRITICAL: '#dc2626', HIGH: '#ea580c', MEDIUM: '#d97706', LOW: '#16a34a',
 }
+
+const BUCKETS: { status: AlertStatus; label: string }[] = [
+  { status: 'OPEN', label: 'Open' },
+  { status: 'PROPOSED', label: 'Proposed' },
+  { status: 'PENDING', label: 'Pending' },
+  { status: 'CLOSED', label: 'Archived' },
+]
 
 interface Props {
   selectedAlertId: string | null
   onSelect: (alert: Alert) => void
+  reloadKey?: number   // bump to force a reload after a disposition
 }
 
-export const AlertQueue: React.FC<Props> = ({ selectedAlertId, onSelect }) => {
+export const AlertQueue: React.FC<Props> = ({ selectedAlertId, onSelect, reloadKey }) => {
   const [alerts, setAlerts] = useState<Alert[]>([])
-  const [openCount, setOpenCount] = useState(0)
+  const [counts, setCounts] = useState<Record<AlertStatus, number>>({ OPEN: 0, PROPOSED: 0, PENDING: 0, CLOSED: 0 })
+  const [status, setStatus] = useState<AlertStatus>('OPEN')
   const [loading, setLoading] = useState(true)
   const [sort, setSort] = useState<AlertSort>('risk_score')
   const [error, setError] = useState(false)
 
-  const load = (nextSort: AlertSort = sort) => {
-    setLoading(true)
-    setError(false)
-    getAlerts('OPEN', 50, nextSort)
-      .then(r => { setAlerts(r.alerts); setOpenCount(r.open_count ?? r.total) })
-      .catch(() => {
-        setAlerts([])
-        setOpenCount(0)
-        setError(true)
-      })
+  const load = (nextStatus: AlertStatus = status, nextSort: AlertSort = sort) => {
+    setLoading(true); setError(false)
+    getAlerts(nextStatus, 50, nextSort)
+      .then(r => setAlerts(r.alerts))
+      .catch(() => { setAlerts([]); setError(true) })
       .finally(() => setLoading(false))
+    getAlertCounts().then(setCounts).catch(() => {})
   }
 
-  useEffect(() => { load() }, [])
+  useEffect(() => { load() }, [reloadKey])   // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
     <div className="w-[28%] shrink-0 flex flex-col bg-surface-1 rounded-lg overflow-hidden shadow-soft min-h-0">
@@ -45,11 +47,11 @@ export const AlertQueue: React.FC<Props> = ({ selectedAlertId, onSelect }) => {
         <Bell className="w-3.5 h-3.5 text-accent" />
         <h2 className="text-sm font-semibold text-ink flex-1">Alert Queue</h2>
         <span className="px-2 py-0.5 text-xs font-bold rounded-full bg-accent/10 text-accent border border-accent/20">
-          {openCount}
+          {counts[status]}
         </span>
         <select
           value={sort}
-          onChange={e => { const next = e.target.value as AlertSort; setSort(next); load(next) }}
+          onChange={e => { const next = e.target.value as AlertSort; setSort(next); load(status, next) }}
           className="text-2xs text-ink-muted border border-surface-3 rounded-lg px-1.5 py-0.5 bg-surface-1"
           title="Sort alerts"
         >
@@ -64,6 +66,20 @@ export const AlertQueue: React.FC<Props> = ({ selectedAlertId, onSelect }) => {
         >
           <RefreshCw className={`w-3 h-3 ${loading ? 'animate-spin' : ''}`} />
         </button>
+      </div>
+
+      {/* Bucket bar */}
+      <div className="flex gap-1 px-3 py-2 border-b border-surface-3 bg-surface-1">
+        {BUCKETS.map(b => (
+          <button
+            key={b.status}
+            onClick={() => { setStatus(b.status); load(b.status) }}
+            className={`text-2xs font-semibold px-2 py-1 rounded-lg transition-colors
+              ${status === b.status ? 'bg-accent text-white' : 'text-ink-muted bg-surface-2 hover:bg-surface-3'}`}
+          >
+            {b.label} <span className="opacity-70">{counts[b.status]}</span>
+          </button>
+        ))}
       </div>
 
       {/* List */}
@@ -105,7 +121,7 @@ export const AlertQueue: React.FC<Props> = ({ selectedAlertId, onSelect }) => {
 
         {alerts.length === 0 && !loading && (
           <div className="flex items-center justify-center h-32 text-sm text-ink-faint">
-            {error ? "Couldn't load alerts" : 'No open alerts'}
+            {error ? "Couldn't load alerts" : `No ${status.toLowerCase()} alerts`}
           </div>
         )}
       </div>

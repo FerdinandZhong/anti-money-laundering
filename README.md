@@ -85,6 +85,46 @@ the champion model and inserts a fresh set of `ALERT-ML-*` rows. So every mornin
 analyst opens the app to a new, risk-ranked queue of flagged accounts to work — the
 same way a real CML Job would feed the platform daily.
 
+### MCP tool servers + verification agent (the agent loop)
+
+The four investigation workers each make a single LLM call over local tools. A
+fifth **verification worker** turns the flow into a real agent loop: it extracts
+the collectors' key factual claims (PEP/sanctions/adverse-media assertions, entity
+links) and runs a bounded tool-calling loop against a configured **MCP server** to
+confirm or refute each, returning per-claim verdicts (`confirmed` / `refuted` /
+`unverified`) with sources.
+
+Configure servers in the **Tools** tab (persisted in the ops `tool_config` table):
+
+- Add a remote **streamable-HTTP** MCP server — a name, its URL, and an optional
+  API key (sent as a bearer token). **Test connection** connects and lists the
+  server's tools.
+- The verification worker calls whatever tools the enabled servers expose
+  (`common/mcp_client.py` bridges the async MCP SDK onto the threaded workers).
+- The loop needs a tool-calling-capable model (register one in the **Models** tab).
+
+When it runs, the investigation stream adds a `VERIFYING` phase and renders verdict
+chips + source links. **Everything fails soft:** with no MCP server configured (or
+a model that can't tool-call), the workflow behaves exactly as before — no
+`VERIFYING` phase, no errors.
+
+```bash
+python -m common.mcp_client   # lists tools for each enabled server, or "not configured"
+```
+
+### Case lifecycle & network graph
+
+Dispositioning a case now routes its alert out of the **Open** queue: `SUSPICIOUS`
+→ **Proposed** (awaiting SAR/STR filing), `NEEDS_MORE_INFO` → **Pending**,
+`FALSE_POSITIVE` → **Archived**. The Alert Queue has a bucket bar with live counts;
+a legacy DB is backfilled idempotently on startup.
+
+Opening a case draws the account's **network graph** (source mules → collector →
+offshore beneficiaries) from `/api/alerts/{id}/detail` — orange arrows are
+aggregated fund-flow, dashed links are shared devices. Clicking a transaction row
+expands raw fields plus derived typology flags (near-threshold, off-hours,
+cross-border, repeat-counterparty). Flags are honest heuristics, not model output.
+
 ## Retraining (agent workflow → Workbench canary)
 
 Retraining is an agent workflow (`02_backend/agents/retraining.py`), same
@@ -179,10 +219,17 @@ backend it picked. `GET /api/health/environment` reports this at runtime
 
 **Prod hardening — explicitly deferred (not in this AMP/demo scope):** a
 durable/shared ops store (Postgres or similar) in place of local SQLite, a
-secrets manager for LLM/CDP credentials, probability-calibrated risk scores
-(today's score is a within-batch percentile rank, see `ml/scorer.py`), and a
-full immutable audit trail. These matter for a production pilot, not for
-forking the blueprint onto real data or running the live demo.
+secrets manager for LLM/CDP credentials (MCP + model API keys are currently
+plaintext in the ops DB), probability-calibrated risk scores (today's score is a
+within-batch percentile rank, see `ml/scorer.py`), and a full immutable audit
+trail. These matter for a production pilot, not for forking the blueprint onto
+real data or running the live demo.
+
+**Agentic stretch — designed, not built:** Iceberg history/peer-baseline tools
+wired into the Pattern/Network workers (needs a live warehouse), stdio-spawn MCP
+transport (the Tools tab supports remote HTTP servers only — CML sandboxes may
+block subprocess spawn), and a direct web-search verification path (verification
+currently routes through MCP tools only).
 
 ## Demo Flow
 

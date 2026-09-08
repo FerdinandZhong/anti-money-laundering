@@ -10,6 +10,8 @@ build/
 
 # Data & models
 data/aml.db
+data/aml.db-shm
+data/aml.db-wal
 data/raw/
 data/processed/
 models/*.json

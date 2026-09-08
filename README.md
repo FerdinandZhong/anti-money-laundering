@@ -96,12 +96,16 @@ confirm or refute each, returning per-claim verdicts (`confirmed` / `refuted` /
 
 Configure servers in the **Tools** tab (persisted in the ops `tool_config` table):
 
-- Add a remote **streamable-HTTP** MCP server — a name, its URL, and an optional
-  API key (sent as a bearer token). **Test connection** connects and lists the
-  server's tools.
-- The verification worker calls whatever tools the enabled servers expose
-  (`common/mcp_client.py` bridges the async MCP SDK onto the threaded workers).
-- The loop needs a tool-calling-capable model (register one in the **Models** tab).
+- **Embedded Cloudera MCP servers** — two parameter cards:
+  [iceberg-mcp-server](https://github.com/cloudera/iceberg-mcp-server) (Impala
+  host/port/user/password/database) feeds the investigation agents' Iceberg
+  reads, and [CAI_Workbench_MCP_Server](https://github.com/cloudera/CAI_Workbench_MCP_Server)
+  (Workbench host/API key/project ID) drives the retraining workflow's training
+  job + canary deployment. Both are spawned on demand over stdio via `uvx`.
+  **Leave a card blank and the app runs fully locally** — investigation reads
+  the CSV dataset, retraining trains in-process with a simulated canary.
+- **Custom verification servers** — remote streamable-HTTP MCP servers the
+  verification worker calls to confirm/refute findings, as before.
 
 When it runs, the investigation stream adds a `VERIFYING` phase and renders verdict
 chips + source links. **Everything fails soft:** with no MCP server configured (or

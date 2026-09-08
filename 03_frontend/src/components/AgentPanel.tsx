@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react'
 import { Play, Loader2, CheckCircle2, Settings } from 'lucide-react'
 import { disposeCase, investigateCase, streamSSE, api, getCaiiEndpoints, setLlmProvider } from '../api'
 import type { CaiiEndpoint } from '../api'
-import { PipelineStream, type PipelineItem, type Verdict } from './PipelineStream'
+import { PipelineStream, Md, type PipelineItem, type Verdict } from './PipelineStream'
 import type { WorkflowNode } from './WorkflowGraph'
 
 interface Props {
@@ -245,7 +245,7 @@ export const AgentPanel: React.FC<Props> = ({ caseId, savedAnalysis, onDisposed,
             <p className="text-2xs uppercase tracking-wider text-ink-faint mb-1.5">
               Saved analysis{savedAnalysis.at ? ` · ${new Date(savedAnalysis.at).toLocaleString()}` : ''}
             </p>
-            <p className="text-xs text-ink leading-relaxed whitespace-pre-wrap">{savedAnalysis.text}</p>
+            <Md text={savedAnalysis.text} />
           </div>
         </div>
       ) : (

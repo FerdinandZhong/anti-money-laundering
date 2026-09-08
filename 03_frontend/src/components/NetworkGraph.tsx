@@ -1,5 +1,5 @@
-import React from 'react'
-import { Share2 } from 'lucide-react'
+import React, { useState } from 'react'
+import { Share2, ChevronDown, ChevronRight } from 'lucide-react'
 import type { NetworkGraph as Graph, NetworkNode } from '../api'
 
 const COL_X: Record<string, number> = { source: 90, collector: 300, beneficiary: 510, account: 300 }
@@ -14,10 +14,11 @@ const NODE_STYLE: Record<string, { fill: string; stroke: string; text: string }>
   account:     { fill: '#f7f8fa', stroke: '#d5d9e0', text: '#9aa1ac' },
 }
 
-const short = (id: string) => (id.length > 18 ? id.slice(0, 17) + '…' : id)
+const short = (id: string, max = 18) => (id.length > max ? id.slice(0, max - 1) + '…' : id)
 const money = (n?: number) => (n == null ? '' : n >= 1000 ? `$${(n / 1000).toFixed(0)}k` : `$${n}`)
 
 export const NetworkGraph: React.FC<{ graph: Graph }> = ({ graph }) => {
+  const [open, setOpen] = useState(true)
   if (!graph || graph.nodes.length === 0) return null
 
   // group nodes into columns, assign y by index within the column
@@ -40,14 +41,18 @@ export const NetworkGraph: React.FC<{ graph: Graph }> = ({ graph }) => {
 
   return (
     <div className="bg-surface-1 rounded-lg shadow-soft overflow-hidden">
-      <div className="flex items-center gap-2 border-b border-surface-3 px-4 py-2">
+      <button
+        onClick={() => setOpen(v => !v)}
+        className="w-full flex items-center gap-2 border-b border-surface-3 px-4 py-2 hover:bg-surface-2 transition-colors"
+      >
         <Share2 className="w-3 h-3 text-accent" />
         <span className="text-2xs font-semibold tracking-wider uppercase text-ink-muted">Network Graph</span>
-        <span className="ml-auto text-2xs text-ink-faint">
+        <span className="ml-auto text-2xs text-ink-faint mr-2">
           {graph.nodes.length} nodes · {graph.edges.length} links
         </span>
-      </div>
-      <div className="overflow-x-auto px-2 py-2">
+        {open ? <ChevronDown className="w-3 h-3 text-ink-faint" /> : <ChevronRight className="w-3 h-3 text-ink-faint" />}
+      </button>
+      {open && <div className="overflow-x-auto overflow-y-auto px-2 py-2" style={{ maxHeight: 320 }}>
         <svg viewBox={`0 0 ${SVG_W} ${svgH}`} width="100%" style={{ minWidth: SVG_W }}>
           <defs>
             <marker id="ng-arrow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
@@ -87,17 +92,17 @@ export const NetworkGraph: React.FC<{ graph: Graph }> = ({ graph }) => {
                       fill={s.fill} stroke={s.stroke} strokeWidth={n.is_root ? 2 : 1} />
                 <text x={p.x + NODE_W / 2} y={p.y + 17} textAnchor="middle" fontSize={9}
                       fill={s.text} fontWeight="600" fontFamily="Inter,system-ui,sans-serif">
-                  {short(n.id)}
+                  {short(n.label ?? n.id)}
                 </text>
                 <text x={p.x + NODE_W / 2} y={p.y + 30} textAnchor="middle" fontSize={7.5}
                       fill={s.text} opacity={0.7} fontFamily="Inter,system-ui,sans-serif">
-                  {n.type}{n.country ? ` · ${n.country}` : ''}
+                  {n.label && n.label !== n.id ? short(n.id, 16) : n.type}{n.country ? ` · ${n.country}` : ''}
                 </text>
               </g>
             )
           })}
         </svg>
-      </div>
+      </div>}
     </div>
   )
 }

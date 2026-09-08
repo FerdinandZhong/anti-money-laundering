@@ -18,7 +18,7 @@ export interface AlertsResponse {
   open_count: number
 }
 
-export interface NetworkNode { id: string; type: string; is_root?: boolean; country?: string }
+export interface NetworkNode { id: string; type: string; is_root?: boolean; country?: string; label?: string }
 export interface NetworkEdge {
   source: string; target: string; relation: 'shared_device' | 'fund_flow'
   amount?: number; count?: number

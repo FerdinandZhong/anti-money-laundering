@@ -59,16 +59,25 @@ def get_network_graph(conn, account_id: str) -> dict:
     # classify: root is the collector; flow targets that aren't accounts are beneficiaries
     flow_targets = {e["target"] for e in flow if e["source"] == account_id}
     flow_sources = {e["source"] for e in flow if e["target"] == account_id}
+
+    def _label(aid: str) -> str:
+        acc = source.get_account(aid)
+        if not acc:
+            return aid
+        cust = source.get_customer(acc.get("customer_id", ""))
+        return (cust or {}).get("name") or aid
+
     nodes = []
     for nid in node_ids:
+        label = _label(nid)
         if nid == account_id:
-            nodes.append({"id": nid, "type": "collector", "is_root": True})
+            nodes.append({"id": nid, "type": "collector", "is_root": True, "label": label})
         elif nid in flow_targets and nid not in linked:
-            nodes.append({"id": nid, "type": "beneficiary"})
+            nodes.append({"id": nid, "type": "beneficiary", "label": label})
         elif nid in flow_sources or nid in linked:
-            nodes.append({"id": nid, "type": "source"})
+            nodes.append({"id": nid, "type": "source", "label": label})
         else:
-            nodes.append({"id": nid, "type": "account"})
+            nodes.append({"id": nid, "type": "account", "label": label})
 
     edges = [{"source": account_id, "target": aid, "relation": "shared_device"}
              for aid in linked if aid != account_id]

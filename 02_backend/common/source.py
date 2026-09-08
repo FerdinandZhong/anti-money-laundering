@@ -194,6 +194,16 @@ def get_accounts(customer_id: str) -> list[dict]:
     return _records(df)
 
 
+def get_account(account_id: str) -> dict | None:
+    if backend() == "impala":
+        df = _impala_df("SELECT * FROM accounts WHERE account_id = %s", (account_id,))
+    else:
+        df = _csv("accounts")
+        df = df[df["account_id"] == account_id]
+    rows = _records(df)
+    return rows[0] if rows else None
+
+
 def customer_transactions(customer_id: str, limit: int = 20) -> list[dict]:
     """Recent transactions across the customer's accounts (by from_account_id)."""
     if backend() == "impala":

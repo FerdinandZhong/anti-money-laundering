@@ -32,7 +32,12 @@ const EMBEDDED_META: Record<string, {
 
 const EmbeddedCard: React.FC<{ server: EmbeddedServer; onSaved: () => void }> = ({ server, onSaved }) => {
   const meta = EMBEDDED_META[server.name]
-  const [form, setForm] = useState<Record<string, string>>({ ...server.params })
+  if (!meta) return null
+  const [form, setForm] = useState<Record<string, string>>(
+    Object.fromEntries(
+      server.fields.map(f => [f, meta.secrets.includes(f) ? '' : (server.params[f] ?? '')])
+    )
+  )
   const [enabled, setEnabled] = useState(server.enabled)
   const [busy, setBusy] = useState(false)
   const [testing, setTesting] = useState(false)

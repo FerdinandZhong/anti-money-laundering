@@ -91,10 +91,17 @@ def _try_impala():
 
 
 def backend() -> str:
-    """Resolve the source backend once ('impala' or 'csv')."""
+    """Resolve the source backend once ('mcp', 'impala' or 'csv')."""
     global _backend, _impala_conn
     if _backend is not None:
         return _backend
+    from common import mcp_client
+    if mcp_client.embedded_params("iceberg-mcp") is not None:
+        if mcp_client.list_embedded_tools("iceberg-mcp"):
+            _backend = "mcp"
+            print("[source] backend=mcp (iceberg-mcp-server via Tools tab)")
+            return _backend
+        print("[source] iceberg-mcp configured but unreachable; trying impala/csv")
     want = _source_cfg().get("backend", "auto")
     if want == "csv":
         _backend = "csv"
@@ -107,6 +114,13 @@ def backend() -> str:
         else:
             _backend = "csv"
     return _backend
+
+
+def reset_backend() -> None:
+    """Forget the resolved backend (call after Tools-tab params change)."""
+    global _backend, _impala_conn
+    _backend = None
+    _impala_conn = None
 
 
 # ── query helpers ─────────────────────────────────────────────────────────
@@ -128,6 +142,34 @@ def _impala_df(sql: str, params: tuple = ()) -> pd.DataFrame:
     return pd.read_sql(sql, _impala_conn, params=params or None)
 
 
+def _mcp_df(sql: str) -> pd.DataFrame:
+    """Run SQL through the embedded iceberg MCP server (execute_query → JSON)."""
+    from common import mcp_client
+    import json as _json
+    res = mcp_client.call_embedded("iceberg-mcp", "execute_query", {"query": sql})
+    if isinstance(res, dict):                      # {"error": ...}
+        raise RuntimeError(f"iceberg-mcp query failed: {res.get('error')}")
+    try:
+        rows = _json.loads(res)
+    except (TypeError, ValueError) as e:
+        raise RuntimeError(f"iceberg-mcp returned non-JSON: {e}")
+    return pd.DataFrame(rows if isinstance(rows, list) else [rows])
+
+
+def _sql_df(sql: str, params: tuple = ()) -> pd.DataFrame:
+    """Dispatch SQL to impala (parameterized) or MCP (inlined literals)."""
+    if backend() == "impala":
+        return _impala_df(sql, params)
+    def _lit(v):
+        if isinstance(v, (int, float)):
+            return str(v)
+        return "'" + str(v).replace("'", "''") + "'"
+    inlined = sql
+    for v in params:
+        inlined = inlined.replace("%s", _lit(v), 1)
+    return _mcp_df(inlined)
+
+
 def _records(df: pd.DataFrame) -> list[dict]:
     """Rows as JSON-native dicts (no numpy scalar types, NaN -> None)."""
     return json.loads(df.to_json(orient="records"))
@@ -145,12 +187,12 @@ def transactions_features_df(with_customer_id: bool = False) -> pd.DataFrame:
     if with_customer_id:
         cols.append("customer_id")
 
-    if backend() == "impala":
+    if backend() in ("impala", "mcp"):
         sel = ("t.transaction_id, t.from_account_id, t.amount, t.channel, "
                "t.counterparty_country, t.event_time, t.is_suspicious, "
                "c.risk_rating, c.account_age_days, c.expected_monthly_turnover"
                + (", a.customer_id" if with_customer_id else ""))
-        return _impala_df(
+        return _sql_df(
             f"SELECT {sel} FROM transactions t "
             "LEFT JOIN accounts a ON t.from_account_id = a.account_id "
             "LEFT JOIN customers c ON a.customer_id = c.customer_id"
@@ -170,14 +212,14 @@ def transactions_features_df(with_customer_id: bool = False) -> pd.DataFrame:
 
 
 def devices_df() -> pd.DataFrame:
-    if backend() == "impala":
-        return _impala_df("SELECT account_id, device_fingerprint FROM devices")
+    if backend() in ("impala", "mcp"):
+        return _sql_df("SELECT account_id, device_fingerprint FROM devices")
     return _csv("devices")[["account_id", "device_fingerprint"]].copy()
 
 
 def get_customer(customer_id: str) -> dict | None:
-    if backend() == "impala":
-        df = _impala_df("SELECT * FROM customers WHERE customer_id = %s", (customer_id,))
+    if backend() in ("impala", "mcp"):
+        df = _sql_df("SELECT * FROM customers WHERE customer_id = %s", (customer_id,))
     else:
         df = _csv("customers")
         df = df[df["customer_id"] == customer_id]
@@ -186,8 +228,8 @@ def get_customer(customer_id: str) -> dict | None:
 
 
 def get_accounts(customer_id: str) -> list[dict]:
-    if backend() == "impala":
-        df = _impala_df("SELECT * FROM accounts WHERE customer_id = %s", (customer_id,))
+    if backend() in ("impala", "mcp"):
+        df = _sql_df("SELECT * FROM accounts WHERE customer_id = %s", (customer_id,))
     else:
         df = _csv("accounts")
         df = df[df["customer_id"] == customer_id]
@@ -195,8 +237,8 @@ def get_accounts(customer_id: str) -> list[dict]:
 
 
 def get_account(account_id: str) -> dict | None:
-    if backend() == "impala":
-        df = _impala_df("SELECT * FROM accounts WHERE account_id = %s", (account_id,))
+    if backend() in ("impala", "mcp"):
+        df = _sql_df("SELECT * FROM accounts WHERE account_id = %s", (account_id,))
     else:
         df = _csv("accounts")
         df = df[df["account_id"] == account_id]
@@ -206,8 +248,8 @@ def get_account(account_id: str) -> dict | None:
 
 def customer_transactions(customer_id: str, limit: int = 20) -> list[dict]:
     """Recent transactions across the customer's accounts (by from_account_id)."""
-    if backend() == "impala":
-        df = _impala_df(
+    if backend() in ("impala", "mcp"):
+        df = _sql_df(
             "SELECT t.* FROM transactions t "
             "JOIN accounts a ON t.from_account_id = a.account_id "
             "WHERE a.customer_id = %s ORDER BY t.event_time DESC LIMIT %s",
@@ -221,8 +263,8 @@ def customer_transactions(customer_id: str, limit: int = 20) -> list[dict]:
 
 
 def account_transactions(account_id: str, limit: int = 50) -> list[dict]:
-    if backend() == "impala":
-        df = _impala_df(
+    if backend() in ("impala", "mcp"):
+        df = _sql_df(
             "SELECT * FROM transactions WHERE from_account_id = %s OR to_account_id = %s "
             "ORDER BY event_time DESC LIMIT %s",
             (account_id, account_id, limit),
@@ -235,8 +277,8 @@ def account_transactions(account_id: str, limit: int = 50) -> list[dict]:
 
 
 def device_fingerprints(account_id: str) -> list[str]:
-    if backend() == "impala":
-        df = _impala_df(
+    if backend() in ("impala", "mcp"):
+        df = _sql_df(
             "SELECT DISTINCT device_fingerprint FROM devices "
             "WHERE account_id = %s AND device_fingerprint IS NOT NULL",
             (account_id,),
@@ -250,9 +292,9 @@ def device_fingerprints(account_id: str) -> list[str]:
 def accounts_by_fingerprints(fps: list[str]) -> list[str]:
     if not fps:
         return []
-    if backend() == "impala":
+    if backend() in ("impala", "mcp"):
         ph = ",".join(["%s"] * len(fps))
-        df = _impala_df(
+        df = _sql_df(
             f"SELECT DISTINCT account_id FROM devices "
             f"WHERE device_fingerprint IN ({ph}) AND account_id IS NOT NULL",
             tuple(fps),
@@ -266,9 +308,9 @@ def accounts_by_fingerprints(fps: list[str]) -> list[str]:
 def devices_by_fingerprints(fps: list[str], exclude_account: str) -> list[dict]:
     if not fps:
         return []
-    if backend() == "impala":
+    if backend() in ("impala", "mcp"):
         ph = ",".join(["%s"] * len(fps))
-        df = _impala_df(
+        df = _sql_df(
             f"SELECT account_id, device_fingerprint, ip_address FROM devices "
             f"WHERE device_fingerprint IN ({ph}) AND account_id != %s",
             tuple(fps) + (exclude_account,),
@@ -289,8 +331,8 @@ def count_suspicious() -> int:
     if _suspicious_count is not None:
         return _suspicious_count
     try:
-        if backend() == "impala":
-            df = _impala_df("SELECT COUNT(*) AS n FROM transactions WHERE is_suspicious = 1")
+        if backend() in ("impala", "mcp"):
+            df = _sql_df("SELECT COUNT(*) AS n FROM transactions WHERE is_suspicious = 1")
             _suspicious_count = int(df["n"].iloc[0])
         else:
             tx = _csv("transactions")
@@ -311,8 +353,8 @@ def count_transactions() -> int:
     if _total_count is not None:
         return _total_count
     try:
-        if backend() == "impala":
-            df = _impala_df("SELECT COUNT(*) AS n FROM transactions")
+        if backend() in ("impala", "mcp"):
+            df = _sql_df("SELECT COUNT(*) AS n FROM transactions")
             _total_count = int(df["n"].iloc[0])
         else:
             _total_count = len(_csv("transactions"))

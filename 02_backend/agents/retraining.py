@@ -59,7 +59,7 @@ def run_retraining(triggered_by: str = "manual") -> Generator[dict, None, None]:
     cfg = get_config()
     wb_cfg = cfg.get("workbench") or {}
     conn = get_connection()
-    mode = "workbench" if workbench.configured() else "local"
+    mode = workbench.mode() if workbench.configured() else "local"
     deployment_id = ""
     model_version = ""
 
@@ -76,7 +76,7 @@ def run_retraining(triggered_by: str = "manual") -> Generator[dict, None, None]:
         # ── TRAIN ─────────────────────────────────────────────────────────────
         yield _e("phase", phase="TRAIN")
         trained_remotely = False
-        if mode == "workbench":
+        if mode != "local":
             try:
                 script = wb_cfg.get("train_script", "02_backend/ml/train.py")
                 runtime_id = wb_cfg.get("runtime_id") or None

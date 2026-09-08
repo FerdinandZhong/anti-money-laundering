@@ -1,0 +1,139 @@
+name: Deploy to Cloudera AI (CML) Workbench
+
+# Chain: setup project (from this git repo) -> create jobs -> trigger the job
+#        chain (git_sync -> install -> generate -> features -> train) ->
+#        create/restart the CML Application.
+#
+# Required repo secrets:
+#   CML_HOST            https://ml-xxxx.cloudera.site
+#   CML_API_KEY         CML API v2 key (User Settings -> API Keys)
+#   RUNTIME_IDENTIFIER  a Python 3.11 ML Runtime identifier (from the Runtime Catalog)
+# Optional repo secrets:
+#   GH_PAT              PAT so CML can clone a private repo
+#   IMPALA_PASSWORD     workload password for live Impala/Iceberg source reads
+
+on:
+  workflow_dispatch:
+    inputs:
+      subdomain:
+        description: 'Application subdomain (a-z0-9-)'
+        required: false
+        default: 'aml-platform'
+        type: string
+  push:
+    branches: [main]
+
+jobs:
+  # Fail fast (seconds, before any build) if required repo secrets are missing —
+  # GitHub Actions does not enforce secret presence on its own.
+  preflight:
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - name: Check required secrets are set
+        env:
+          CML_HOST: ${{ secrets.CML_HOST }}
+          CML_API_KEY: ${{ secrets.CML_API_KEY }}
+          RUNTIME_IDENTIFIER: ${{ secrets.RUNTIME_IDENTIFIER }}
+        run: |
+          missing=""
+          for v in CML_HOST CML_API_KEY RUNTIME_IDENTIFIER; do
+            [ -z "${!v}" ] && missing="$missing $v"
+          done
+          if [ -n "$missing" ]; then
+            echo "::error::Missing required repo secret(s):$missing"
+            echo "Set them under Settings → Secrets and variables → Actions." >> "$GITHUB_STEP_SUMMARY"
+            exit 1
+          fi
+          echo "All required secrets present."
+
+  setup-project:
+    needs: preflight
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    outputs:
+      project_id: ${{ steps.setup.outputs.project_id }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+      - run: pip install requests pyyaml
+      - name: Setup CML project (from this git repo)
+        id: setup
+        env:
+          CML_HOST: ${{ secrets.CML_HOST }}
+          CML_API_KEY: ${{ secrets.CML_API_KEY }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          GH_PAT: ${{ secrets.GH_PAT }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PROJECT_NAME: "AML Investigation Platform"
+        run: |
+          python cai_integration/setup_project.py
+          echo "project_id=$(cat /tmp/project_id.txt)" >> "$GITHUB_OUTPUT"
+
+  create-jobs:
+    needs: setup-project
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+      - run: pip install requests pyyaml
+      - name: Create CML jobs (git_sync -> install -> generate -> features -> train)
+        env:
+          CML_HOST: ${{ secrets.CML_HOST }}
+          CML_API_KEY: ${{ secrets.CML_API_KEY }}
+          RUNTIME_IDENTIFIER: ${{ secrets.RUNTIME_IDENTIFIER }}
+        run: python cai_integration/create_jobs.py --project-id ${{ needs.setup-project.outputs.project_id }}
+
+  trigger-pipeline:
+    needs: [setup-project, create-jobs]
+    runs-on: ubuntu-latest
+    timeout-minutes: 90   # git_sync + install (npm build) + data gen + features + train
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+      - run: pip install requests pyyaml
+      - name: Trigger git_sync; wait through the chain to Train Risk Model
+        env:
+          CML_HOST: ${{ secrets.CML_HOST }}
+          CML_API_KEY: ${{ secrets.CML_API_KEY }}
+        run: python cai_integration/trigger_jobs.py --project-id ${{ needs.setup-project.outputs.project_id }}
+
+  launch-application:
+    needs: [setup-project, create-jobs, trigger-pipeline]
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+      - run: pip install requests
+      - name: Create / restart the CML Application
+        env:
+          CML_HOST: ${{ secrets.CML_HOST }}
+          CML_API_KEY: ${{ secrets.CML_API_KEY }}
+          RUNTIME_IDENTIFIER: ${{ secrets.RUNTIME_IDENTIFIER }}
+          IMPALA_PASSWORD: ${{ secrets.IMPALA_PASSWORD }}
+        run: |
+          python cai_integration/deploy_application.py \
+            --host "$CML_HOST" --api-key "$CML_API_KEY" \
+            --project-id ${{ needs.setup-project.outputs.project_id }} \
+            --subdomain "${{ github.event.inputs.subdomain || 'aml-platform' }}" \
+            --wait-timeout 300
+      - name: Summary
+        if: always()
+        run: |
+          {
+            echo "## CML Deploy — ${{ job.status }}"
+            echo "- Project: \`${{ needs.setup-project.outputs.project_id }}\`"
+            echo "- App script: \`03_frontend/start_frontend.py\` (frontend + backend on \$CDSW_APP_PORT)"
+            echo "- Auth: Workbench SSO (bypass_authentication=False)"
+            if [ -f /tmp/app_url.txt ]; then echo "- URL: $(cat /tmp/app_url.txt)"; fi
+          } >> "$GITHUB_STEP_SUMMARY"

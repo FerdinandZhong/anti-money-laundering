@@ -1,0 +1,64 @@
+# AML Investigation Platform — CML Job Chain
+#
+# Linear dependency chain (CML auto-triggers each child when its parent succeeds):
+#   git_sync            pull latest code into the project working copy
+#     -> install        pip deps + Node/npm + build the React frontend (dist/)
+#       -> generate     synthetic customers/accounts/transactions with AML patterns
+#         -> features   feature engineering (velocity, centrality, geo/behaviour)
+#           -> train    train + register the XGBoost risk model
+#
+# After `train` succeeds, launch the CML Application (one-time; every restart then
+# serves in seconds via 03_frontend/start_frontend.py):
+#   - local / CI:  python cai_integration/deploy_application.py --host ... --api-key ... \
+#                      --project-id ... --runtime-identifier <python-3.11-runtime>
+#   - CML UI:      Applications -> New Application -> script: 03_frontend/start_frontend.py
+#
+# These mirror the tasks in .project-metadata.yaml (the AMP catalog file). All jobs
+# run on a standard Python 3.11 ML Runtime; `install` fetches Node via nvm itself.
+# Pass the runtime as RUNTIME_IDENTIFIER to create_jobs.py, or override per job below.
+
+jobs:
+  git_sync:
+    name: "Git Repository Sync"
+    script: "cai_integration/git_sync.py"
+    parent_job_key: null
+    timeout: 300        # git fetch + reset; < 2 min
+    cpu: 1
+    memory: 4
+    description: "Pull latest code from the git remote into the CML project"
+
+  install:
+    name: "Install Dependencies"
+    script: "01_installer/install.py"
+    parent_job_key: "git_sync"
+    timeout: 1800       # pip install + nvm Node install + vite build
+    cpu: 2
+    memory: 4
+    description: "Install Python packages, Node.js, and build the React frontend"
+
+  generate:
+    name: "Generate Synthetic Data"
+    script: "02_backend/data_generation/generate_synthetic_data.py"
+    parent_job_key: "install"
+    timeout: 1800
+    cpu: 2
+    memory: 4
+    description: "Generate synthetic customers, accounts, and transactions with AML patterns"
+
+  features:
+    name: "Feature Engineering"
+    script: "02_backend/ml/feature_engineering.py"
+    parent_job_key: "generate"
+    timeout: 1800
+    cpu: 2
+    memory: 8
+    description: "Compute velocity, centrality, geo-risk, and behavioural features"
+
+  train:
+    name: "Train Risk Model"
+    script: "02_backend/ml/train.py"
+    parent_job_key: "features"
+    timeout: 1800
+    cpu: 2
+    memory: 8
+    description: "Train + register the XGBoost AML risk model"

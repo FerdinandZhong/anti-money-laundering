@@ -61,9 +61,12 @@ def test_get_account_via_mcp(monkeypatch):
     _fake_params(monkeypatch, True)
     monkeypatch.setattr(mcp_client, "list_embedded_tools",
                         lambda name: [{"name": "execute_query"}])
-    monkeypatch.setattr(mcp_client, "call_embedded",
-                        lambda name, tool, args: json.dumps(
-                            [{"account_id": "ACC-1", "customer_id": "CUST-1"}]))
+    captured = {}
+    def fake_call(name, tool, args):
+        captured["query"] = args["query"]
+        return json.dumps([{"account_id": "ACC-1", "customer_id": "CUST-1"}])
+    monkeypatch.setattr(mcp_client, "call_embedded", fake_call)
     acc = source.get_account("ACC-1")
     assert acc["customer_id"] == "CUST-1"
+    assert "'ACC-1'" in captured["query"]  # param was inlined + single-quoted for MCP
     source.reset_backend()

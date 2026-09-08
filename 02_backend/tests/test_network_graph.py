@@ -28,8 +28,9 @@ def test_get_network_graph_lone_account_is_failsoft(monkeypatch):
     monkeypatch.setattr(tools.source, "device_fingerprints", lambda a: [])
     monkeypatch.setattr(tools.source, "accounts_by_fingerprints", lambda f: [])
     monkeypatch.setattr(tools.source, "account_transactions", lambda a, limit=200: [])
+    monkeypatch.setattr(tools.source, "get_account", lambda a: None)
     g = tools.get_network_graph(None, "ACC-LONE")
-    assert g == {"nodes": [{"id": "ACC-LONE", "type": "collector", "is_root": True}], "edges": []}
+    assert g == {"nodes": [{"id": "ACC-LONE", "type": "collector", "is_root": True, "label": "ACC-LONE"}], "edges": []}
 
 
 def test_get_network_graph_funnel(monkeypatch):

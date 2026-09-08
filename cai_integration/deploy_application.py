@@ -204,8 +204,13 @@ def main() -> None:
                    help="Localhost port the co-located FastAPI backend binds to (default 7078)")
     p.add_argument("--llm-provider", default=os.environ.get("LLM_PROVIDER", "caii"),
                    help="LLM provider: caii | vllm | ollama (default caii)")
-    p.add_argument("--public", action="store_true",
-                   help="Set bypass_authentication=True (NOT recommended for investigation data)")
+    # Public by default so agents / the MCP server can reach /api without a Workbench
+    # SSO browser session. Set APP_PUBLIC=0 or pass --private to sit behind SSO.
+    p.add_argument("--public", dest="public", action="store_true",
+                   default=(os.environ.get("APP_PUBLIC", "1") != "0"),
+                   help="bypass_authentication=True — allow unauthenticated requests (default)")
+    p.add_argument("--private", dest="public", action="store_false",
+                   help="Require Workbench SSO (bypass_authentication=False)")
     p.add_argument("--wait", dest="wait", action="store_true", default=True,
                    help="Poll until the Application is running (default)")
     p.add_argument("--no-wait", dest="wait", action="store_false",
@@ -250,8 +255,8 @@ def main() -> None:
     print("Application created:")
     print(f"   id:        {app_id}")
     print(f"   subdomain: {app.get('subdomain')}")
-    if not args.public:
-        print("   auth:      Workbench SSO (bypass_authentication=False)")
+    print("   auth:      " + ("PUBLIC — unauthenticated requests allowed (bypass_authentication=True)"
+                               if args.public else "Workbench SSO (bypass_authentication=False)"))
 
     # Fail loudly if the app doesn't actually come up (broken runtime, missing
     # dep, port issue) — otherwise CI reports a false green.

@@ -39,3 +39,28 @@ DONE. Plan HEAD: ce24223.
 - PUSH PENDING: repo has NO git remote configured — cannot push / open PR until `git remote add origin <url>` is set. All work committed locally.
 - Carry-forward: Workbench MCP tool names resolved at runtime (candidate-match + fail-soft) — confirm via Tools tab Test connection on first live connection.
 - Remaining non-blocking Minors: T3a parallel maskers in main.py; T3b str() param coercion; T5 no routing tests for run_job/get_job_run MCP paths; workbench __main__ cosmetic; _sql_df %s-literal positional note.
+
+## CAI Workbench integration (2026-09-08, branch feature/cai_integration)
+Git-backed CML deploy, adapted from the sibling `use_case_discovery` repo.
+- Remote: added `origin` https://github.com/FerdinandZhong/anti-money-laundering.git (was PUSH PENDING above). Pushed `main` (b54796c) + `feat/tx-labels-and-caii-endpoints` (815e027). Author already qzhong@cloudera.com; push auth via gh (FerdinandZhong, repo owner).
+- New `cai_integration/`: setup_project, jobs_config, create_jobs, git_sync, trigger_jobs, launch_app, deploy_application, README. New `.github/workflows/deploy-to-cml.yml`.
+- CML Job chain (cascades from the CML Jobs UI): git_sync → install → generate → features → train → **launch**. `launch` is a CML Job (launch_app.py, parent=train) that creates/replaces the Application pointing at 03_frontend/start_frontend.py and waits for running. Jobs mirror .project-metadata.yaml tasks; Python 3.11 runtime (install.py fetches Node via nvm).
+- Ported fixes from use_case_discovery latest commits:
+  - install.py: `npm install --no-audit --no-fund` (not `npm ci`) — macOS lockfile omits linux optional deps (@emnapi/*). Also fixed frontend_dir `03_application/frontend` → `03_frontend` (build was silently skipped — blocking bug found while porting).
+  - deploy_application/launch_app: delete ALL matching Applications then create (CML PATCH rejects create payload; frees app port → EADDRINUSE). find_applications returns every match; pure _build_payload.
+  - create_jobs: delete+create jobs (job PATCH rejects `environment` object) + _launch_env bakes launch job env (RUNTIME_IDENTIFIER/APP_SUBDOMAIN/LLM_PROVIDER/BACKEND_PORT/IMPALA_PASSWORD; no ADMIN_TOKEN — app has none).
+  - trigger_jobs: `--sync-only` presync + explicit-trigger fallback (AUTO_TRIGGER_WINDOW=120s) if CML doesn't auto-fire a child.
+  - start_frontend.py (`6a85c38 "update the address"`): bind 127.0.0.1 on CML (Workbench proxy is loopback; 0.0.0.0 unreachable), 0.0.0.0 locally. `_bind_host()` detects CML via HOME==/home/cdsw OR CDSW_APP_PORT set.
+  - workflow: preflight → setup-project → presync → create-jobs (baked env) → run-chain.
+- Deliberately NOT ported: use_case_discovery's start_app.py/start-app.sh bash-wrapper + ensure_node.sh — our Application entry is already Python (start_frontend.py) and install.py installs Node via nvm.
+- Verified: py_compile all; deploy_application --selfcheck; 6-job chain order + scripts exist; _launch_env vars; _bind_host (local 0.0.0.0 / CML 127.0.0.1). No CML round-trip tested (no live workspace here).
+- Commits 815e027..86aab9d on feature/cai_integration. PR #2 → main (open): https://github.com/FerdinandZhong/anti-money-laundering/pull/2
+- Carry-forward: on first live CML deploy confirm the launch job creates a reachable app (127.0.0.1 bind, CAII endpoint/model set in config/config.yaml, RUNTIME_IDENTIFIER points at a Python 3.11 runtime).
+
+## Investigation MCP server (2026-09-08, branch feature/cai_integration)
+Architecture (final, after redirect): the **API** is the hosted CAI Application; the **MCP server** is a uvx-installable stdio package that runs inside Cloudera AI Studio and calls the API over HTTP. (First cut was an in-process stdio server reaching into SQLite/source directly — discarded: won't work when the MCP process runs in Studio via uvx, separate from the app.)
+- Backend `02_backend/api/main.py`: Swagger moved under the proxy — `docs_url=/api/docs`, `openapi_url=/api/openapi.json` (frontend proxy only forwards /api/*). 5 customer-centric routes: GET `/api/customers/{id}/{suspicious,transactions,case-status,network}` (read-only; case-status never creates a case) + POST `/api/customers/{id}/investigate` (non-streaming JSON; THE ONLY MUTATION — persists analysis+analyzed_at). Helpers `_resolve_alert_and_case(create=)` + `_customer_transactions` (score DESC, unscored last). suspicious = any OPEN/PROPOSED/PENDING alert.
+- New `mcp_server/` (repo-root, own minimal pyproject: mcp+httpx only, entry `aml-mcp`): `aml_mcp/server.py` FastMCP stdio, thin httpx client over the 5 routes; env `AML_API_BASE_URL` (req) + `AML_API_TOKEN` (opt Bearer). Installed via `uvx --from git+<repo>#subdirectory=mcp_server aml-mcp`. Reuses existing `aml-platform` app's /api (no new CAI app).
+- Removed the first-cut artifacts: `02_backend/mcp_server/`, `02_backend/tests/test_mcp_server.py`, `.mcp.json`, `cai_integration/launch_mcp_app.py`.
+- Tests: `02_backend/tests/test_customer_endpoints.py` (6, TestClient — suspicious t/f, case-status read-only asserts NO case created, processed+annotations, tx sorted, investigate is-only-writer via stubbed run_investigation, Swagger reachable at /api/docs). `mcp_server/test_server.py` (6, httpx mocked — path/param/method routing, Bearer header, missing-base-url raises). Backend suite 93 green; mcp package 5 tools list OK.
+- Docs: README "Investigation MCP server" section rewritten (Studio uvx JSON + Swagger URL); new `mcp_server/README.md`.

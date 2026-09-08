@@ -24,7 +24,14 @@ from agents import llm_client
 from ml.drift_monitor import get_drift_summary
 from agents.retraining import run_retraining
 
-app = FastAPI(title="AML Investigation Platform")
+# docs/openapi under /api so they're reachable through the frontend proxy
+# (which only forwards /api/*) — the hosted app's Swagger UI lives at /api/docs.
+app = FastAPI(
+    title="AML Investigation Platform",
+    docs_url="/api/docs",
+    openapi_url="/api/openapi.json",
+    redoc_url=None,
+)
 
 app.add_middleware(
     CORSMiddleware,
@@ -339,6 +346,159 @@ def get_evidence(case_id: str, conn=Depends(get_db)):
         (case_id,),
     ).fetchall()
     return {"evidence": [dict(r) for r in rows]}
+
+
+# ── Customer-centric endpoints (agent / MCP surface) ──────────────────────────
+# Read-only by customer_id, EXCEPT the investigate POST. The MCP server
+# (mcp_server/) is a thin HTTP client over exactly these routes.
+
+_ACTIVE_STATUSES = ("OPEN", "PROPOSED", "PENDING")
+
+
+def _resolve_alert_and_case(conn, customer_id: str, create: bool = False):
+    """(alert|None, case|None) for a customer — highest-risk active alert first.
+    create=True lazily creates the case (mirrors get_alert_detail); create=False
+    never mutates."""
+    alert = conn.execute(
+        "SELECT * FROM alerts WHERE customer_id = ? "
+        "ORDER BY (status IN ('OPEN','PROPOSED','PENDING')) DESC, risk_score DESC, created_at DESC LIMIT 1",
+        (customer_id,),
+    ).fetchone()
+    if alert is None:
+        return None, None
+    alert = dict(alert)
+    case = conn.execute("SELECT * FROM cases WHERE alert_id = ?", (alert["alert_id"],)).fetchone()
+    if case is None and create:
+        case_id = "CASE-" + alert["alert_id"].replace("ALERT-", "", 1)
+        now = datetime.now(timezone.utc).isoformat()
+        conn.execute(
+            "INSERT OR IGNORE INTO cases (case_id, alert_id, customer_id, state, priority, created_at, updated_at) "
+            "VALUES (?, ?, ?, 'ALERT_CREATED', ?, ?, ?)",
+            (case_id, alert["alert_id"], customer_id, alert.get("risk_band") or "MEDIUM", now, now),
+        )
+        conn.commit()
+        case = conn.execute("SELECT * FROM cases WHERE case_id = ?", (case_id,)).fetchone()
+    return alert, (dict(case) if case else None)
+
+
+def _customer_transactions(conn, customer_id: str, limit: int) -> list[dict]:
+    """Customer transactions + model scores + analyst labels, sorted by score DESC
+    (unscored last). Same assembly as get_alert_detail."""
+    customer_txns = source.customer_transactions(customer_id, limit=limit)
+    tx_ids = [t.get("transaction_id") for t in customer_txns if t.get("transaction_id")]
+    tx_scores, tx_labels = {}, {}
+    if tx_ids:
+        ph = ",".join("?" * len(tx_ids))
+        tx_scores = {r["transaction_id"]: r["score"] for r in conn.execute(
+            f"SELECT transaction_id, score FROM transaction_scores WHERE transaction_id IN ({ph})", tx_ids)}
+        tx_labels = {r["transaction_id"]: r["label"] for r in conn.execute(
+            f"SELECT transaction_id, label FROM transaction_labels WHERE transaction_id IN ({ph})", tx_ids)}
+    rows = []
+    for t in customer_txns:
+        tid = t.get("transaction_id")
+        rows.append({
+            "transaction_id": tid, "event_time": t.get("event_time"), "direction": t.get("direction"),
+            "amount": t.get("amount"), "channel": t.get("channel"),
+            "counterparty_name": t.get("counterparty_name"), "counterparty_country": t.get("counterparty_country"),
+            "typology": t.get("typology"), "is_suspicious": t.get("is_suspicious"),
+            "score": tx_scores.get(tid), "label": tx_labels.get(tid),
+            "flags": derive_tx_flags(t, customer_txns),
+        })
+    rows.sort(key=lambda r: (r["score"] is not None, r["score"] or 0.0), reverse=True)
+    return rows
+
+
+@app.get("/api/customers/{customer_id}/suspicious")
+def customer_suspicious(customer_id: str, conn=Depends(get_db)):
+    """Is this customer suspicious? True if any alert is OPEN/PROPOSED/PENDING.
+    Read-only."""
+    rows = [dict(r) for r in conn.execute(
+        "SELECT alert_id, risk_score, risk_band, status, triggered_rules, reason_codes, created_at "
+        "FROM alerts WHERE customer_id = ? ORDER BY risk_score DESC", (customer_id,)).fetchall()]
+    alerts = [{
+        "alert_id": r["alert_id"], "risk_score": r["risk_score"], "risk_band": r["risk_band"],
+        "status": r["status"], "triggered_rules": _json_list(r["triggered_rules"]),
+        "reason_codes": _json_list(r["reason_codes"]), "created_at": r["created_at"],
+    } for r in rows]
+    active = [a for a in alerts if a["status"] in _ACTIVE_STATUSES]
+    return {
+        "customer_id": customer_id, "suspicious": bool(active), "alerts": alerts,
+        "highest_risk_score": max((a["risk_score"] or 0.0 for a in alerts), default=None),
+    }
+
+
+@app.get("/api/customers/{customer_id}/transactions")
+def customer_transactions(customer_id: str, limit: int = 20, conn=Depends(get_db)):
+    """Customer transactions ranked by model risk score (unscored last). Read-only."""
+    txns = _customer_transactions(conn, customer_id, limit)
+    return {"customer_id": customer_id, "count": len(txns), "transactions": txns}
+
+
+@app.get("/api/customers/{customer_id}/case-status")
+def customer_case_status(customer_id: str, conn=Depends(get_db)):
+    """Analyst-processing status for the customer's case. Read-only — does NOT
+    create a case if none exists yet."""
+    alert, case = _resolve_alert_and_case(conn, customer_id, create=False)
+    if alert is None:
+        return {"customer_id": customer_id, "processed": False, "reason": "no alert for customer"}
+    if case is None:
+        return {"customer_id": customer_id, "alert_id": alert["alert_id"],
+                "processed": False, "reason": "alert not yet opened as a case"}
+    annotations = [dict(r) for r in conn.execute(
+        "SELECT disposition, notes, adjudicator, created_at FROM annotations "
+        "WHERE case_id = ? ORDER BY created_at DESC", (case["case_id"],)).fetchall()]
+    return {
+        "customer_id": customer_id, "alert_id": alert["alert_id"], "case_id": case["case_id"],
+        "processed": bool(case.get("disposition") or case.get("analyzed_at")),
+        "state": case.get("state"), "disposition": case.get("disposition"),
+        "analyzed_at": case.get("analyzed_at"), "has_analysis": bool(case.get("analysis")),
+        "annotations": annotations,
+    }
+
+
+@app.get("/api/customers/{customer_id}/network")
+def customer_network(customer_id: str, conn=Depends(get_db)):
+    """Fund-flow + shared-device network graph around the customer's primary
+    account: {nodes, edges}. Read-only."""
+    accounts = source.get_accounts(customer_id)
+    root = accounts[0]["account_id"] if accounts else customer_id
+    try:
+        return get_network_graph(None, root)
+    except Exception:
+        return {"nodes": [{"id": root, "type": "collector", "is_root": True}], "edges": []}
+
+
+@app.post("/api/customers/{customer_id}/investigate")
+def customer_investigate(customer_id: str, conn=Depends(get_db)):
+    """Run the multi-agent AI investigation for the customer's case and return the
+    analysis (non-streaming). THE ONLY MUTATION on this surface: writes the
+    analysis + timestamp to the case, exactly like the SSE investigate endpoint.
+    Requires an LLM configured. Returns {case_id, analysis, verdicts, worker_findings}."""
+    alert, case = _resolve_alert_and_case(conn, customer_id, create=True)
+    if alert is None:
+        raise HTTPException(404, f"No alert for customer {customer_id}; nothing to investigate")
+    case_id = case["case_id"]
+    accounts = source.get_accounts(customer_id)
+    account_id = accounts[0]["account_id"] if accounts else customer_id
+
+    narrative_parts, worker_findings, verdicts = [], [], []
+    for evt in run_investigation(case_id, alert["alert_id"], customer_id, account_id):
+        t = evt.get("type")
+        if t == "token":
+            narrative_parts.append(evt.get("text", ""))
+        elif t == "worker_done":
+            worker_findings.append({"worker": evt.get("worker"), "findings": evt.get("findings", "")})
+        elif t == "verdict":
+            verdicts.append({"claim": evt.get("claim"), "verdict": evt.get("verdict"),
+                             "sources": evt.get("sources", [])})
+    findings_block = "\n\n".join(f"[{w['worker'].upper()}]\n{w['findings']}" for w in worker_findings)
+    analysis = (findings_block + "\n\n" + "".join(narrative_parts)).strip()
+
+    conn.execute("UPDATE cases SET analysis = ?, analyzed_at = ? WHERE case_id = ?",
+                 (analysis, datetime.now(timezone.utc).isoformat(), case_id))
+    conn.commit()
+    return {"case_id": case_id, "analysis": analysis, "verdicts": verdicts,
+            "worker_findings": worker_findings}
 
 
 # ── Dashboard B: Model & Data ─────────────────────────────────────────────────

@@ -1,11 +1,114 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Wrench, Plus, Check, Loader2, Plug, Pencil, X } from 'lucide-react'
-import type { ToolConfig, ToolTestResult } from '../api'
-import { getTools, registerTool, updateTool, testTool } from '../api'
+import type { ToolConfig, ToolTestResult, EmbeddedServer } from '../api'
+import { getTools, registerTool, updateTool, testTool, getEmbedded, updateEmbedded, testEmbedded } from '../api'
+
+// ── Embedded server metadata (frontend-only, mirrors backend field lists) ──
+
+const EMBEDDED_META: Record<string, {
+  title: string; blurb: string; fallback: string
+  labels: Record<string, string>; secrets: string[]
+}> = {
+  'iceberg-mcp': {
+    title: 'Iceberg MCP Server',
+    blurb: 'Read-only Iceberg/Impala access for the investigation agents (execute_query, get_schema).',
+    fallback: 'Unconfigured — investigation reads the local CSV dataset.',
+    labels: {
+      impala_host: 'Impala host', impala_port: 'Port', impala_user: 'Workload user',
+      impala_password: 'Workload password', impala_database: 'Database',
+    },
+    secrets: ['impala_password'],
+  },
+  'workbench-mcp': {
+    title: 'CAI Workbench MCP Server',
+    blurb: 'Drives training jobs + canary model deployments on Cloudera AI Workbench for the retraining workflow.',
+    fallback: 'Unconfigured — retraining trains locally, no Workbench job is created.',
+    labels: { host: 'Workbench host', api_key: 'API key', project_id: 'Project ID' },
+    secrets: ['api_key'],
+  },
+}
+
+// ── EmbeddedCard ───────────────────────────────────────────────────────────
+
+const EmbeddedCard: React.FC<{ server: EmbeddedServer; onSaved: () => void }> = ({ server, onSaved }) => {
+  const meta = EMBEDDED_META[server.name]
+  const [form, setForm] = useState<Record<string, string>>({ ...server.params })
+  const [enabled, setEnabled] = useState(server.enabled)
+  const [busy, setBusy] = useState(false)
+  const [testing, setTesting] = useState(false)
+  const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null)
+
+  const save = async () => {
+    setBusy(true); setMsg(null)
+    try {
+      await updateEmbedded(server.name, { params: form, enabled })
+      setMsg({ ok: true, text: 'Saved.' }); onSaved()
+    } catch { setMsg({ ok: false, text: 'Save failed — check the backend.' }) }
+    setBusy(false)
+  }
+
+  const test = async () => {
+    setTesting(true); setMsg(null)
+    try {
+      const r = await testEmbedded(server.name, form)
+      setMsg(r.ok
+        ? { ok: true, text: `${r.count} tool(s): ${(r.tools ?? []).join(', ')}` }
+        : { ok: false, text: r.message ?? 'Connection failed' })
+    } catch { setMsg({ ok: false, text: 'Test failed — check the backend.' }) }
+    setTesting(false)
+  }
+
+  return (
+    <div className="bg-surface-1 rounded-lg p-5 shadow-soft space-y-4">
+      <div className="flex items-start justify-between">
+        <div>
+          <h3 className="text-sm font-semibold text-ink">{meta.title}</h3>
+          <p className="text-xs text-ink-muted mt-0.5 max-w-xl">{meta.blurb}</p>
+        </div>
+        <span className={`text-2xs font-semibold px-2 py-1 rounded-full shrink-0
+          ${server.configured ? 'bg-aml-green/10 text-aml-green-dim' : 'bg-surface-2 text-ink-faint'}`}>
+          {server.configured ? 'Active' : 'Local fallback'}
+        </span>
+      </div>
+      {!server.configured && <p className="text-2xs text-ink-faint">{meta.fallback}</p>}
+      <div className="grid grid-cols-2 gap-4">
+        {server.fields.map(f => (
+          <Field key={f} label={meta.labels[f] ?? f}>
+            <Input
+              value={form[f] ?? ''}
+              type={meta.secrets.includes(f) ? 'password' : 'text'}
+              placeholder={meta.secrets.includes(f) && server.params[f] ? 'leave blank to keep current' : ''}
+              onChange={e => setForm(prev => ({ ...prev, [f]: e.target.value }))}
+            />
+          </Field>
+        ))}
+      </div>
+      <div className="flex items-center gap-3">
+        <button onClick={save} disabled={busy}
+          className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-semibold transition-colors
+            ${busy ? 'bg-surface-3 text-ink-faint cursor-not-allowed' : 'bg-accent text-white hover:bg-accent-dim'}`}>
+          {busy ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />} Save
+        </button>
+        <button onClick={test} disabled={testing}
+          className="flex items-center gap-1 px-3 py-2 rounded-lg text-sm text-ink-muted bg-surface-2 hover:bg-surface-3 transition-colors">
+          {testing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plug className="w-4 h-4" />} Test connection
+        </button>
+        <label className="flex items-center gap-2 text-sm text-ink-muted">
+          <input type="checkbox" checked={enabled} onChange={e => setEnabled(e.target.checked)}
+            className="accent-accent w-4 h-4" /> Enabled
+        </label>
+        {msg && <span className={`text-xs ${msg.ok ? 'text-aml-green-dim' : 'text-aml-red-dim'}`}>{msg.text}</span>}
+      </div>
+    </div>
+  )
+}
+
+// ── ToolsView ──────────────────────────────────────────────────────────────
 
 const emptyForm = { name: '', url: '', api_key: '', enabled: true }
 
 export const ToolsView: React.FC = () => {
+  const [servers, setServers] = useState<EmbeddedServer[]>([])
   const [tools, setTools] = useState<ToolConfig[]>([])
   const [form, setForm] = useState({ ...emptyForm })
   const [busy, setBusy] = useState(false)
@@ -14,8 +117,10 @@ export const ToolsView: React.FC = () => {
   const [testResults, setTestResults] = useState<Record<number, ToolTestResult>>({})
   const [editingId, setEditingId] = useState<number | null>(null)
 
-  const load = useCallback(() => { getTools().then(setTools).catch(() => setTools([])) }, [])
-  useEffect(() => { load() }, [load])
+  const loadEmbedded = useCallback(() => { getEmbedded().then(setServers).catch(() => setServers([])) }, [])
+  const loadTools = useCallback(() => { getTools().then(setTools).catch(() => setTools([])) }, [])
+
+  useEffect(() => { loadEmbedded(); loadTools() }, [loadEmbedded, loadTools])
 
   const set = (k: 'name' | 'url' | 'api_key') => (e: React.ChangeEvent<HTMLInputElement>) =>
     setForm(f => ({ ...f, [k]: e.target.value }))
@@ -50,7 +155,7 @@ export const ToolsView: React.FC = () => {
       }
       setEditingId(null)
       setForm({ ...emptyForm })
-      load()
+      loadTools()
     } catch (e: unknown) {
       const detail = (e as { response?: { data?: { detail?: string } } })?.response?.data?.detail
       setMsg({ ok: false, text: detail || 'Save failed — check the backend is running.' })
@@ -72,15 +177,35 @@ export const ToolsView: React.FC = () => {
 
   return (
     <div className="p-6 max-w-4xl mx-auto space-y-8">
+
+      {/* ── Section 1: Embedded Cloudera MCP Servers ── */}
       <div>
         <div className="w-8 h-0.5 bg-accent mb-3" />
         <h2 className="text-lg font-bold text-ink tracking-tight flex items-center gap-2">
-          <Wrench className="w-5 h-5 text-accent" /> MCP Tool Servers
+          <Wrench className="w-5 h-5 text-accent" /> Embedded Cloudera MCP Servers
         </h2>
         <p className="text-sm text-ink-muted mt-1">
-          Connect a remote (streamable-HTTP) MCP server — e.g. sanctions, registry, or adverse-media tools.
-          The verification agent uses these to confirm or refute the investigation's findings.
-          Unconfigured, investigations run exactly as before.
+          Built-in MCP servers for Cloudera infrastructure. Configure credentials to activate live data access;
+          leave unconfigured to use local CSV fallbacks.
+        </p>
+      </div>
+
+      {servers.length === 0 ? (
+        <p className="text-xs text-ink-faint">Loading embedded servers…</p>
+      ) : (
+        <div className="space-y-4">
+          {servers.map(s => <EmbeddedCard key={s.name} server={s} onSaved={loadEmbedded} />)}
+        </div>
+      )}
+
+      {/* ── Section 2: Custom verification servers ── */}
+      <div>
+        <div className="w-8 h-0.5 bg-accent mb-3" />
+        <h2 className="text-lg font-bold text-ink tracking-tight flex items-center gap-2">
+          <Wrench className="w-5 h-5 text-accent" /> Custom Verification Servers
+        </h2>
+        <p className="text-sm text-ink-muted mt-1">
+          Remote streamable-HTTP MCP servers used by the verification agent (sanctions, registry, adverse media…).
         </p>
       </div>
 

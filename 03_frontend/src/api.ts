@@ -279,3 +279,23 @@ export const updateTool = (id: number, body: ToolConfigBody) =>
 
 export const testTool = (id: number) =>
   api.post<ToolTestResult>(`/config/tools/${id}/test`).then(r => r.data)
+
+// ── Embedded Cloudera MCP servers ──────────────────────────────────────────
+
+export interface EmbeddedServer {
+  name: string
+  enabled: boolean
+  configured: boolean
+  params: Record<string, string>
+  required: string[]
+  fields: string[]
+}
+
+export const getEmbedded = () =>
+  api.get<{ servers: EmbeddedServer[] }>('/config/embedded').then(r => r.data.servers)
+
+export const updateEmbedded = (name: string, body: { params: Record<string, string>; enabled: boolean }) =>
+  api.put(`/config/embedded/${name}`, body).then(r => r.data)
+
+export const testEmbedded = (name: string, params: Record<string, string>) =>
+  api.post<ToolTestResult>(`/config/embedded/${name}/test`, { params }).then(r => r.data)

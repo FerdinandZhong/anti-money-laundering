@@ -5,7 +5,11 @@ import uuid
 import datetime
 import json
 
-PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+try:
+    PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+except NameError:
+    # __file__ is not defined in interactive environments (e.g. CML notebook sessions)
+    PROJECT_ROOT = os.getcwd()
 sys.path.insert(0, os.path.join(PROJECT_ROOT, "02_backend"))
 
 from common.db import init_db, get_connection

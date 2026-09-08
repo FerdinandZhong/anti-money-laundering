@@ -77,10 +77,13 @@ CSV when unreachable (`source.backend: auto` in `config/config.yaml`). For live
 reads, set `IMPALA_PASSWORD` in the Application environment (it is passed through
 by `deploy_application.py` if present) or provide `~/tokens/workload_password`.
 
-## Security first (investigation data)
-Keep **`bypass_authentication = False`** (the default) so the app sits behind
-Workbench SSO — only authenticated Workbench users reach it. `--public` flips it
-(not recommended). Data (SQLite `data/aml.db`, models) persists in project storage.
+## Auth
+The app is deployed **`bypass_authentication = True`** (public) by default so the
+MCP server / agents can reach `/api` (and Swagger at `/api/docs`) without a
+Workbench SSO browser session. To require SSO instead, set `APP_PUBLIC=0` (baked
+into the launch job) or pass `--private` to `deploy_application.py`. Note this
+exposes investigation data — restrict at the network/gateway layer if needed.
+Data (SQLite `data/aml.db`, models) persists in project storage.
 
 ## Option B — deploy via the CML UI (no scripts)
 Run the Jobs from `.project-metadata.yaml` (or create them from `jobs_config.yaml`),

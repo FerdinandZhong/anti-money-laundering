@@ -72,8 +72,26 @@ jobs:
           python cai_integration/setup_project.py
           echo "project_id=$(cat /tmp/project_id.txt)" >> "$GITHUB_OUTPUT"
 
-  create-jobs:
+  presync:
+    # Pull latest code into the project BEFORE create-jobs, so newly-added job scripts
+    # (e.g. launch_app.py) exist when CML validates them. No-op on a brand-new project.
     needs: setup-project
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+      - run: pip install requests pyyaml
+      - name: Pre-sync project git (git_sync)
+        env:
+          CML_HOST: ${{ secrets.CML_HOST }}
+          CML_API_KEY: ${{ secrets.CML_API_KEY }}
+        run: python cai_integration/trigger_jobs.py --project-id ${{ needs.setup-project.outputs.project_id }} --sync-only
+
+  create-jobs:
+    needs: [setup-project, presync]
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
@@ -82,58 +100,41 @@ jobs:
         with:
           python-version: '3.11'
       - run: pip install requests pyyaml
-      - name: Create CML jobs (git_sync -> install -> generate -> features -> train)
+      - name: Create CML jobs (git_sync -> install -> generate -> features -> train -> launch)
+        # App config is baked into the "Launch Application" job's environment so the
+        # chain can be run from the CML UI and produce a live app.
         env:
           CML_HOST: ${{ secrets.CML_HOST }}
           CML_API_KEY: ${{ secrets.CML_API_KEY }}
           RUNTIME_IDENTIFIER: ${{ secrets.RUNTIME_IDENTIFIER }}
+          APP_SUBDOMAIN: ${{ github.event.inputs.subdomain || 'aml-platform' }}
+          LLM_PROVIDER: ${{ secrets.LLM_PROVIDER }}
+          IMPALA_PASSWORD: ${{ secrets.IMPALA_PASSWORD }}
         run: python cai_integration/create_jobs.py --project-id ${{ needs.setup-project.outputs.project_id }}
 
-  trigger-pipeline:
+  run-chain:
     needs: [setup-project, create-jobs]
     runs-on: ubuntu-latest
-    timeout-minutes: 90   # git_sync + install (npm build) + data gen + features + train
+    timeout-minutes: 120   # git_sync + install (npm build) + data gen + features + train + launch
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v4
         with:
           python-version: '3.11'
       - run: pip install requests pyyaml
-      - name: Trigger git_sync; wait through the chain to Train Risk Model
+      - name: Run the chain (git_sync -> ... -> train -> launch) and wait
         env:
           CML_HOST: ${{ secrets.CML_HOST }}
           CML_API_KEY: ${{ secrets.CML_API_KEY }}
         run: python cai_integration/trigger_jobs.py --project-id ${{ needs.setup-project.outputs.project_id }}
-
-  launch-application:
-    needs: [setup-project, create-jobs, trigger-pipeline]
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v4
-        with:
-          python-version: '3.11'
-      - run: pip install requests
-      - name: Create / restart the CML Application
-        env:
-          CML_HOST: ${{ secrets.CML_HOST }}
-          CML_API_KEY: ${{ secrets.CML_API_KEY }}
-          RUNTIME_IDENTIFIER: ${{ secrets.RUNTIME_IDENTIFIER }}
-          IMPALA_PASSWORD: ${{ secrets.IMPALA_PASSWORD }}
-        run: |
-          python cai_integration/deploy_application.py \
-            --host "$CML_HOST" --api-key "$CML_API_KEY" \
-            --project-id ${{ needs.setup-project.outputs.project_id }} \
-            --subdomain "${{ github.event.inputs.subdomain || 'aml-platform' }}" \
-            --wait-timeout 300
       - name: Summary
         if: always()
         run: |
           {
             echo "## CML Deploy — ${{ job.status }}"
             echo "- Project: \`${{ needs.setup-project.outputs.project_id }}\`"
+            echo "- Chain: git_sync → install → generate → features → train → Launch Application (all CML Jobs)"
             echo "- App script: \`03_frontend/start_frontend.py\` (frontend + backend on \$CDSW_APP_PORT)"
             echo "- Auth: Workbench SSO (bypass_authentication=False)"
-            if [ -f /tmp/app_url.txt ]; then echo "- URL: $(cat /tmp/app_url.txt)"; fi
+            echo "- App URL: see the **Launch Application** job log / the CML Applications page."
           } >> "$GITHUB_STEP_SUMMARY"

@@ -5,6 +5,8 @@ Event shapes emitted:
   {"type": "phase",       "phase": str}
   {"type": "worker_start","worker": str}
   {"type": "worker_done", "worker": str, "findings": str, "evidence_ids": [str]}
+  {"type": "tool_call",   "worker": "verification", "query": str}
+  {"type": "verdict",     "claim": str, "verdict": str, "sources": [str]}
   {"type": "token",       "text": str}
   {"type": "done"}
 """
@@ -18,6 +20,7 @@ from agents.workers import (
     run_pattern_worker,
     run_network_worker,
     run_screening_worker,
+    run_verification_worker,
 )
 
 _NARRATIVE_SYSTEM = """You are a senior AML analyst. Four specialist workers investigated this case.
@@ -26,6 +29,8 @@ Synthesize their findings into a structured narrative:
 2. Key suspicious indicators (cite specific findings)
 3. Recommended disposition: SUSPICIOUS / FALSE_POSITIVE / NEEDS_MORE_INFO
 4. Confidence: LOW / MEDIUM / HIGH
+If VERIFICATION VERDICTS are present, weight confirmed claims up and refuted claims
+down, cite the verdicts, and let unresolved/refuted items lower your confidence.
 Be concise, evidence-based, and write in the present tense."""
 
 
@@ -72,7 +77,25 @@ def run_investigation(
                      findings=result["findings"],
                      evidence_ids=result["evidence_ids"])
 
-    # ── Phase 2: ANALYZING (narrative compose, real streaming) ───────────────
+    # ── Phase 2: VERIFYING (optional — only when an MCP server is configured) ─
+    verdicts: list[dict] = []
+    verification = run_verification_worker(case_id, findings_list)
+    if verification is not None:
+        state = transition(state, CaseState.VERIFYING)
+        yield _e("phase", phase="VERIFYING")
+        yield _e("worker_start", worker="verification")
+        for ev in verification.get("tool_events", []):
+            yield _e("tool_call", worker="verification", query=ev.get("query", ev.get("name", "")))
+        verdicts = verification.get("verdicts", [])
+        for v in verdicts:
+            yield _e("verdict", claim=v["claim"], verdict=v["verdict"], sources=v["sources"])
+        yield _e("worker_done",
+                 worker="verification",
+                 findings=verification["findings"],
+                 evidence_ids=verification["evidence_ids"])
+        findings_list.append(verification)
+
+    # ── Phase 3: ANALYZING (narrative compose, real streaming) ───────────────
     state = transition(state, CaseState.ANALYZING)
     yield _e("phase", phase="ANALYZING")
 
@@ -80,6 +103,12 @@ def run_investigation(
         f"[{r['worker'].upper()} WORKER]\n{r['findings']}"
         for r in sorted(findings_list, key=lambda x: x["worker"])
     )
+    if verdicts:
+        combined += "\n\n[VERIFICATION VERDICTS]\n" + "\n".join(
+            f"- {v['verdict'].upper()}: {v['claim']}"
+            + (f" (sources: {', '.join(v['sources'])})" if v["sources"] else "")
+            for v in verdicts
+        )
     messages = [
         {"role": "system", "content": _NARRATIVE_SYSTEM},
         {"role": "user",   "content": combined},

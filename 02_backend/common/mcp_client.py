@@ -218,14 +218,22 @@ async def _aopen_stdio(name: str, params: dict):
            if str(params.get(k) or "").strip()}
     args = ["--from", spec["repo"], *spec["extra_args"](params), spec["entry"]]
     stack = AsyncExitStack()
-    read, write = await stack.enter_async_context(stdio_client(
-        StdioServerParameters(command="uvx", args=args, env={**_os.environ, **env})))
-    session = await stack.enter_async_context(ClientSession(read, write))
-    await session.initialize()
+    try:
+        read, write = await stack.enter_async_context(stdio_client(
+            StdioServerParameters(command="uvx", args=args, env={**_os.environ, **env})))
+        session = await stack.enter_async_context(ClientSession(read, write))
+        await session.initialize()
+    except Exception:
+        await stack.aclose()
+        raise
     return session, stack
 
 
 async def _aembedded_session(name: str, params: dict):
+    # ponytail: check-then-set is not atomic; two concurrent first-callers for
+    # the same name both spawn, the loser's session leaks. Acceptable given
+    # single-worker-per-server usage; add a per-name asyncio.Lock if contention
+    # becomes real.
     if name not in _stdio_sessions:
         _stdio_sessions[name] = await _aopen_stdio(name, params)
     return _stdio_sessions[name][0]

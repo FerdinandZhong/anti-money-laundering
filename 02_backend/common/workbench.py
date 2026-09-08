@@ -101,7 +101,9 @@ def _mcp_call(candidates: list[str], args: dict) -> dict:
         out = json.loads(res) if isinstance(res, str) else res
     except ValueError:
         raise WorkbenchError(f"workbench-mcp returned non-JSON: {str(res)[:200]}")
-    return out if isinstance(out, dict) else {}
+    if not isinstance(out, dict):
+        raise WorkbenchError(f"workbench-mcp returned unexpected type {type(out).__name__}: {str(out)[:200]}")
+    return out
 
 
 # ── thin REST helpers ────────────────────────────────────────────────────────

@@ -149,6 +149,165 @@ def probe(url: str, api_key: str | None) -> tuple[bool, "list[dict] | str"]:
         return False, f"{type(e).__name__}: {e}"
 
 
+# ── embedded stdio servers (Cloudera iceberg / workbench MCP) ────────────────
+
+EMBEDDED_SERVERS: dict[str, dict] = {
+    "iceberg-mcp": {
+        "repo": "git+https://github.com/cloudera/iceberg-mcp-server@main",
+        "entry": "run-server",
+        "env_map": {"impala_host": "IMPALA_HOST", "impala_port": "IMPALA_PORT",
+                    "impala_user": "IMPALA_USER", "impala_password": "IMPALA_PASSWORD",
+                    "impala_database": "IMPALA_DATABASE"},
+        "required": ["impala_host", "impala_user", "impala_password", "impala_database"],
+        "extra_args": lambda params: [],
+    },
+    "workbench-mcp": {
+        "repo": "git+https://github.com/cloudera/CAI_Workbench_MCP_Server.git",
+        "entry": "cai-workbench-mcp-stdio",
+        "env_map": {"host": "CAI_WORKBENCH_HOST", "api_key": "CAI_WORKBENCH_API_KEY",
+                    "project_id": "CAI_WORKBENCH_PROJECT_ID"},
+        "required": ["host", "api_key", "project_id"],
+        # cmlapi SDK ships from the workbench itself
+        "extra_args": lambda params: ["--with", f"{params['host'].rstrip('/')}/api/v2/python.tar.gz"],
+    },
+}
+
+
+def embedded_params(name: str) -> dict | None:
+    """Params for an enabled embedded server, or None unless ALL required keys set."""
+    spec = EMBEDDED_SERVERS.get(name)
+    if not spec:
+        return None
+    try:
+        import json as _json
+        from common.db import get_connection
+        conn = get_connection()
+        try:
+            row = conn.execute(
+                "SELECT params FROM tool_config "
+                "WHERE name=? AND enabled=1 AND kind='embedded' LIMIT 1",
+                (name,)).fetchone()
+        finally:
+            conn.close()
+        if not row or not row["params"]:
+            return None
+        params = _json.loads(row["params"])
+        if not all(str(params.get(k) or "").strip() for k in spec["required"]):
+            return None
+        return params
+    except Exception:
+        return None
+
+
+# Persistent stdio session per embedded server: uvx re-resolves the git dep on
+# every spawn, so spawn-per-call would cost seconds per query. Sessions live on
+# the background loop and are torn down + re-opened on any error.
+# ponytail: no health-check/idle-timeout; a wedged server heals on next call's
+# error path. Add keepalive pings if long-lived sessions prove flaky.
+_stdio_sessions: dict[str, tuple] = {}   # name -> (session, AsyncExitStack)
+
+
+async def _aopen_stdio(name: str, params: dict):
+    import os as _os
+    from contextlib import AsyncExitStack
+    from mcp import ClientSession, StdioServerParameters
+    from mcp.client.stdio import stdio_client
+
+    spec = EMBEDDED_SERVERS[name]
+    env = {v: str(params[k]) for k, v in spec["env_map"].items()
+           if str(params.get(k) or "").strip()}
+    args = ["--from", spec["repo"], *spec["extra_args"](params), spec["entry"]]
+    stack = AsyncExitStack()
+    read, write = await stack.enter_async_context(stdio_client(
+        StdioServerParameters(command="uvx", args=args, env={**_os.environ, **env})))
+    session = await stack.enter_async_context(ClientSession(read, write))
+    await session.initialize()
+    return session, stack
+
+
+async def _aembedded_session(name: str, params: dict):
+    if name not in _stdio_sessions:
+        _stdio_sessions[name] = await _aopen_stdio(name, params)
+    return _stdio_sessions[name][0]
+
+
+async def _aembedded_close(name: str):
+    entry = _stdio_sessions.pop(name, None)
+    if entry:
+        try:
+            await entry[1].aclose()
+        except Exception:
+            pass
+
+
+def reset_embedded(name: str | None = None) -> None:
+    """Drop cached stdio session(s) — call after params change."""
+    names = [name] if name else list(_stdio_sessions)
+    for n in names:
+        try:
+            _run(_aembedded_close(n), timeout=10)
+        except Exception:
+            _stdio_sessions.pop(n, None)
+
+
+def list_embedded_tools(name: str) -> list[dict] | None:
+    params = embedded_params(name)
+    if not params:
+        return None
+
+    async def _do():
+        session = await _aembedded_session(name, params)
+        resp = await session.list_tools()
+        return [{"name": t.name, "description": t.description or "",
+                 "input_schema": t.inputSchema or {"type": "object", "properties": {}}}
+                for t in resp.tools]
+    try:
+        return _run(_do(), timeout=120)   # first call may uvx-resolve the package
+    except Exception:
+        _run_silent_close(name)
+        return None
+
+
+def call_embedded(name: str, tool: str, args: dict | None = None):
+    """Call a tool on an embedded server. {'error': ...} on any failure."""
+    params = embedded_params(name)
+    if not params:
+        return {"error": f"embedded server '{name}' not configured"}
+
+    async def _do():
+        session = await _aembedded_session(name, params)
+        result = await session.call_tool(tool, arguments=args or {})
+        return _content_to_text(result)
+    try:
+        return _run(_do(), timeout=120)
+    except Exception as e:
+        _run_silent_close(name)
+        return {"error": f"embedded mcp call failed: {e}"}
+
+
+def probe_embedded(name: str, params: dict) -> tuple[bool, "list[dict] | str"]:
+    """Explicit-params connectivity test for the Tools view (fresh session,
+    torn down after)."""
+    async def _do():
+        session, stack = await _aopen_stdio(name, params)
+        try:
+            resp = await session.list_tools()
+            return [{"name": t.name} for t in resp.tools]
+        finally:
+            await stack.aclose()
+    try:
+        return True, _run(_do(), timeout=120)
+    except Exception as e:  # noqa: BLE001
+        return False, f"{type(e).__name__}: {e}"
+
+
+def _run_silent_close(name: str) -> None:
+    try:
+        _run(_aembedded_close(name), timeout=10)
+    except Exception:
+        _stdio_sessions.pop(name, None)
+
+
 if __name__ == "__main__":
     servers = enabled_servers()
     if not servers:
@@ -160,3 +319,11 @@ if __name__ == "__main__":
                 print(f"mcp_client: {s['name']} OK — tools: {[t['name'] for t in res]}")
             else:
                 print(f"mcp_client: {s['name']} FAILED — {res}")
+    for name in EMBEDDED_SERVERS:
+        p = embedded_params(name)
+        if not p:
+            print(f"mcp_client: {name} not configured (local fallback)")
+        else:
+            tools = list_embedded_tools(name)
+            print(f"mcp_client: {name} — "
+                  + (f"OK, tools: {[t['name'] for t in tools]}" if tools else "FAILED to connect"))

@@ -82,6 +82,12 @@ def get_connection() -> sqlite3.Connection:
         except sqlite3.OperationalError as e:
             if "duplicate column" not in str(e).lower():
                 raise
+    for col in ("params TEXT",):
+        try:
+            conn.execute(f"ALTER TABLE tool_config ADD COLUMN {col}")
+        except sqlite3.OperationalError as e:
+            if "duplicate column" not in str(e).lower():
+                raise
     # ponytail: runs on every connect; idempotent (WHERE status='OPEN' is a no-op once remapped)
     conn.execute(_STATUS_BACKFILL_SQL)
     conn.commit()

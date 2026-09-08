@@ -109,11 +109,14 @@ def _create(client, params, attempts: int = 3):
             time.sleep(0.6 * (i + 1))
 
 
-def _completion(client, model, messages, stream: bool):
+def _completion(client, model, messages, stream: bool, tools=None):
     global _token_param, _drop_temperature
     cfg = get_config()["llm"]
     params = {"model": model, "messages": messages, "stream": stream,
               _token_param: cfg.get("max_tokens", 4096)}
+    if tools:
+        params["tools"] = tools
+        params["tool_choice"] = "auto"
     if not _drop_temperature:
         params["temperature"] = cfg.get("temperature", 0.1)
     try:
@@ -152,6 +155,57 @@ def probe(base_url: str | None, model: str, api_key: str | None) -> tuple[bool, 
         return True, (resp.choices[0].message.content or "OK")
     except Exception as e:  # noqa: BLE001
         return False, f"{type(e).__name__}: {e}"
+
+
+def chat_with_tools(messages: list[dict], tools: list[dict], execute,
+                    max_iters: int = 4, on_event=None) -> str:
+    """OpenAI-compatible tool-calling loop for the verification worker.
+
+    `tools` are OpenAI tool schemas; `execute(name, args) -> str` runs a tool and
+    returns its text result; `on_event(name, args, result)` (optional) is called
+    per tool call so the caller can surface progress. Loops until the model stops
+    requesting tools or `max_iters` is hit, then returns the final assistant text.
+
+    # ponytail: needs a tool-calling-capable model. Any failure in the loop
+    # (e.g. a 400 rejecting `tools`) falls back to one plain chat() with no tools
+    # and returns that — the worker then reports no verdicts, never errors.
+    """
+    import json
+    client, model = _make_client()
+    msgs = list(messages)
+    try:
+        for _ in range(max_iters):
+            resp = _completion(client, model, msgs, stream=False, tools=tools)
+            m = resp.choices[0].message
+            calls = getattr(m, "tool_calls", None)
+            if not calls:
+                return m.content or ""
+            msgs.append({
+                "role": "assistant",
+                "content": m.content or "",
+                "tool_calls": [
+                    {"id": c.id, "type": "function",
+                     "function": {"name": c.function.name, "arguments": c.function.arguments}}
+                    for c in calls
+                ],
+            })
+            for c in calls:
+                try:
+                    args = json.loads(c.function.arguments or "{}")
+                except json.JSONDecodeError:
+                    args = {}
+                result = execute(c.function.name, args)
+                text = result if isinstance(result, str) else json.dumps(result, default=str)
+                if on_event:
+                    on_event(c.function.name, args, text)
+                msgs.append({"role": "tool", "tool_call_id": c.id, "content": text})
+        # Hit the iteration cap — ask once more with no tools for a final answer.
+        return _completion(client, model, msgs, stream=False).choices[0].message.content or ""
+    except Exception:  # noqa: BLE001 — tools unsupported / loop failure → plain chat
+        try:
+            return _completion(client, model, messages, stream=False).choices[0].message.content or ""
+        except Exception:
+            return ""
 
 
 def chat(messages: list[dict], stream: bool = False) -> "str | Generator":

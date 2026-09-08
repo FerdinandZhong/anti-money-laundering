@@ -86,3 +86,68 @@ def test_completion_shim_is_deterministic_under_concurrent_threads():
 
     assert not errors, errors
     assert llm_client._token_param == "max_completion_tokens"
+
+
+# ── chat_with_tools (verification loop) ──────────────────────────────────────
+
+def _tool_call(name, args_json):
+    fn = type("Fn", (), {"name": name, "arguments": args_json})()
+    return type("TC", (), {"id": "call_1", "function": fn})()
+
+
+def _msg(content, tool_calls=None):
+    return type("M", (), {"content": content, "tool_calls": tool_calls})()
+
+
+class _ToolLoopClient:
+    """Returns a tool_call on the first create(), then a plain answer."""
+    def __init__(self):
+        self.calls = 0
+        self.chat = type("Chat", (), {"completions": self})()
+
+    def create(self, **params):
+        self.calls += 1
+        if self.calls == 1:
+            return type("R", (), {"choices": [type("C", (), {"message": _msg("", [_tool_call("chk", '{"q":"ACME"}')])})()]})()
+        return type("R", (), {"choices": [type("C", (), {"message": _msg('{"verdicts":[]}')})()]})()
+
+
+def test_chat_with_tools_runs_loop_then_returns(monkeypatch):
+    from agents import llm_client
+
+    client = _ToolLoopClient()
+    monkeypatch.setattr(llm_client, "_make_client", lambda: (client, "gpt-5.1"))
+
+    seen = []
+    out = llm_client.chat_with_tools(
+        [{"role": "user", "content": "verify"}],
+        tools=[{"type": "function", "function": {"name": "chk", "parameters": {}}}],
+        execute=lambda name, args: "tool said no match",
+        max_iters=4,
+        on_event=lambda n, a, r: seen.append(n),
+    )
+    assert out == '{"verdicts":[]}'
+    assert client.calls == 2          # one tool round, then final answer — loop terminated
+    assert seen == ["chk"]            # tool executed once, on_event fired
+
+
+def test_chat_with_tools_falls_back_when_tools_rejected(monkeypatch):
+    from agents import llm_client
+
+    # rejects any call carrying `tools`; a plain call (fallback) succeeds.
+    class _NoToolsClient:
+        def __init__(self):
+            self.chat = type("Chat", (), {"completions": self})()
+
+        def create(self, **params):
+            if "tools" in params:
+                raise Exception("400: this model does not support tools")
+            return _FakeResponse("fallback answer")
+
+    monkeypatch.setattr(llm_client, "_make_client", lambda: (_NoToolsClient(), "m"))
+    out = llm_client.chat_with_tools(
+        [{"role": "user", "content": "verify"}],
+        tools=[{"type": "function", "function": {"name": "chk", "parameters": {}}}],
+        execute=lambda name, args: "x",
+    )
+    assert out == "fallback answer"

@@ -5,17 +5,18 @@ saves evidence, calls the LLM once, and returns findings.
 ponytail: one file, four functions. No subpackage, no base class.
 """
 import json
-from agents.llm_client import chat
-from agents.tools import TOOLS
+from agents.llm_client import chat, chat_with_tools
+from agents.tools import TOOLS, mcp_verification_tools
 from common.evidence import create_evidence
 from common.db import get_connection
 
 # Tool allow-list per worker (documentation + enforcement reference)
 WORKER_TOOLS: dict[str, list[str]] = {
-    "profile":   ["get_alert_detail", "get_customer_profile"],
-    "pattern":   ["get_transaction_history", "get_model_explanation"],
-    "network":   ["get_network_graph", "get_device_overlap"],
-    "screening": ["get_customer_profile"],
+    "profile":      ["get_alert_detail", "get_customer_profile"],
+    "pattern":      ["get_transaction_history", "get_model_explanation"],
+    "network":      ["get_network_graph", "get_device_overlap"],
+    "screening":    ["get_customer_profile"],
+    "verification": ["mcp:*"],   # dynamic — whatever the configured MCP servers expose
 }
 
 _PROMPTS = {
@@ -131,3 +132,79 @@ def run_screening_worker(case_id: str, customer_id: str) -> dict:
     ], stream=False)
     assert isinstance(findings, str)
     return {"worker": "screening", "findings": findings, "evidence_ids": ev_ids}
+
+
+_VERIFICATION_SYSTEM = (
+    "You are the Verification Worker in an AML investigation. You are given the "
+    "findings of four collector workers. Extract the key factual claims (names, "
+    "jurisdictions, PEP/sanctions/adverse-media assertions, entity relationships) "
+    "and use the provided tools to confirm or refute each against external sources. "
+    "Call a tool before judging any claim you cannot verify from the findings alone. "
+    "When done, respond with ONLY a JSON object of the form:\n"
+    '{"verdicts":[{"claim":"...","verdict":"confirmed|refuted|unverified","sources":["..."]}]}\n'
+    "Use 'unverified' when the tools returned nothing conclusive. No prose outside the JSON."
+)
+
+
+def _extract_json(text: str) -> dict:
+    """Best-effort: parse the first {...} object out of an LLM reply."""
+    try:
+        start = text.index("{")
+        depth = 0
+        for i in range(start, len(text)):
+            if text[i] == "{":
+                depth += 1
+            elif text[i] == "}":
+                depth -= 1
+                if depth == 0:
+                    return json.loads(text[start:i + 1])
+    except (ValueError, json.JSONDecodeError):
+        pass
+    return {}
+
+
+_VALID_VERDICTS = {"confirmed", "refuted", "unverified"}
+
+
+def run_verification_worker(case_id: str, findings: list[dict]) -> dict | None:
+    """Bounded tool-calling loop that confirms/refutes the collectors' claims
+    against configured MCP servers. Returns None (worker skipped) when no MCP
+    server is configured or the model can't tool-call — the workflow then behaves
+    exactly as before. `tool_events` lets the supervisor stream tool_call events.
+    """
+    tools, execute = mcp_verification_tools()
+    if not tools:
+        return None   # fail soft: nothing configured
+
+    combined = "\n\n".join(
+        f"[{r['worker'].upper()}]\n{r['findings']}"
+        for r in sorted(findings, key=lambda x: x["worker"])
+    )
+
+    tool_events: list[dict] = []
+
+    def _on_event(name, args, _result):
+        tool_events.append({"name": name, "query": json.dumps(args, default=str)[:200]})
+
+    reply = chat_with_tools(
+        [{"role": "system", "content": _VERIFICATION_SYSTEM},
+         {"role": "user",   "content": combined}],
+        tools, execute, max_iters=4, on_event=_on_event,
+    )
+
+    parsed = _extract_json(reply)
+    verdicts = []
+    for v in parsed.get("verdicts", []):
+        verdict = str(v.get("verdict", "unverified")).lower()
+        verdicts.append({
+            "claim": str(v.get("claim", "")),
+            "verdict": verdict if verdict in _VALID_VERDICTS else "unverified",
+            "sources": [str(s) for s in (v.get("sources") or [])],
+        })
+
+    ev_ids = [_ev(case_id, "verification", "claims",
+                  {"verdicts": verdicts, "tool_calls": tool_events}, "verification")]
+
+    summary = f"Verified {len(verdicts)} claim(s) via {len(tool_events)} tool call(s)."
+    return {"worker": "verification", "findings": summary, "verdicts": verdicts,
+            "tool_events": tool_events, "evidence_ids": ev_ids}

@@ -155,6 +155,17 @@ CREATE TABLE IF NOT EXISTS llm_models (
     is_active INTEGER DEFAULT 0,
     created_at TEXT DEFAULT (datetime('now'))
 );
+
+CREATE TABLE IF NOT EXISTS tool_config (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    kind TEXT NOT NULL DEFAULT 'mcp_server',   -- mcp_server (only kind for now)
+    name TEXT UNIQUE NOT NULL,
+    transport TEXT NOT NULL DEFAULT 'http',    -- http (streamable-HTTP); stdio deferred
+    url TEXT,
+    api_key TEXT,                    -- ponytail: plaintext for local demo; secret store in prod
+    enabled INTEGER DEFAULT 1,
+    created_at TEXT DEFAULT (datetime('now'))
+);
 """
 
 TABLE_NAMES: list[str] = [
@@ -171,6 +182,7 @@ TABLE_NAMES: list[str] = [
     "transaction_scores",
     "transaction_labels",
     "llm_models",
+    "tool_config",
 ]
 
 
@@ -182,7 +194,10 @@ def init_schema(conn: sqlite3.Connection) -> None:
 if __name__ == "__main__":
     conn = sqlite3.connect(":memory:")
     init_schema(conn)
-    tables = conn.execute("SELECT name FROM sqlite_master WHERE type='table'").fetchall()
-    assert len(tables) == 12, f"Expected 12 tables, got {len(tables)}"
-    print(f"Schema OK — {len(tables)} tables created")
+    tables = {r[0] for r in conn.execute(
+        "SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'"
+    ).fetchall()}
+    missing = set(TABLE_NAMES) - tables
+    assert not missing, f"Missing tables: {missing}"
+    print(f"Schema OK — {len(TABLE_NAMES)} tables created")
     conn.close()

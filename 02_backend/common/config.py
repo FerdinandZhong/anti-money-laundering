@@ -14,6 +14,10 @@ def get_config() -> dict:
         if os.path.exists(_dotenv):
             load_dotenv(_dotenv)
         _cfg_path = os.path.join(PROJECT_ROOT, "config", "config.yaml")
+        if not os.path.exists(_cfg_path):
+            # config.yaml is git-ignored; a fresh checkout (e.g. CML git-sync) only
+            # ships config.yaml.example. Fall back to it so jobs run out of the box.
+            _cfg_path = os.path.join(PROJECT_ROOT, "config", "config.yaml.example")
         with open(_cfg_path) as f:
             _config = yaml.safe_load(f)
         _resolve_workspace_domain(_config)

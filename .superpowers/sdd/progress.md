@@ -25,4 +25,17 @@ Task 7: complete (commit d3c3049, README updated + 86 backend tests green + fron
 
 ALL 7 TASKS COMPLETE. Plan range: ab4f843..d3c3049. Deferred Minors for final review: (T3a) parallel _SECRET_KEYS vs _mask_key; (T3b) str() param coercion; (T5) no routing tests for run_job/get_job_run/canary MCP; (T6) loading-vs-empty state.
 Final whole-branch review (opus): Ready-to-merge-with-fixes. Important #1 (_req guard dead in mcp mode) + Rec #4 (canary_deploy routing test) fixed in ce24223 (87 tests, retraining OK, frontend build clean). Remaining deferred Minors non-blocking: T3a parallel maskers, workbench __main__ cosmetic, T6 loading-vs-empty state, _sql_df %s-literal positional note.
-DONE. Final HEAD: ce24223.
+DONE. Plan HEAD: ce24223.
+
+## Post-merge / post-review fixes
+- ad77249: committed this SDD ledger (plan complete).
+- Runtime bug (user hit 404 + perpetual "Loading…" in Tools tab): root cause = stale backend process (started 11:33, before Task 3 added /api/config/embedded → fast 404) + frontend treating empty list as "loading forever". Restarted backend (endpoint now 200 in ~8ms). Fixed the UX in b52aa0e — Tools tab now tracks loading/error/ready and shows an error+Retry instead of hanging (resolves deferred T6 loading-vs-empty Minor).
+- b847e9e: gitignore SQLite WAL sidecar files (data/aml.db-shm, -wal).
+
+## Final state
+- Branch feat/tx-labels-and-caii-endpoints @ b847e9e. Tree clean.
+- 87 backend tests pass; frontend builds clean; retraining self-check OK.
+- This-plan commit range: ab4f843..b847e9e (15 commits).
+- PUSH PENDING: repo has NO git remote configured — cannot push / open PR until `git remote add origin <url>` is set. All work committed locally.
+- Carry-forward: Workbench MCP tool names resolved at runtime (candidate-match + fail-soft) — confirm via Tools tab Test connection on first live connection.
+- Remaining non-blocking Minors: T3a parallel maskers in main.py; T3b str() param coercion; T5 no routing tests for run_job/get_job_run MCP paths; workbench __main__ cosmetic; _sql_df %s-literal positional note.

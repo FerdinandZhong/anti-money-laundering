@@ -113,8 +113,8 @@ def _base() -> str:
 
 
 def _req(method: str, path: str, body: dict | None = None, timeout: float = 30.0) -> dict:
-    if not configured():
-        raise WorkbenchError("Workbench not configured (host/project/api_key missing)")
+    if mode() != "rest":
+        raise WorkbenchError("Workbench REST not configured (host/project/api_key missing)")
     import requests
     url = f"{_base()}{path}"
     try:

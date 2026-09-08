@@ -56,3 +56,33 @@ def test_missing_tool_name_raises(monkeypatch):
     import pytest
     with pytest.raises(workbench.WorkbenchError):
         workbench.create_training_job("aml-retrain", "x.py")
+
+
+def test_canary_deploy_routes_through_mcp(monkeypatch):
+    _mcp_configured(monkeypatch, tools=("list_models", "create_model",
+                                        "create_model_build", "create_model_deployment"))
+    calls = []
+
+    def fake_call(name, tool, args):
+        calls.append((tool, args))
+        if tool == "list_models":
+            return json.dumps({"models": []})          # no existing model → force create
+        if tool == "create_model":
+            return json.dumps({"id": "m-1"})
+        if tool == "create_model_build":
+            return json.dumps({"id": "b-1"})
+        if tool == "create_model_deployment":
+            return json.dumps({"id": "d-1"})
+        return json.dumps({})
+
+    monkeypatch.setattr(mcp_client, "call_embedded", fake_call)
+    result = workbench.canary_deploy(
+        model_version="v1",
+        model_name="aml-risk-model",
+        script="02_backend/ml/train.py",
+    )
+    assert result["model_id"] == "m-1"
+    assert result["build_id"] == "b-1"
+    assert result["deployment_id"] == "d-1"
+    tool_names = [c[0] for c in calls]
+    assert "create_model_deployment" in tool_names

@@ -5,14 +5,18 @@ trains the model, then a CML **Application** serves the React UI + FastAPI backe
 as one app. Same `cai_integration/` automation pattern as the sibling
 `use_case_discovery` repo, adapted to this Python project.
 
-**Flow:** create the project from git → CML Job chain
-`git_sync → install → generate → features → train` (pre-installs deps, builds the
-frontend, generates data, trains the model on project storage) → launch the
-Application (`03_frontend/start_frontend.py` on `$CDSW_APP_PORT`, starting in
-seconds because the build + model already exist).
+**Flow:** create the project from git → **CML Job chain**
+`git_sync → install → generate → features → train → launch`: the first five jobs
+pre-install deps, build the frontend, generate data and train the model on project
+storage; **`launch`** (Launch Application) then creates/replaces the CML Application
+(pointing at `03_frontend/start_frontend.py`, frontend + backend on `$CDSW_APP_PORT`)
+and waits for it to run. Because the launch is itself a CML Job, an end user can **run
+the whole chain from the CML Jobs UI** — run "Git Repository Sync" and it cascades to
+a live Application, no external script needed.
 
-These jobs mirror the `tasks` in the root `.project-metadata.yaml` (the AMP catalog
-file); this directory just drives them via the CML API for git-backed / CI deploys.
+The build+train jobs mirror the `tasks` in the root `.project-metadata.yaml` (the AMP
+catalog file); this directory drives them (plus `launch`) via the CML API for
+git-backed / CI deploys.
 
 ## Prerequisite: a Python 3.11 ML Runtime
 All jobs and the Application run on a **standard Python 3.11 ML Runtime** — the
@@ -30,32 +34,35 @@ export GIT_URL=https://github.com/<org>/<repo>   # or GITHUB_REPOSITORY=org/repo
 export PROJECT_NAME="AML Investigation Platform"
 export RUNTIME_IDENTIFIER=<your-python-3.11-runtime>
 
+export APP_SUBDOMAIN=aml-platform                          # optional (default aml-platform)
+
 python cai_integration/setup_project.py                     # → /tmp/project_id.txt
 PID=$(cat /tmp/project_id.txt)
-python cai_integration/create_jobs.py  --project-id "$PID"  # register the 5-job chain
-python cai_integration/trigger_jobs.py --project-id "$PID"  # run git_sync; CML runs the rest
-# after "Train Risk Model" succeeds:
-python cai_integration/deploy_application.py \
-  --host "$CML_HOST" --api-key "$CML_API_KEY" --project-id "$PID" \
-  --runtime-identifier "$RUNTIME_IDENTIFIER" --subdomain aml-platform
+python cai_integration/create_jobs.py  --project-id "$PID"  # register git_sync → … → train → launch
+python cai_integration/trigger_jobs.py --project-id "$PID"  # run the chain; the launch job starts the app
 ```
 
-Re-running `deploy_application.py` **restarts** the existing Application
-(idempotent), so it also picks up a fresh build / newly-trained model.
-`trigger_jobs.py` waits through the whole chain and fails if any job fails.
-`deploy_application.py` **waits for `running`** (`--wait-timeout`, `--no-wait` to
-skip) and prints the URL (also `/tmp/app_url.txt` for CI), so a green run means a
-reachable app. `create_jobs.py` **fails fast** if `RUNTIME_IDENTIFIER` is unset.
+`create_jobs.py` bakes the app config (`RUNTIME_IDENTIFIER`, `APP_SUBDOMAIN`,
+`LLM_PROVIDER`, `BACKEND_PORT`, `IMPALA_PASSWORD`) into the **Launch Application**
+job's environment, so `trigger_jobs.py` running the chain produces a live app — and
+so does running the chain from the CML Jobs UI. Re-running the chain **replaces** the
+Application with the current config (delete-all + create, which also frees the app
+port). `create_jobs.py` **fails fast** if `RUNTIME_IDENTIFIER` is unset.
+
+You can also launch/replace the Application directly (outside the chain, e.g. from a
+CML Session where `CDSW_*` are injected): `python cai_integration/deploy_application.py
+--subdomain aml-platform` — it waits for `running` and writes the URL to `/tmp/app_url.txt`.
 
 ### What each file does
 | File | Role |
 |---|---|
 | `setup_project.py` | Find/create the CML project from `GIT_URL`; wait for clone; write `/tmp/project_id.txt`. |
-| `jobs_config.yaml` | The Job chain: `git_sync → install → generate → features → train`. |
-| `create_jobs.py` | Create/update the Jobs from the yaml; resolves parent→UUID; runtime from `$RUNTIME_IDENTIFIER`. |
-| `trigger_jobs.py` | Trigger `git_sync`; wait through each auto-triggered job to `train`. |
+| `jobs_config.yaml` | The Job chain: `git_sync → install → generate → features → train → launch`. |
+| `create_jobs.py` | Create the Jobs from the yaml (delete+create); resolves parent→UUID; injects the launch job's app-config env. |
+| `trigger_jobs.py` | Run the chain: trigger `git_sync`, then wait-or-explicitly-trigger each child through `launch`. Also `--sync-only`. |
 | `git_sync.py` | Job: `git fetch && git reset --hard origin/<branch>`. |
-| `deploy_application.py` | Create (or restart) the Application via CML API v2. Run externally / from a CML Session. |
+| `launch_app.py` | Job (**Launch Application**, parent=train): create/replace the CML Application + wait for running. |
+| `deploy_application.py` | Shared CML-API helpers + a standalone CLI to create/replace the Application (used by `launch_app.py`; also runnable manually). |
 
 ## LLM / CAII configuration
 The app reads `config/config.yaml`. The `<workspace-domain>` placeholder in the

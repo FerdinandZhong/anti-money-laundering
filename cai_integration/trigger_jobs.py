@@ -25,6 +25,9 @@ import requests
 from pathlib import Path
 from typing import Optional, List, Dict, Any
 
+# Wait this long for CML to auto-trigger a child before triggering it ourselves.
+AUTO_TRIGGER_WINDOW = 120
+
 
 class JobTrigger:
 
@@ -186,40 +189,73 @@ class JobTrigger:
             print(f"{root['name']} failed")
             return False
 
-        # Walk the rest of the chain. Each child's run appears within seconds of
-        # its parent succeeding (which we just confirmed), so a modest new-run
-        # timeout suffices; completion uses the job's own configured timeout.
+        # Walk the rest of the chain. CML *should* auto-trigger each child when its
+        # parent succeeds, but that dependency (and its timestamp detection) isn't
+        # reliable — the symptom is a long "waiting to be auto-triggered" hang. So for
+        # each child: briefly look for an auto-triggered run; if none appears within
+        # AUTO_TRIGGER_WINDOW, trigger it explicitly. Completion uses the job's timeout.
         for job in chain[1:]:
-            job_id = self.find_job_id(project_id, job["name"])
-            if not job_id:
-                print(f"Warning: '{job['name']}' job not found — skipping.")
-                continue
-            new_run_timeout = max(300, int(job.get("timeout", 600)))
-            child_run = self.wait_for_new_run(
-                project_id, job_id, job["name"], trigger_epoch, new_run_timeout
-            )
-            if not child_run:
-                return False
-            if not self.wait_for_job_completion(project_id, job_id, child_run, job.get("timeout", 600)):
-                print(f"{job['name']} failed")
+            if not self._await_child(project_id, job, trigger_epoch):
                 return False
 
         print("=" * 70)
-        print("Pipeline complete. Launch the Application (once):")
-        print("   python cai_integration/deploy_application.py --runtime-identifier <python-runtime> ...")
+        print(" -> ".join(j["name"] for j in chain) + " complete. Application is live.")
         print("=" * 70)
         return True
+
+    def _await_child(self, project_id, job, trigger_epoch) -> bool:
+        """Wait for a child job to run: prefer the run CML auto-triggers; if none appears
+        within AUTO_TRIGGER_WINDOW, trigger it explicitly. Then wait for completion."""
+        job_id = self.find_job_id(project_id, job["name"])
+        if not job_id:
+            print(f"Job not found: {job['name']} — run the create-jobs step first.")
+            return False
+        run_id = self.wait_for_new_run(
+            project_id, job_id, job["name"], trigger_epoch, AUTO_TRIGGER_WINDOW
+        )
+        if not run_id:
+            print(f"   {job['name']} not auto-triggered within {AUTO_TRIGGER_WINDOW}s — triggering it explicitly.")
+            run_id = self.trigger_job(project_id, job_id)
+            if not run_id:
+                print(f"   Failed to trigger {job['name']}")
+                return False
+            print(f"   Run ID: {run_id}")
+        if not self.wait_for_job_completion(project_id, job_id, run_id, job.get("timeout", 600)):
+            print(f"{job['name']} failed")
+            return False
+        return True
+
+    def sync_only(self, project_id: str) -> bool:
+        """Run just git_sync to pull latest code into the project working dir. Used before
+        create_jobs so newly-added job scripts (e.g. launch_app.py) exist when CML validates
+        them. No-op on a brand-new project (no git_sync job yet) — its clone is already at HEAD."""
+        chain = self.load_chain()
+        root_name = chain[0]["name"] if chain else "Git Repository Sync"
+        job_id = self.find_job_id(project_id, root_name)
+        if not job_id:
+            print(f"{root_name} not found — new project (fresh clone); nothing to pre-sync.")
+            return True
+        print(f"Pre-syncing project code via {root_name} ...")
+        run_id = self.trigger_job(project_id, job_id)
+        if not run_id:
+            print("   Failed to trigger git_sync")
+            return False
+        return self.wait_for_job_completion(project_id, job_id, run_id, chain[0].get("timeout", 300))
 
 
 def main():
     parser = argparse.ArgumentParser(
-        description="Trigger the git_sync root job; CML runs the rest of the chain"
+        description="Run the CML deploy chain (git_sync -> ... -> train -> launch)"
     )
     parser.add_argument("--project-id", required=True, help="CML project ID")
+    parser.add_argument("--sync-only", action="store_true",
+                        help="Only run git_sync (pull latest code), then exit — use before create_jobs")
     args = parser.parse_args()
 
     try:
         trigger = JobTrigger()
+        if args.sync_only:
+            sys.exit(0 if trigger.sync_only(args.project_id) else 1)
         sys.exit(0 if trigger.run(args.project_id) else 1)
     except KeyboardInterrupt:
         print("\nCancelled by user")

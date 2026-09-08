@@ -33,6 +33,15 @@ def _env_int(*names: str, default: int) -> int:
     return default
 
 
+def _bind_host() -> str:
+    """CML Applications must listen on 127.0.0.1:$CDSW_APP_PORT — the Workbench proxy
+    connects over loopback, so binding 0.0.0.0 leaves the app unreachable. Treat "on CML"
+    as HOME==/home/cdsw OR CDSW_APP_PORT set (CML injects it for Applications); bind
+    0.0.0.0 only for local runs so the dev box is reachable on the LAN."""
+    on_cml = os.path.expanduser("~") == "/home/cdsw" or bool(os.environ.get("CDSW_APP_PORT"))
+    return "127.0.0.1" if on_cml else "0.0.0.0"
+
+
 _backend_proc: subprocess.Popen | None = None
 
 
@@ -153,7 +162,7 @@ def serve_production():
             return FileResponse(file_path)
         return FileResponse(os.path.join(dist_root, "index.html"), headers=_no_cache_headers)
 
-    host = "127.0.0.1" if os.path.expanduser("~") == "/home/cdsw" else "0.0.0.0"
+    host = _bind_host()
     print(f"Serving production build on {host}:{port}")
 
     try:
@@ -169,7 +178,7 @@ def serve_production():
 
 def serve_dev():
     port = _env_int("FRONTEND_PORT", "CDSW_APP_PORT", default=8100)
-    host = "127.0.0.1" if os.path.expanduser("~") == "/home/cdsw" else "0.0.0.0"
+    host = _bind_host()
     backend_port = _env_int("BACKEND_PORT", default=7078)
     _start_backend(backend_port)
     print(f"Starting Vite dev server on {host}:{port} (proxy → :{backend_port})")

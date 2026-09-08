@@ -116,7 +116,7 @@ def run_npm(args, cwd=None):
 
 def install_frontend():
     """Install npm dependencies and build the React frontend."""
-    frontend_dir = os.path.join(PROJECT_ROOT, "03_application", "frontend")
+    frontend_dir = os.path.join(PROJECT_ROOT, "03_frontend")
     pkg_json = os.path.join(frontend_dir, "package.json")
 
     if not os.path.isfile(pkg_json):
@@ -126,7 +126,11 @@ def install_frontend():
     print("=" * 50)
     print("Installing frontend dependencies...")
     print("=" * 50)
-    run_npm(["ci"], cwd=frontend_dir)
+    # `npm install` (not `npm ci`): the committed package-lock.json is generated on
+    # macOS and omits linux-only optional native deps (@emnapi/*), so strict `npm ci`
+    # fails on the linux CML runner. install resolves per-platform.
+    # ponytail: non-strict install, acceptable ceiling; pin a linux lockfile if repro matters.
+    run_npm(["install", "--no-audit", "--no-fund"], cwd=frontend_dir)
 
     print("\nBuilding frontend...")
     run_npm(["run", "build"], cwd=frontend_dir)

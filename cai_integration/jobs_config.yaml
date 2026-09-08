@@ -1,21 +1,22 @@
 # AML Investigation Platform — CML Job Chain
 #
-# Linear dependency chain (CML auto-triggers each child when its parent succeeds):
+# Linear dependency chain (parent->child; run "Git Repository Sync" and CML cascades):
 #   git_sync            pull latest code into the project working copy
 #     -> install        pip deps + Node/npm + build the React frontend (dist/)
 #       -> generate     synthetic customers/accounts/transactions with AML patterns
 #         -> features   feature engineering (velocity, centrality, geo/behaviour)
 #           -> train    train + register the XGBoost risk model
+#             -> launch create/replace the CML Application + wait for it to run
 #
-# After `train` succeeds, launch the CML Application (one-time; every restart then
-# serves in seconds via 03_frontend/start_frontend.py):
-#   - local / CI:  python cai_integration/deploy_application.py --host ... --api-key ... \
-#                      --project-id ... --runtime-identifier <python-3.11-runtime>
-#   - CML UI:      Applications -> New Application -> script: 03_frontend/start_frontend.py
+# Because `launch` is itself a CML Job, the whole deploy is triggerable from the CML
+# Jobs UI — run "Git Repository Sync" and it cascades to a live Application, no external
+# script needed. (trigger_jobs.py also walks this chain for CI, triggering each step
+# explicitly if CML doesn't auto-fire the child.)
 #
 # These mirror the tasks in .project-metadata.yaml (the AMP catalog file). All jobs
 # run on a standard Python 3.11 ML Runtime; `install` fetches Node via nvm itself.
-# Pass the runtime as RUNTIME_IDENTIFIER to create_jobs.py, or override per job below.
+# Pass the runtime as RUNTIME_IDENTIFIER to create_jobs.py; that also becomes the
+# Application's runtime via the launch job's environment.
 
 jobs:
   git_sync:
@@ -62,3 +63,15 @@ jobs:
     cpu: 2
     memory: 8
     description: "Train + register the XGBoost AML risk model"
+
+  launch:
+    name: "Launch Application"
+    script: "cai_integration/launch_app.py"
+    parent_job_key: "train"
+    timeout: 600        # create/replace the Application + wait for it to reach running
+    cpu: 1
+    memory: 4
+    description: "Create (or replace) the CML Application and wait for it to run"
+    # `environment` (RUNTIME_IDENTIFIER, APP_SUBDOMAIN, LLM_PROVIDER, BACKEND_PORT, ...)
+    # is injected by create_jobs.py from the create-time env so the app config travels
+    # with the job — this is what lets a UI user run the chain and get a live app.

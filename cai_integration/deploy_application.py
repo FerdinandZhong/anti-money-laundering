@@ -51,22 +51,11 @@ def build_environment(backend_port: str, llm_provider: str | None) -> dict:
     return environment
 
 
-def create_application(
-    host: str,
-    api_key: str,
-    project_id: str,
-    *,
-    name: str,
-    subdomain: str,
-    script: str,
-    runtime_identifier: str,
-    cpu: int,
-    memory: int,
-    bypass_authentication: bool,
-    environment: dict,
-) -> dict:
-    url = f"{host.rstrip('/')}/api/v2/projects/{project_id}/applications"
-    payload = {
+def _build_payload(*, name: str, subdomain: str, script: str, runtime_identifier: str,
+                   cpu: int, memory: int, bypass_authentication: bool,
+                   backend_port: str, llm_provider: str | None) -> dict:
+    """Assemble the create-Application payload. Pure — unit-testable without network."""
+    return {
         "name": name,
         "subdomain": subdomain,
         "script": script,
@@ -74,18 +63,33 @@ def create_application(
         "memory": memory,
         "runtime_identifier": runtime_identifier,
         "bypass_authentication": bypass_authentication,
-        "environment": environment,
+        "environment": build_environment(backend_port, llm_provider),
     }
+
+
+def create_application(host: str, api_key: str, project_id: str, *, payload: dict) -> dict:
+    url = f"{host.rstrip('/')}/api/v2/projects/{project_id}/applications"
     resp = requests.post(
-        url,
-        json=payload,
+        url, json=payload,
         headers={"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"},
         timeout=60,
     )
     if resp.status_code >= 400:
-        print(f"Failed ({resp.status_code}): {resp.text}", file=sys.stderr)
+        print(f"Create failed ({resp.status_code}): {resp.text}", file=sys.stderr)
         resp.raise_for_status()
     return resp.json()
+
+
+def delete_application(host: str, api_key: str, project_id: str, app_id: str) -> None:
+    """DELETE an existing Application so a redeploy recreates it with the current
+    config (script/env/runtime). CML's PATCH uses a different schema than POST and
+    rejects the create payload, so delete+create is the reliable converge path. Only
+    the Application *definition* is removed — project storage (SQLite/model) is untouched."""
+    url = f"{host}/api/v2/projects/{project_id}/applications/{app_id}"
+    resp = requests.delete(url, headers={"Authorization": f"Bearer {api_key}"}, timeout=60)
+    if resp.status_code >= 400:
+        print(f"Delete failed ({resp.status_code}): {resp.text}", file=sys.stderr)
+        resp.raise_for_status()
 
 
 def normalize_host(host: str) -> str:
@@ -98,31 +102,20 @@ def normalize_host(host: str) -> str:
     return host
 
 
-def find_application(host: str, api_key: str, project_id: str,
-                     name: str, subdomain: str) -> str | None:
-    """Return the id of an existing Application matching name or subdomain, else None."""
+def find_applications(host: str, api_key: str, project_id: str,
+                      name: str, subdomain: str) -> list[str]:
+    """Return the ids of ALL Applications matching name or subdomain. Multiple can
+    accumulate from repeated deploys, and stale ones hold the app port (EADDRINUSE),
+    so callers delete every match, not just the first."""
     url = f"{host}/api/v2/projects/{project_id}/applications"
     resp = requests.get(url, headers={"Authorization": f"Bearer {api_key}"}, timeout=60)
     if resp.status_code >= 400:
-        return None
-    for app in resp.json().get("applications", []):
-        if app.get("name") == name or app.get("subdomain") == subdomain:
-            return app.get("id")
-    return None
-
-
-def restart_application(host: str, api_key: str, project_id: str, app_id: str) -> dict:
-    """Restart so a re-deploy picks up freshly-built code / a new model. POST
-    .../restart, falling back to a PATCH touch if restart isn't supported."""
-    base = f"{host}/api/v2/projects/{project_id}/applications/{app_id}"
-    headers = {"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"}
-    resp = requests.post(f"{base}/restart", headers=headers, timeout=60)
-    if resp.status_code >= 400:
-        resp = requests.patch(base, json={}, headers=headers, timeout=60)
-    if resp.status_code >= 400:
-        print(f"Restart failed ({resp.status_code}): {resp.text}", file=sys.stderr)
-        resp.raise_for_status()
-    return resp.json() if resp.text else {"id": app_id}
+        return []
+    return [
+        app.get("id")
+        for app in resp.json().get("applications", [])
+        if (app.get("name") == name or app.get("subdomain") == subdomain) and app.get("id")
+    ]
 
 
 def get_application(host: str, api_key: str, project_id: str, app_id: str) -> dict:
@@ -182,6 +175,12 @@ def _selfcheck() -> None:
     env = build_environment("7078", "caii")
     assert env["BACKEND_PORT"] == "7078" and env["LLM_PROVIDER"] == "caii"
     assert "LLM_PROVIDER" not in build_environment("7078", None)
+    payload = _build_payload(name="n", subdomain="s", script="03_frontend/start_frontend.py",
+                             runtime_identifier="rt", cpu=2, memory=8,
+                             bypass_authentication=False, backend_port="7078", llm_provider="caii")
+    assert payload["script"] == "03_frontend/start_frontend.py"
+    assert payload["environment"]["BACKEND_PORT"] == "7078"
+    assert payload["bypass_authentication"] is False
     print("deploy_application selfcheck: OK")
 
 
@@ -229,30 +228,30 @@ def main() -> None:
         sys.exit(1)
 
     host = normalize_host(args.host)
-    environment = build_environment(args.backend_port, args.llm_provider)
+    payload = _build_payload(
+        name=args.name, subdomain=args.subdomain, script=args.script,
+        runtime_identifier=args.runtime_identifier, cpu=args.cpu, memory=args.memory,
+        bypass_authentication=args.public,
+        backend_port=args.backend_port, llm_provider=args.llm_provider,
+    )
 
-    # Idempotent: restart an existing Application (picks up freshly-built code /
-    # a newly-trained model) rather than failing on a duplicate name/subdomain.
-    existing = find_application(host, args.api_key, args.project_id, args.name, args.subdomain)
+    # Idempotent: delete ALL existing Applications matching name/subdomain, then create
+    # with the current config. CML PATCH rejects the create payload, so delete+create is
+    # the reliable converge path; deleting *every* match frees the app port that stale
+    # duplicates from prior deploys would otherwise hold (EADDRINUSE).
+    existing = find_applications(host, args.api_key, args.project_id, args.name, args.subdomain)
+    for app_id in existing:
+        print(f"   Deleting existing Application {app_id} to apply current config / free the port.")
+        delete_application(host, args.api_key, args.project_id, app_id)
     if existing:
-        app = restart_application(host, args.api_key, args.project_id, existing)
-        app_id = app.get("id", existing)
-        print(f"Application restarted: {app_id}")
-    else:
-        app = create_application(
-            host, args.api_key, args.project_id,
-            name=args.name, subdomain=args.subdomain, script=args.script,
-            runtime_identifier=args.runtime_identifier,
-            cpu=args.cpu, memory=args.memory,
-            bypass_authentication=args.public,
-            environment=environment,
-        )
-        app_id = app.get("id")
-        print("Application created:")
-        print(f"   id:        {app_id}")
-        print(f"   subdomain: {app.get('subdomain')}")
-        if not args.public:
-            print("   auth:      Workbench SSO (bypass_authentication=False)")
+        time.sleep(10)  # let the old workloads terminate and release the port
+    app = create_application(host, args.api_key, args.project_id, payload=payload)
+    app_id = app.get("id")
+    print("Application created:")
+    print(f"   id:        {app_id}")
+    print(f"   subdomain: {app.get('subdomain')}")
+    if not args.public:
+        print("   auth:      Workbench SSO (bypass_authentication=False)")
 
     # Fail loudly if the app doesn't actually come up (broken runtime, missing
     # dep, port issue) — otherwise CI reports a false green.

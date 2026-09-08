@@ -114,6 +114,7 @@ const emptyForm = { name: '', url: '', api_key: '', enabled: true }
 
 export const ToolsView: React.FC = () => {
   const [servers, setServers] = useState<EmbeddedServer[]>([])
+  const [embeddedStatus, setEmbeddedStatus] = useState<'loading' | 'error' | 'ready'>('loading')
   const [tools, setTools] = useState<ToolConfig[]>([])
   const [form, setForm] = useState({ ...emptyForm })
   const [busy, setBusy] = useState(false)
@@ -122,7 +123,12 @@ export const ToolsView: React.FC = () => {
   const [testResults, setTestResults] = useState<Record<number, ToolTestResult>>({})
   const [editingId, setEditingId] = useState<number | null>(null)
 
-  const loadEmbedded = useCallback(() => { getEmbedded().then(setServers).catch(() => setServers([])) }, [])
+  const loadEmbedded = useCallback(() => {
+    setEmbeddedStatus('loading')
+    getEmbedded()
+      .then(s => { setServers(s); setEmbeddedStatus('ready') })
+      .catch(() => { setServers([]); setEmbeddedStatus('error') })
+  }, [])
   const loadTools = useCallback(() => { getTools().then(setTools).catch(() => setTools([])) }, [])
 
   useEffect(() => { loadEmbedded(); loadTools() }, [loadEmbedded, loadTools])
@@ -195,8 +201,16 @@ export const ToolsView: React.FC = () => {
         </p>
       </div>
 
-      {servers.length === 0 ? (
+      {embeddedStatus === 'loading' ? (
         <p className="text-xs text-ink-faint">Loading embedded servers…</p>
+      ) : embeddedStatus === 'error' ? (
+        <div className="flex items-center gap-3 text-xs text-aml-red-dim">
+          <span>Couldn't reach the backend — is it running?</span>
+          <button onClick={loadEmbedded}
+            className="font-semibold px-2 py-1 rounded-lg bg-surface-2 hover:bg-surface-3 text-ink-muted transition-colors">
+            Retry
+          </button>
+        </div>
       ) : (
         <div className="space-y-4">
           {servers.map(s => <EmbeddedCard key={s.name} server={s} onSaved={loadEmbedded} />)}

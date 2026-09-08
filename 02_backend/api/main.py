@@ -598,6 +598,11 @@ class ToolConfigBody(BaseModel):
     enabled: bool = True
 
 
+class EmbeddedConfigBody(BaseModel):
+    params: dict = {}
+    enabled: bool = True
+
+
 @app.get("/api/config/tools")
 def list_tools(conn=Depends(get_db)):
     rows = conn.execute(
@@ -655,6 +660,85 @@ def test_tool(tool_id: int, conn=Depends(get_db)):
     if ok:
         return {"ok": True, "tools": [t["name"] for t in res], "count": len(res)}
     return {"ok": False, "message": res}
+
+
+# ── embedded MCP servers (fixed registry, parameter-driven) ──────────────────
+
+_SECRET_KEYS = {"impala_password", "api_key"}
+_MASK = "•••"
+
+
+def _embedded_row(conn, name: str):
+    return conn.execute(
+        "SELECT * FROM tool_config WHERE name=? AND kind='embedded'", (name,)
+    ).fetchone()
+
+
+@app.get("/api/config/embedded")
+def list_embedded(conn=Depends(get_db)):
+    from common import mcp_client
+    servers = []
+    for name, spec in mcp_client.EMBEDDED_SERVERS.items():
+        row = _embedded_row(conn, name)
+        stored = json.loads(row["params"]) if row and row["params"] else {}
+        masked = {k: (_MASK if k in _SECRET_KEYS and v else v) for k, v in stored.items()}
+        servers.append({
+            "name": name,
+            "enabled": bool(row["enabled"]) if row else False,
+            "configured": mcp_client.embedded_params(name) is not None,
+            "params": masked,
+            "required": spec["required"],
+            "fields": list(spec["env_map"].keys()),
+        })
+    return {"servers": servers}
+
+
+@app.put("/api/config/embedded/{name}")
+def update_embedded(name: str, body: EmbeddedConfigBody, conn=Depends(get_db)):
+    from common import mcp_client
+    if name not in mcp_client.EMBEDDED_SERVERS:
+        raise HTTPException(404, f"unknown embedded server '{name}'")
+    row = _embedded_row(conn, name)
+    stored = json.loads(row["params"]) if row and row["params"] else {}
+    merged = dict(stored)
+    for k, v in (body.params or {}).items():
+        v = str(v or "").strip()
+        if k in _SECRET_KEYS and (not v or v == _MASK):
+            continue                      # blank/masked secret = keep existing
+        merged[k] = v
+    if row:
+        conn.execute("UPDATE tool_config SET params=?, enabled=? WHERE id=?",
+                     (json.dumps(merged), 1 if body.enabled else 0, row["id"]))
+    else:
+        conn.execute(
+            "INSERT INTO tool_config (kind, name, transport, params, enabled) "
+            "VALUES ('embedded', ?, 'stdio', ?, ?)",
+            (name, json.dumps(merged), 1 if body.enabled else 0))
+    conn.commit()
+    mcp_client.reset_embedded(name)
+    from common import source
+    reset = getattr(source, "reset_backend", None)   # arrives in Task 4
+    if reset:
+        reset()
+    return {"ok": True, "name": name}
+
+
+@app.post("/api/config/embedded/{name}/test")
+def test_embedded(name: str, body: EmbeddedConfigBody, conn=Depends(get_db)):
+    from common import mcp_client
+    if name not in mcp_client.EMBEDDED_SERVERS:
+        raise HTTPException(404, f"unknown embedded server '{name}'")
+    row = _embedded_row(conn, name)
+    stored = json.loads(row["params"]) if row and row["params"] else {}
+    params = dict(stored)
+    for k, v in (body.params or {}).items():
+        v = str(v or "").strip()
+        if v and v != _MASK:
+            params[k] = v
+    ok, res = mcp_client.probe_embedded(name, params)
+    if ok:
+        return {"ok": True, "tools": [t["name"] for t in res], "count": len(res)}
+    return {"ok": False, "message": str(res)}
 
 
 # ── Utility ───────────────────────────────────────────────────────────────────

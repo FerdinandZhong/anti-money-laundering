@@ -129,6 +129,49 @@ aggregated fund-flow, dashed links are shared devices. Clicking a transaction ro
 expands raw fields plus derived typology flags (near-threshold, off-hours,
 cross-border, repeat-counterparty). Flags are honest heuristics, not model output.
 
+### Investigation MCP server (agent-facing)
+
+Agent frameworks (Cloudera AI Studio, Claude Code) drive investigations through a
+small **MCP server** (`mcp_server/`) that is a thin HTTP client over the
+platform's customer-centric API — no DB access of its own. It runs as a `uvx`
+stdio process wherever the agent lives; the **API is the hosted CAI Application**
+(the existing `aml-platform` app, whose Swagger UI is at `/api/docs`).
+
+Five tools; **only `trigger_investigation` mutates** (the API persists the
+analysis to the case) — everything else is read-only. Disposition / labels /
+retrain / config are not exposed.
+
+| Tool | API route | |
+|------|-----------|--|
+| `is_customer_suspicious(customer_id)` | `GET /api/customers/{id}/suspicious` | suspicious if any OPEN/PROPOSED/PENDING alert |
+| `list_high_score_transactions(customer_id, limit=20)` | `GET /api/customers/{id}/transactions` | ranked by model score |
+| `get_case_status(customer_id)` | `GET /api/customers/{id}/case-status` | never creates a case |
+| `get_customer_network_graph(customer_id)` | `GET /api/customers/{id}/network` | `{nodes, edges}` |
+| `trigger_investigation(customer_id)` | `POST /api/customers/{id}/investigate` | runs the workflow, persists + returns the analysis (needs an LLM) |
+
+Configure it in Cloudera AI Studio (or any MCP client) — points at the deployed API:
+
+```json
+{
+  "mcpServers": {
+    "aml-investigation": {
+      "command": "uvx",
+      "args": ["--from",
+               "git+https://github.com/FerdinandZhong/anti-money-laundering#subdirectory=mcp_server",
+               "aml-mcp"],
+      "env": {
+        "AML_API_BASE_URL": "https://aml-platform.<domain>/api",
+        "AML_API_TOKEN": "<optional bearer token>"
+      }
+    }
+  }
+}
+```
+
+Browse/​test the API directly at `https://aml-platform.<domain>/api/docs` (Swagger).
+`trigger_investigation` needs an LLM configured (CAII/local), same as the app. See
+`mcp_server/README.md` for local dev.
+
 ## Retraining (agent workflow → Workbench canary)
 
 Retraining is an agent workflow (`02_backend/agents/retraining.py`), same

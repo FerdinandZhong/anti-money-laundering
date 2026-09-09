@@ -97,20 +97,27 @@ def score_transactions(conn, model_path: str | None = None) -> int:
         customer_id=("customer_id", "first"),
     )
 
-    # Loose floor first: drop accounts with no risk signal at all so the top-N
-    # is never padded with clean accounts on a quiet day.
-    candidates = agg[(agg["max_score"] > 0.5) | (agg["above_pct"] > 0.0)].copy()
-
-    vel_n = (candidates["vel"] / 8.0).clip(0, 1)
-    amt_n = (np.log1p(candidates["amt"]) / np.log1p(200_000)).clip(0, 1)
-    candidates["composite"] = (
-        0.45 * candidates["max_score"]
-        + 0.15 * candidates["above_pct"]
+    # Composite risk over ALL accounts: blend the model signal with velocity,
+    # fund flow, device sharing and cross-border. Computed on the full set so
+    # ranking still works when the model is weak (few positives / low PR-AUC).
+    vel_n = (agg["vel"] / 8.0).clip(0, 1)
+    amt_n = (np.log1p(agg["amt"]) / np.log1p(200_000)).clip(0, 1)
+    agg["composite"] = (
+        0.45 * agg["max_score"]
+        + 0.15 * agg["above_pct"]
         + 0.15 * vel_n
         + 0.10 * amt_n
-        + 0.10 * candidates["dev"]
-        + 0.05 * candidates["xborder"]
+        + 0.10 * agg["dev"]
+        + 0.05 * agg["xborder"]
     ).clip(0, 1)
+
+    # Floor: accounts with a real risk signal (a tx over the decision threshold).
+    # On a quiet day — or with a weak model / few positives that rarely crosses
+    # 0.5 (as on CML) — this floor is empty, which silently left the queue blank.
+    # Fall back to ranking ALL accounts by composite so the daily queue is a
+    # stable, reviewable size instead of empty.
+    floored = agg[(agg["max_score"] > 0.5) | (agg["above_pct"] > 0.0)]
+    candidates = (floored if len(floored) >= TARGET_ALERTS else agg).copy()
 
     # Existing OPEN alerts (dedupe by account): each run surfaces the top new
     # accounts, so exclude already-open ones before ranking.

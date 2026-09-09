@@ -131,7 +131,8 @@ class JobTrigger:
         print(f"   Timed out waiting for {job_name} to be auto-triggered ({timeout}s)")
         return None
 
-    def wait_for_job_completion(self, project_id, job_id, run_id, timeout) -> bool:
+    def wait_for_job_completion(self, project_id, job_id, run_id, timeout,
+                                succeed_on_running: bool = False) -> bool:
         print(f"   Waiting for job to complete (timeout: {timeout}s)...")
         start = time.time()
         last_status = None
@@ -147,6 +148,12 @@ class JobTrigger:
                     last_status = status
                 if status in ("succeeded", "success", "engine_succeeded"):
                     print("   Job completed successfully")
+                    return True
+                # The launch job is keep-alive (APP_KEEP_RUNNING=1) — it never
+                # 'succeeds', it stays running while the app is live. Once it's
+                # running the chain is done from CI's perspective.
+                if succeed_on_running and status in ("running", "engine_running"):
+                    print("   Launch job is running (keep-alive) — app is live; chain complete.")
                     return True
                 if status in ("failed", "error", "engine_failed", "killed", "stopped", "timedout"):
                     print(f"   Job failed with status: {status}")
@@ -195,7 +202,9 @@ class JobTrigger:
         # each child: briefly look for an auto-triggered run; if none appears within
         # AUTO_TRIGGER_WINDOW, trigger it explicitly. Completion uses the job's timeout.
         for job in chain[1:]:
-            if not self._await_child(project_id, job, trigger_epoch):
+            # The launch job is keep-alive — it stays 'running', never 'succeeded'.
+            keep_alive = str(job.get("script", "")).endswith("launch_app.py")
+            if not self._await_child(project_id, job, trigger_epoch, succeed_on_running=keep_alive):
                 return False
 
         print("=" * 70)
@@ -203,7 +212,7 @@ class JobTrigger:
         print("=" * 70)
         return True
 
-    def _await_child(self, project_id, job, trigger_epoch) -> bool:
+    def _await_child(self, project_id, job, trigger_epoch, succeed_on_running: bool = False) -> bool:
         """Wait for a child job to run: prefer the run CML auto-triggers; if none appears
         within AUTO_TRIGGER_WINDOW, trigger it explicitly. Then wait for completion."""
         job_id = self.find_job_id(project_id, job["name"])
@@ -220,7 +229,8 @@ class JobTrigger:
                 print(f"   Failed to trigger {job['name']}")
                 return False
             print(f"   Run ID: {run_id}")
-        if not self.wait_for_job_completion(project_id, job_id, run_id, job.get("timeout", 600)):
+        if not self.wait_for_job_completion(project_id, job_id, run_id, job.get("timeout", 600),
+                                            succeed_on_running=succeed_on_running):
             print(f"{job['name']} failed")
             return False
         return True

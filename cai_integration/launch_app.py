@@ -25,7 +25,7 @@ import time  # noqa: E402
 
 from deploy_application import (  # noqa: E402
     _build_payload, normalize_host, find_applications, delete_application,
-    create_application, wait_for_running, emit_url,
+    create_application, wait_for_running, emit_url, get_application, app_is_failed,
 )
 
 
@@ -71,7 +71,28 @@ def main() -> None:
     if not wait_for_running(host, api_key, project_id, app_id, int(os.environ.get("APP_WAIT_TIMEOUT", "300"))):
         raise RuntimeError("Application did not reach 'running' — check the Application logs.")
     emit_url(host, api_key, project_id, app_id, subdomain)
-    print("Launch Application complete.")
+    print("Application is live — dashboard is ready with the scored alert queue.")
+
+    # Keep this job in the 'Running' state while the app is up instead of marking
+    # it finished: the pipeline then visibly ends in a live, ready dashboard rather
+    # than a "completed" chain with the app as a side effect. Set APP_KEEP_RUNNING=0
+    # to exit as soon as the app is running (e.g. for CI / trigger_jobs).
+    if os.environ.get("APP_KEEP_RUNNING", "1") == "0":
+        print("Launch Application complete (APP_KEEP_RUNNING=0).")
+        return
+    interval = int(os.environ.get("APP_MONITOR_INTERVAL", "60"))
+    print(f"Holding this job open and monitoring the Application every {interval}s "
+          "(stop the job to release it).")
+    while True:
+        time.sleep(interval)
+        try:
+            status = (get_application(host, api_key, project_id, app_id).get("status") or "unknown").lower()
+        except Exception as ex:  # transient API blip — keep the job alive
+            print(f"   [monitor] status check failed (continuing): {ex}")
+            continue
+        if app_is_failed(status):
+            raise RuntimeError(f"Application left the running state (status={status}) — check the Application logs.")
+        print(f"   [monitor] Application status: {status}")
 
 
 # CML engine: unguarded call, no sys.exit.

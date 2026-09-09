@@ -124,12 +124,8 @@ if __name__ == "__main__":
     version = train_model(conn)
     model_dir = os.path.join(PROJECT_ROOT, get_config()["model"].get("model_dir", "models"))
     promote(conn, version, model_dir)
-    # Populate the alert queue with the freshly promoted champion. The CML job
-    # chain has no separate scoring step, so fold it in here — otherwise the
-    # dashboard shows no open alerts. Idempotent: score_transactions dedupes by
-    # account (skips accounts that already have an OPEN alert).
-    from ml.scorer import score_transactions
-    created = score_transactions(conn)
-    print(f"Scored transactions -> {created} new alert(s)")
     conn.close()
     print(f"Model saved + promoted to CHAMPION: {version}")
+    # NOTE: scoring (which populates the alert queue) is a separate pipeline job
+    # — 02_backend/ml/run_scoring.py, run after this in the chain. Keeping train
+    # pure avoids double-scoring.

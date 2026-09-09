@@ -77,6 +77,19 @@ tasks:
     memory: 8
     gpu: 1
 
+  - type: run_session
+    name: Score Transactions
+    script: 02_backend/ml/run_scoring.py
+    kernel: python3
+    short_summary: Score transactions and populate the risk-ranked alert queue
+    long_summary: >-
+      Runs the champion XGBoost model over transactions and inserts the top-N
+      accounts as ALERT-ML rows, so the investigation dashboard opens with a
+      ready, risk-ranked queue. Idempotent by account.
+    cpu: 2
+    memory: 8
+    gpu: 0
+
   - type: start_application
     name: AML Platform
     subdomain: aml-platform

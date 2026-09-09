@@ -6,7 +6,8 @@
 #       -> generate     synthetic customers/accounts/transactions with AML patterns
 #         -> features   feature engineering (velocity, centrality, geo/behaviour)
 #           -> train    train + register the XGBoost risk model
-#             -> launch create/replace the CML Application + wait for it to run
+#             -> score  score transactions -> populate the risk-ranked alert queue
+#               -> launch create/replace the CML Application (stays running while the app is up)
 #
 # Because `launch` is itself a CML Job, the whole deploy is triggerable from the CML
 # Jobs UI — run "Git Repository Sync" and it cascades to a live Application, no external
@@ -64,14 +65,24 @@ jobs:
     memory: 8
     description: "Train + register the XGBoost AML risk model"
 
+  score:
+    name: "Score Transactions"
+    script: "02_backend/ml/run_scoring.py"
+    parent_job_key: "train"
+    timeout: 1800
+    cpu: 2
+    memory: 8
+    description: "Score transactions with the champion model; populate the risk-ranked alert queue"
+
   launch:
     name: "Launch Application"
     script: "cai_integration/launch_app.py"
-    parent_job_key: "train"
-    timeout: 600        # create/replace the Application + wait for it to reach running
+    parent_job_key: "score"
+    timeout: 86400      # keep-alive: the job stays Running while the app is up (APP_KEEP_RUNNING=1);
+                        # set high so CML doesn't kill it. APP_KEEP_RUNNING=0 exits on running (CI).
     cpu: 1
     memory: 4
-    description: "Create (or replace) the CML Application and wait for it to run"
+    description: "Create (or replace) the CML Application; hold the job open while the app is live"
     # `environment` (RUNTIME_IDENTIFIER, APP_SUBDOMAIN, LLM_PROVIDER, BACKEND_PORT, ...)
     # is injected by create_jobs.py from the create-time env so the app config travels
     # with the job — this is what lets a UI user run the chain and get a live app.

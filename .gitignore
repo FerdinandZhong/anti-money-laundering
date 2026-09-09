@@ -19,9 +19,11 @@ models/*.ubj
 models/registry/*.json
 !models/.gitkeep
 
-# Claude / OMC session state
+# Claude / OMC / Superpowers session state
 .claude/
 .omc/
+.superpowers/
+docs/superpowers/
 
 # Node
 node_modules/

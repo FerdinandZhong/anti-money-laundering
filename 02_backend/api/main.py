@@ -172,7 +172,10 @@ def get_alert_detail(alert_id: str, conn=Depends(get_db)):
     # Source (reference) data comes from the source layer (Impala/CSV), not SQLite.
     customer = source.get_customer(alert["customer_id"]) or {}
 
-    customer_txns = source.customer_transactions(alert["customer_id"], limit=20)
+    # Fetch a wide window so the alert's high-scoring transactions are included
+    # (they may not be the most recent). We rank by model score below so the
+    # "key transactions flagged" the analyst sees actually match the alert.
+    customer_txns = source.customer_transactions(alert["customer_id"], limit=500)
     tx_ids = [t.get("transaction_id") for t in customer_txns if t.get("transaction_id")]
     tx_scores = {}
     tx_labels = {}
@@ -216,6 +219,13 @@ def get_alert_detail(alert_id: str, conn=Depends(get_db)):
         }
         row["flags"] = derive_tx_flags(t, customer_txns)
         transactions.append(row)
+
+    # Surface the KEY transactions for this alert: highest model score first (so
+    # the flagging suspicious rows are visible, not buried under recent benign
+    # activity), capped at 20, then shown newest-first for a timeline feel.
+    transactions.sort(key=lambda r: (r.get("score") or 0.0), reverse=True)
+    transactions = transactions[:20]
+    transactions.sort(key=lambda r: (r.get("event_time") or ""), reverse=True)
 
     accounts = source.get_accounts(alert["customer_id"])
     root_account_id = accounts[0]["account_id"] if accounts else alert["customer_id"]

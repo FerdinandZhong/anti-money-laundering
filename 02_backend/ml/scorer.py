@@ -111,13 +111,14 @@ def score_transactions(conn, model_path: str | None = None) -> int:
         + 0.05 * agg["xborder"]
     ).clip(0, 1)
 
-    # Floor: accounts with a real risk signal (a tx over the decision threshold).
-    # On a quiet day — or with a weak model / few positives that rarely crosses
-    # 0.5 (as on CML) — this floor is empty, which silently left the queue blank.
-    # Fall back to ranking ALL accounts by composite so the daily queue is a
-    # stable, reviewable size instead of empty.
+    # Floor: accounts with a real model signal (a tx over the decision threshold).
+    # Flag ONLY these so every alert has a genuinely high-scoring transaction —
+    # padding the queue with benign high-velocity accounts (whose transactions all
+    # score ~0) makes the account risk and per-transaction scores incoherent.
+    # Fall back to composite-over-all ONLY if the model flags nothing at all
+    # (truly broken model), so the demo queue is never silently empty.
     floored = agg[(agg["max_score"] > 0.5) | (agg["above_pct"] > 0.0)]
-    candidates = (floored if len(floored) >= TARGET_ALERTS else agg).copy()
+    candidates = (floored if len(floored) > 0 else agg).copy()
 
     # Existing OPEN alerts (dedupe by account): each run surfaces the top new
     # accounts, so exclude already-open ones before ranking.

@@ -49,6 +49,36 @@ def get_db():
         conn.close()
 
 
+@app.on_event("startup")
+def _bootstrap_alert_queue():
+    """Self-heal an empty alert queue on boot: if no alerts exist but a champion
+    model is available, score transactions to populate the queue. Runs in a
+    background thread so it never blocks the CML readiness probe, and only when
+    the queue is empty — so it's a no-op once alerts exist (idempotent)."""
+    def _run():
+        try:
+            conn = get_connection()
+            try:
+                if conn.execute("SELECT COUNT(*) FROM alerts").fetchone()[0]:
+                    return  # queue already populated — nothing to do
+                champ = conn.execute(
+                    "SELECT model_version FROM deployments WHERE status='CHAMPION' "
+                    "ORDER BY created_at DESC LIMIT 1"
+                ).fetchone()
+                if champ is None:
+                    print("[bootstrap] alert queue empty but no CHAMPION model — skipping auto-score")
+                    return
+                from ml.scorer import score_transactions
+                created = score_transactions(conn)
+                print(f"[bootstrap] alert queue was empty -> scored champion, created {created} alert(s)")
+            finally:
+                conn.close()
+        except Exception as e:  # best-effort: never crash the app over this
+            print(f"[bootstrap] auto-score skipped: {type(e).__name__}: {e}")
+
+    threading.Thread(target=_run, name="bootstrap-scorer", daemon=True).start()
+
+
 # ── Dashboard A: Alert Queue & Investigation ──────────────────────────────────
 
 _ALERT_SORTS = {

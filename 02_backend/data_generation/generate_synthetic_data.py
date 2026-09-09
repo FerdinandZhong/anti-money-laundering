@@ -660,6 +660,14 @@ def main():
     print(f"\nGenerated: {len(customers)} customers, {len(accounts)} accounts, {n_tx} transactions")
     print(f"Alerts: {len(alert_rows)}, Cases: {len(case_rows)}")
 
+    # Export the source tables to CSV so the source abstraction (common/source.py)
+    # can read them when Impala is unavailable (e.g. CML). The CML job chain has no
+    # separate export step, so fold it in here — otherwise Feature Engineering / Train
+    # fail with "CSV source missing". Idempotent; a live Impala warehouse ignores it.
+    sys.path.insert(0, os.path.join(PROJECT_ROOT, "02_backend", "scripts"))
+    import export_source_csv
+    export_source_csv.main()
+
 
 if __name__ == "__main__":
     main()

@@ -77,9 +77,10 @@ def score_transactions(conn, model_path: str | None = None) -> int:
 
     now = datetime.datetime.now().isoformat()
     conn.executemany(
-        "INSERT OR REPLACE INTO transaction_scores (transaction_id, score, model_version, scored_at) "
-        "VALUES (?, ?, ?, ?)",
-        [(tid, round(float(s), 4), model_version, now) for tid, s in zip(scored["transaction_id"], scored["score"])],
+        "INSERT OR REPLACE INTO transaction_scores (transaction_id, account_id, score, model_version, scored_at) "
+        "VALUES (?, ?, ?, ?, ?)",
+        [(tid, acc, round(float(s), 4), model_version, now)
+         for tid, acc, s in zip(scored["transaction_id"], scored["from_account_id"], scored["score"])],
     )
 
     # Case-level aggregation (blueprint §7.2): roll every transaction up to the

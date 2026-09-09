@@ -161,7 +161,9 @@ export const AgentPanel: React.FC<Props> = ({ caseId, savedAnalysis, onDisposed,
         const tools = id === 'verification'
           ? vtools.slice(0, 6).map(name => ({ name }))
           : (WORKER_TOOLS[id] ?? []).map(name => ({ name }))
-        return { id, label: id, status, llmCalls: 1, tools }
+        // The 4 collector workers run concurrently (ThreadPoolExecutor) — mark them
+        // parallel so the graph renders them as one lane, not a sequential chain.
+        return { id, label: id, status, llmCalls: 1, tools, parallel: WORKER_ORDER.includes(id) }
       })
     : []
 

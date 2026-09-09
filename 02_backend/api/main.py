@@ -172,22 +172,37 @@ def get_alert_detail(alert_id: str, conn=Depends(get_db)):
     # Source (reference) data comes from the source layer (Impala/CSV), not SQLite.
     customer = source.get_customer(alert["customer_id"]) or {}
 
-    # Fetch a wide window so the alert's high-scoring transactions are included
-    # (they may not be the most recent). We rank by model score below so the
-    # "key transactions flagged" the analyst sees actually match the alert.
-    customer_txns = source.customer_transactions(alert["customer_id"], limit=500)
+    # KEY transactions for this alert = this account's highest-scoring transactions.
+    # Per-account tx counts can be huge, so rank in SQL via transaction_scores
+    # (keyed by account_id) instead of pulling every transaction. Falls back to
+    # recent transactions for DBs scored before account_id existed.
+    acct_ids = [a["account_id"] for a in source.get_accounts(alert["customer_id"])] or [alert["customer_id"]]
+    aph = ",".join("?" * len(acct_ids))
+    top = conn.execute(
+        f"SELECT transaction_id, score FROM transaction_scores "
+        f"WHERE account_id IN ({aph}) AND account_id IS NOT NULL "
+        f"ORDER BY score DESC LIMIT 20",
+        acct_ids,
+    ).fetchall()
+    tx_scores = {r["transaction_id"]: r["score"] for r in top}
+    if tx_scores:
+        customer_txns = source.transactions_by_ids(list(tx_scores))
+    else:
+        # pre-rescore fallback: most recent transactions, scores looked up below
+        customer_txns = source.customer_transactions(alert["customer_id"], limit=20)
+
     tx_ids = [t.get("transaction_id") for t in customer_txns if t.get("transaction_id")]
-    tx_scores = {}
     tx_labels = {}
     if tx_ids:
         placeholders = ",".join("?" * len(tx_ids))
-        tx_scores = {
-            r["transaction_id"]: r["score"]
-            for r in conn.execute(
-                f"SELECT transaction_id, score FROM transaction_scores WHERE transaction_id IN ({placeholders})",
-                tx_ids,
-            ).fetchall()
-        }
+        if not tx_scores:  # fallback path: fetch scores for the recent set
+            tx_scores = {
+                r["transaction_id"]: r["score"]
+                for r in conn.execute(
+                    f"SELECT transaction_id, score FROM transaction_scores WHERE transaction_id IN ({placeholders})",
+                    tx_ids,
+                ).fetchall()
+            }
         # analyst per-transaction labels (ML training signal); None if unlabeled
         tx_labels = {
             r["transaction_id"]: r["label"]

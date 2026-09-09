@@ -5,6 +5,7 @@ from common.config import get_db_path
 _TRANSACTION_SCORES_SQL = """
 CREATE TABLE IF NOT EXISTS transaction_scores (
     transaction_id TEXT PRIMARY KEY,
+    account_id TEXT,
     score REAL NOT NULL,
     model_version TEXT,
     scored_at TEXT DEFAULT (datetime('now'))
@@ -85,6 +86,15 @@ def get_connection() -> sqlite3.Connection:
     for col in ("params TEXT",):
         try:
             conn.execute(f"ALTER TABLE tool_config ADD COLUMN {col}")
+        except sqlite3.OperationalError as e:
+            if "duplicate column" not in str(e).lower():
+                raise
+    # account_id lets the alert detail fetch an account's top-scoring transactions
+    # directly (per-account tx counts can be huge, so an IN(all-tx-ids) query is
+    # not viable). Heals DBs scored before this column existed.
+    for col in ("account_id TEXT",):
+        try:
+            conn.execute(f"ALTER TABLE transaction_scores ADD COLUMN {col}")
         except sqlite3.OperationalError as e:
             if "duplicate column" not in str(e).lower():
                 raise

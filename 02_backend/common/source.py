@@ -276,6 +276,20 @@ def account_transactions(account_id: str, limit: int = 50) -> list[dict]:
     return _records(tx)
 
 
+def transactions_by_ids(ids: list[str]) -> list[dict]:
+    """Fetch specific transactions by id (small set, e.g. an alert's top-scoring
+    rows). Order is not guaranteed; the caller re-orders."""
+    ids = [i for i in ids if i]
+    if not ids:
+        return []
+    if backend() in ("impala", "mcp"):
+        placeholders = ",".join(["%s"] * len(ids))
+        df = _sql_df(f"SELECT * FROM transactions WHERE transaction_id IN ({placeholders})", tuple(ids))
+        return _records(df)
+    tx = _csv("transactions")
+    return _records(tx[tx["transaction_id"].isin(ids)])
+
+
 def device_fingerprints(account_id: str) -> list[str]:
     if backend() in ("impala", "mcp"):
         df = _sql_df(

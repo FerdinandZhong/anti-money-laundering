@@ -6,6 +6,7 @@ export interface WorkflowNode {
   status: 'pending' | 'running' | 'completed' | 'skip' | 'error'
   llmCalls?: number
   tools?: { name: string; error?: boolean }[]
+  parallel?: boolean   // consecutive parallel nodes render as one concurrent lane
 }
 
 interface Props {
@@ -23,23 +24,44 @@ const STATUS_COLORS: Record<WorkflowNode['status'], { fill: string; stroke: stri
 }
 
 const NODE_W = 130
-const NODE_H = 50
-const H_GAP  = 34
+const NODE_H = 46
+const H_GAP  = 44
+const V_GAP  = 14
 const ARROW  = 8
-const SVG_H  = 120
 
-/** Presentational live DAG for an agent pipeline — ported from the Agent Studio
- *  WorkflowGraph reference, recolored to the app's light theme. */
+/** Presentational live DAG for an agent pipeline. Consecutive nodes flagged
+ *  `parallel` are drawn stacked in one column (a concurrent lane) with fan-out /
+ *  fan-in edges — so the graph matches the real execution (the investigation runs
+ *  its 4 collector workers in parallel; retraining stays a sequential chain). */
 export const WorkflowGraph: React.FC<Props> = ({ nodes, running }) => {
   if (nodes.length === 0) return null
 
-  const idxById: Record<string, number> = {}
-  nodes.forEach((n, i) => { idxById[n.id] = i })
+  // Group consecutive parallel nodes into a single column (lane).
+  const columns: number[][] = []
+  nodes.forEach((n, i) => {
+    const prev = columns[columns.length - 1]
+    if (n.parallel && prev && nodes[prev[0]].parallel) prev.push(i)
+    else columns.push([i])
+  })
 
-  const totalW = nodes.length * NODE_W + (nodes.length - 1) * H_GAP
-  const svgW   = totalW + 40
-  const cx = (i: number) => 20 + i * (NODE_W + H_GAP) + NODE_W / 2
-  const cy = SVG_H / 2 - 8
+  const groupH = (k: number) => k * NODE_H + (k - 1) * V_GAP
+  const maxK = Math.max(...columns.map(c => c.length))
+  const contentH = groupH(maxK)
+  const SVG_H = contentH + 56           // padding for labels + tool chips
+  const midY = 24 + contentH / 2
+  const colX = (c: number) => 20 + c * (NODE_W + H_GAP) + NODE_W / 2
+  const totalW = columns.length * NODE_W + (columns.length - 1) * H_GAP
+  const svgW = totalW + 40
+
+  // Position + column-length per node index.
+  const pos: Record<number, { x: number; y: number; cxv: number; cyv: number; solo: boolean }> = {}
+  columns.forEach((col, c) => {
+    const top = midY - groupH(col.length) / 2
+    col.forEach((ni, j) => {
+      const y = top + j * (NODE_H + V_GAP)
+      pos[ni] = { x: colX(c) - NODE_W / 2, y, cxv: colX(c), cyv: y + NODE_H / 2, solo: col.length === 1 }
+    })
+  })
 
   const doneCount = nodes.filter(n => n.status === 'completed').length
 
@@ -57,26 +79,27 @@ export const WorkflowGraph: React.FC<Props> = ({ nodes, running }) => {
       {/* SVG DAG */}
       <div className="overflow-x-auto px-2 py-2">
         <svg viewBox={`0 0 ${svgW} ${SVG_H}`} width="100%" style={{ maxHeight: SVG_H, minWidth: totalW + 40 }}>
-          {/* Edges */}
-          {nodes.slice(0, -1).map((n, i) => {
-            const x1 = cx(i) + NODE_W / 2
-            const x2 = cx(i + 1) - NODE_W / 2
-            return (
-              <g key={`${n.id}-edge`}>
-                <line x1={x1} y1={cy} x2={x2 - ARROW} y2={cy} stroke="#d5d9e0" strokeWidth={1.5} />
-                <polygon points={`${x2},${cy} ${x2 - ARROW},${cy - 4} ${x2 - ARROW},${cy + 4}`} fill="#d5d9e0" />
-              </g>
-            )
-          })}
+          {/* Edges: fan out to / fan in from each column's nodes */}
+          {columns.slice(0, -1).map((col, c) =>
+            col.flatMap(a => columns[c + 1].map(b => {
+              const x1 = pos[a].cxv + NODE_W / 2, y1 = pos[a].cyv
+              const x2 = pos[b].cxv - NODE_W / 2, y2 = pos[b].cyv
+              return (
+                <g key={`${a}-${b}-edge`}>
+                  <line x1={x1} y1={y1} x2={x2 - ARROW} y2={y2} stroke="#d5d9e0" strokeWidth={1.5} />
+                  <polygon points={`${x2},${y2} ${x2 - ARROW},${y2 - 4} ${x2 - ARROW},${y2 + 4}`} fill="#d5d9e0" />
+                </g>
+              )
+            }))
+          )}
 
           {/* Nodes */}
           {nodes.map((n, i) => {
             const col = STATUS_COLORS[n.status]
-            const x = cx(i) - NODE_W / 2
-            const y = cy - NODE_H / 2
+            const { x, y, cxv, solo } = pos[i]
             const isAnim = n.status === 'running'
-            const shownTools = (n.tools ?? []).slice(0, 2)
-            const extraTools = (n.tools?.length ?? 0) - shownTools.length
+            const shownTools = solo ? (n.tools ?? []).slice(0, 2) : []   // tools only in single lanes (no collision)
+            const extraTools = solo ? (n.tools?.length ?? 0) - shownTools.length : 0
 
             return (
               <g key={n.id}>
@@ -96,7 +119,7 @@ export const WorkflowGraph: React.FC<Props> = ({ nodes, running }) => {
 
                 {/* Label */}
                 <text
-                  x={cx(i)} y={y + 20} textAnchor="middle" fontSize={9.5}
+                  x={cxv} y={y + 19} textAnchor="middle" fontSize={9.5}
                   fill={col.text} fontFamily="Inter,system-ui,sans-serif" fontWeight="600"
                 >
                   {n.label.length > 20 ? n.label.slice(0, 20) + '…' : n.label}
@@ -105,7 +128,7 @@ export const WorkflowGraph: React.FC<Props> = ({ nodes, running }) => {
                 {/* LLM call count */}
                 {!!n.llmCalls && n.llmCalls > 0 && (
                   <text
-                    x={cx(i)} y={y + 34} textAnchor="middle" fontSize={8}
+                    x={cxv} y={y + 32} textAnchor="middle" fontSize={8}
                     fill={col.text} opacity={0.7} fontFamily="Inter,system-ui,sans-serif"
                   >
                     {n.llmCalls} LLM call{n.llmCalls > 1 ? 's' : ''}
@@ -117,13 +140,13 @@ export const WorkflowGraph: React.FC<Props> = ({ nodes, running }) => {
                   <circle cx={x + NODE_W - 10} cy={y + 10} r={4} fill={col.stroke} />
                 )}
 
-                {/* Tool chips */}
+                {/* Tool chips (single lanes only) */}
                 {shownTools.map((t, ti) => {
                   const chipColor = t.error ? '#dc2626' : '#9aa1ac'
                   return (
                     <text
                       key={t.name}
-                      x={cx(i)} y={y + NODE_H + 12 + ti * 11}
+                      x={cxv} y={y + NODE_H + 12 + ti * 11}
                       textAnchor="middle" fontSize={7.5}
                       fill={chipColor} fontFamily="Inter,system-ui,sans-serif" fontWeight="600"
                     >
@@ -133,7 +156,7 @@ export const WorkflowGraph: React.FC<Props> = ({ nodes, running }) => {
                 })}
                 {extraTools > 0 && (
                   <text
-                    x={cx(i)} y={y + NODE_H + 12 + shownTools.length * 11}
+                    x={cxv} y={y + NODE_H + 12 + shownTools.length * 11}
                     textAnchor="middle" fontSize={7} fill="#9aa1ac" fontFamily="Inter,system-ui,sans-serif"
                   >
                     +{extraTools} more

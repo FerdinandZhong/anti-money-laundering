@@ -82,7 +82,11 @@ def _make_client() -> tuple[OpenAI, str, dict]:
     cache_key = (endpoint or "", api_key or "")
     client = _client_cache.get(cache_key)
     if client is None:
-        client = OpenAI(base_url=endpoint, api_key=api_key, max_retries=3)
+        # timeout so a down/unreachable/misconfigured CAII endpoint fails fast
+        # instead of hanging the caller indefinitely — this is what left the
+        # retraining NARRATE step (and investigation) stuck with no timeout.
+        # _create() adds bounded app-level retries on top for transient flaps.
+        client = OpenAI(base_url=endpoint, api_key=api_key, timeout=20, max_retries=0)
         _client_cache[cache_key] = client
     return client, model
 

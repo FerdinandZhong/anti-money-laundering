@@ -169,6 +169,19 @@ def run_retraining(triggered_by: str = "manual") -> Generator[dict, None, None]:
         yield _e("step", step="promote", status="ok",
                  detail=f"{deployment_id} ({model_version}) → CHAMPION; scorer + Dashboard now use it")
 
+        # ── SCORE ─────────────────────────────────────────────────────────────
+        # Refresh the alert queue with the freshly promoted champion. Without
+        # this the retrain flow leaves a model but no alerts (empty dashboard) —
+        # the scorer is the only thing that writes the ALERT-ML queue.
+        yield _e("phase", phase="SCORE")
+        try:
+            from ml.scorer import score_transactions
+            created = score_transactions(conn)
+            yield _e("step", step="score", status="ok",
+                     detail=f"scored champion → {created} new alert(s) in the queue")
+        except Exception as ex:
+            yield _e("step", step="score", status="error", detail=f"scoring failed: {ex}")
+
         # ── NARRATE ───────────────────────────────────────────────────────────
         yield _e("phase", phase="NARRATE")
         row = conn.execute("SELECT metrics FROM model_runs WHERE model_version=?",

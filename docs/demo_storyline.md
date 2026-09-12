@@ -22,6 +22,18 @@ The reference is OCBC’s 2026 paper, [*Detection, Attribution, Narration*](http
 
 ---
 
+## Why XGBoost and rules work together here (45 sec)
+
+> “We use XGBoost because the current AML dataset is structured, tabular data: transaction amount, timing, channel, country, KYC tier, account age, expected turnover, recent activity, and network flags. XGBoost is a strong, mature choice for this type of data. It learns non-linear combinations—for example, a near-threshold payment matters more when it is also cross-border and part of a rapid sequence—while training and scoring efficiently in a nightly batch.”
+
+> “The design is deliberately hybrid. XGBoost scores each transaction. The account scorer then combines that ML signal with transparent behavioural rules: the strongest model signal, the persistence of high-scoring activity, 24-hour velocity, fund-flow intensity, shared-device exposure, and cross-border share. This gives the analyst a stable account queue and a reproducible arithmetic trail.”
+
+> “Be precise about the current explanation: HIGH_MODEL_SCORE and SUSTAINED_RISK originate from transaction scores produced by XGBoost. The velocity, fund-flow, shared-device, and cross-border reasons are transparent rule-derived account signals. We do not yet claim that an individual XGBoost feature caused a particular transaction score.”
+
+> “Per-transaction TreeSHAP is the next pilot enhancement. It would show how each input feature moved a specific prediction from its baseline to its final score. We have intentionally not added SHAP filtering or attribution to this limited synthetic feature set; first we need a richer, governed feature catalogue and real evaluation labels.”
+
+---
+
 ## Setup (before the audience arrives)
 
 1. Open the CML Application URL and go to **Investigation**.

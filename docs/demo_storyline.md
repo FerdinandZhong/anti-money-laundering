@@ -10,6 +10,18 @@ Scripted presenter narrative for the AML Investigation Platform. Full flow: 8–
 
 ---
 
+## What this demo takes from OCBC’s published approach (45 sec)
+
+> “This is a Cloudera AML blueprint built on synthetic data; it is not OCBC’s production system and we do not claim OCBC’s results as our own. The design is informed by OCBC’s published end-to-end approach: detect suspicious customer behaviour, attribute it to traceable evidence, narrate the findings within constraints, and keep an analyst accountable for the outcome.”
+
+> “That is why this demo starts with an account-level queue rather than a raw transaction list; keeps score inputs, transaction evidence, KYC context, and network connections together; and separates deterministic scoring from AI-generated investigation summaries.”
+
+> “OCBC’s paper reports its own production outcomes—an 89% analyst-confirmed yield versus 61% for its rule baseline, and higher monthly adverse detection. Those are OCBC’s published results, not benchmarks achieved by this synthetic prototype.”
+
+The reference is OCBC’s 2026 paper, [*Detection, Attribution, Narration*](https://arxiv.org/abs/2607.17586). Use it as design inspiration, not as a claim of deployment equivalence.
+
+---
+
 ## Setup (before the audience arrives)
 
 1. Open the CML Application URL and go to **Investigation**.
@@ -45,7 +57,7 @@ Point to several transaction rows.
 
 > “Here we see repeated outbound FAST transfers, often in the roughly $45,000 to $49,000 range — just below the $50,000 reporting line — with counterparties in Singapore and Malaysia. The table calls out the associated flags: near-threshold payments, cross-border exposure, and, where applicable, off-hours activity.”
 
-> “For example, the current scored data includes a $45,765 transfer to Malaysia with a per-transaction model score of 97.7%. One payment alone warrants review; the repeated pattern is why the account moves to the top of the queue.”
+> “Individual rows have transaction-model signals around 99%. One payment alone warrants review; the repeated pattern is why the account moves to the top of the queue. Use the selected row’s on-screen amount and score rather than quoting a fixed value after a new scoring run.”
 
 ---
 
@@ -76,7 +88,7 @@ For this case, tie the formula back to the UI:
 
 | Account evidence | Contribution to the queue decision |
 |---|---|
-| Repeated transactions with 97.7% transaction-model scores | High model score and sustained risk |
+| Repeated transactions with transaction-model signals around 99% | High model score and sustained risk |
 | Many payments within 24 hours | High velocity |
 | Roughly $45k–$49k transfer pattern | Large fund flow and structuring context |
 | Payments to Malaysia | Cross-border pattern |
@@ -99,6 +111,8 @@ As the cards complete, narrate:
 - **Verification** — “Where configured, validates factual claims against approved external/MCP sources and labels them confirmed, refuted, or unverified.”
 
 > “Each worker saves evidence references. The LLM writes concise findings, but it does not create the risk score, alter the data, or decide whether to file. If the LLM or a verification source is unavailable, the platform fails soft: deterministic data and the analyst workflow remain available.”
+
+> “This is the current demo boundary: KYC documents are local, synthetic source-of-wealth records, and any external verification is optional and explicitly labelled. A pilot phase would add governed document retrieval, source citations, counterparty resolution, and a stateful collect–critique–verify loop.”
 
 ---
 
@@ -124,13 +138,15 @@ Open **ModelOps**.
 
 > “When retraining runs, the workflow streams PREPARE, TRAIN, CANARY, PROMOTE, SCORE, and NARRATE. A candidate is tested before promotion; the promoted champion re-scores the queue. If it fails policy or operational checks, it can be rolled back.”
 
-> “The currently deployed champion is `v20260909_152322`. Its recorded training run shows PR-AUC 0.6817 and Recall@2% of 1.0 on this synthetic demo dataset. Those are model-monitoring metrics, not proof of case guilt.”
+> “The current champion shown for this regenerated scenario is `v20260912_103420`. Treat the displayed PR-AUC and recall as monitoring metrics on a synthetic dataset, not proof of case guilt or a production benchmark.”
 
 ---
 
 ## 7. Close (30 sec)
 
 > “The platform turns transaction data into a focused daily queue, explains why an account was prioritised, equips an analyst with transaction and network evidence, and closes the loop with governed human feedback and model operations. AI accelerates the investigation; accountable people make the compliance decision.”
+
+> “The next pilot step is not simply ‘more AI’: it is calibrated customer-level risk, case-specific attribution, governed KYC and external-source evidence, and measurement of analyst yield and capacity—the operating disciplines reflected in the OCBC-inspired design.”
 
 ---
 
@@ -150,3 +166,6 @@ The score, queue, data views, and deterministic workflow still operate. The agen
 
 **Is this production customer data?**
 No. This blueprint runs on synthetic data locally and can use governed Impala/Iceberg data in production without changing the application code.
+
+**Did this prototype achieve the OCBC results quoted in the presentation?**
+No. Those figures belong to OCBC’s published production study. This demo adopts relevant architectural principles and must be evaluated separately on a governed institution dataset.

@@ -1,27 +1,36 @@
 # AML Demo Implementation Review — 12 September 2026
 
-## Status at review
+## Status after rebuild
 
-The investigation workspace and the Corp_0294 synthetic storyline were largely
-implemented, but the local database still contained an earlier alert batch. That
-batch had no persisted score inputs, chronology fields, or Corp_0294 baseline
-transactions. It could not support the improved demonstration faithfully.
+Part 1A, 1B, and 1C are materially complete in the regenerated local scenario.
+The stale SQLite database and source CSVs were deliberately replaced with a clean,
+reproducible 100,276-transaction dataset, a newly trained champion, and a fresh
+20-alert queue.
 
-The review found four Part 1 gaps to close before rebuilding the demo:
+The anchor alert is `ALERT-ML-0466899666` for Corp_0294. It retains its monitored
+window, scoring time, model version, weighted account signals, queue percentile,
+and reason codes. At the validated snapshot it is the top queue item at 94.06%
+(displayed as 94%, CRITICAL), produced by `v20260912_103420`. Its 30-day observed
+outflow is $3,545,467.63 against stated expected monthly turnover of $421,390.
 
-1. **Account-relative flow semantics.** A transaction's `direction` can describe
-   the receiving account. Outflow and network direction must instead be derived
-   from `from_account_id` and `to_account_id` relative to the selected account.
-2. **Chronology consistency.** The score explanation must use the same monitored
-   period that the “Why now?” timeline presents. The UI must not claim a historical
-   threshold crossing that was not persisted.
-3. **Reproducible score evidence.** Every freshly created alert must retain the
-   account inputs, their contributions, the monitored batch rank, model version,
-   and time boundaries. Compatibility arithmetic for older alerts is not a model
-   explanation.
-4. **KYC context.** The workbench needs a lightweight, local source-of-wealth
-   document view for the demo customer, without presenting it as a production
-   knowledge base.
+The implementation now:
+
+1. derives observed account flow and network direction from transaction endpoints,
+   rather than from the ambiguous transaction direction label;
+2. uses the same explicit three-day window for scoring eligibility and the “Why
+   now?” timeline;
+3. persists the six weighted account signals, their contributions, queue position,
+   model version, and time boundaries for every fresh alert;
+4. provides local synthetic **Source of Wealth** and **Beneficial Ownership**
+   documents in the workbench without representing them as a production knowledge
+   base; and
+5. keeps the dedicated network canvas readable by showing the strongest 12 flows
+   and disclosing the count of additional flows available in the transaction view.
+
+Backend regression tests passed (`96 passed, 2 warnings`) and the frontend
+production build passed. The remaining Part 1 acceptance task is a visual
+browser-review of the regenerated Corp_0294 and network journey at demo
+resolution. That is distinct from the data and API verification already completed.
 
 ## OCBC paper implications
 

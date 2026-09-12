@@ -26,9 +26,11 @@ on this surface). Disposition / labels / retrain / config are not exposed.
 import os
 
 import httpx
-from mcp.server.fastmcp import FastMCP
+from mcp.server import MCPServer
 
-mcp = FastMCP("aml-investigation")
+# MCP Python SDK v2 renamed FastMCP to MCPServer.  Keep the server name stable:
+# Agent Studio and other MCP hosts show this during their initialization handshake.
+mcp = MCPServer("aml-investigation")
 
 _TIMEOUT = httpx.Timeout(connect=10.0, read=300.0, write=30.0, pool=10.0)
 

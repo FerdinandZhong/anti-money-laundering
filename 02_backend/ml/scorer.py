@@ -184,6 +184,34 @@ def score_transactions(conn, model_path: str | None = None) -> int:
         risk = min(0.96, max(0.63, 0.65 + 0.30 * norm + _jitter(acc_id)))
         customer_id = row["customer_id"] or None
         reasons = _reasons(row)
+        # Preserve every input and weighted contribution used by the current
+        # demo priority method. It is intentionally not presented as a crime
+        # probability: the final priority also includes a batch-rank mapping.
+        # A calibrated probability + SHAP replacement is a Part 2 requirement.
+        evidence = [
+            ("Highest transaction model signal", "max_model_score", 0.45, float(row["max_score"])),
+            ("Sustained high-risk activity", "above_threshold_share", 0.15, float(row["above_pct"])),
+            ("24-hour transaction velocity", "velocity_24h", 0.15, float(vel_n[acc_id])),
+            ("24-hour fund-flow intensity", "fund_flow_24h", 0.10, float(amt_n[acc_id])),
+            ("Shared-device network", "shared_device", 0.10, float(row["dev"])),
+            ("Cross-border activity", "cross_border_share", 0.05, float(row["xborder"])),
+        ]
+        score_breakdown = {
+            "method": "weighted_account_evidence_then_daily_queue_rank",
+            "account_evidence_score": round(float(row["composite"]), 4),
+            "daily_queue_percentile": round(norm, 4),
+            "display_priority_score": round(risk, 4),
+            "signals": [
+                {
+                    "label": label,
+                    "key": key,
+                    "weight": weight,
+                    "value": round(value, 4),
+                    "contribution": round(weight * value, 4),
+                }
+                for label, key, weight, value in evidence
+            ],
+        }
         account_rows = scored[scored["from_account_id"] == acc_id]
         contributing = account_rows[
             (account_rows["score"] > threshold)
@@ -196,9 +224,9 @@ def score_transactions(conn, model_path: str | None = None) -> int:
         alert_id = f"ALERT-ML-{uuid.uuid4().hex[:10].upper()}"
         conn.execute(
             "INSERT INTO alerts (alert_id, customer_id, account_id, triggered_rules, risk_score, "
-            "risk_band, reason_codes, model_version, status, sla_deadline, scoring_run_at, "
+            "risk_band, reason_codes, top_features, model_version, status, sla_deadline, scoring_run_at, "
             "data_cutoff_at, window_start_at, pattern_start_at, latest_contributing_at) "
-            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'OPEN', ?, ?, ?, ?, ?, ?)",
+            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'OPEN', ?, ?, ?, ?, ?, ?)",
             (
                 alert_id,
                 customer_id,
@@ -207,6 +235,7 @@ def score_transactions(conn, model_path: str | None = None) -> int:
                 round(risk, 4),
                 _risk_band(risk),
                 json.dumps(reasons),
+                json.dumps({"score_breakdown": score_breakdown}),
                 model_version,
                 sla,
                 now,

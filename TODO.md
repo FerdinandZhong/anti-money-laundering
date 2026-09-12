@@ -16,6 +16,10 @@ Current tasks, priorities, and known issues. Newest first.
     - [x] Rename the account metric to **Account Priority Score** and expected turnover
           explicitly; remove synthetic truth from analyst row styling/sorting.
     - [x] Replace `S` / `C` controls with labelled actions and surface save state.
+    - [x] Use the dedicated Network tab as a full investigation canvas with a
+          relationship legend, instead of a compact/collapsible chart.
+    - [x] Persist and show the weighted account-evidence inputs, daily queue
+          percentile, and priority mapping for every newly scored alert.
     - [ ] Browser-review the regenerated Corp_0294 journey at demo resolution.
   - [ ] **1C · Lightweight KYC context**
     - [ ] Add a Documents tab and local source-of-wealth retrieval worker without
@@ -26,8 +30,17 @@ Current tasks, priorities, and known issues. Newest first.
   - [ ] Approved-source external verification and counterparty identity resolution.
   - [ ] Incremental event-time detection, watermarks, threshold-crossing history,
         suppression/reopen policy, and SLA measurement.
-  - [ ] Replace batch-relative presentation scoring with a governed, explainable
-        account-priority methodology.
+  - [ ] Replace batch-relative presentation scoring with calibrated customer-level
+        mule probability (temporal split, calibration/ECE monitoring, analyst-capacity
+        threshold) and TreeSHAP top-feature attribution.
+  - [ ] Use the OCBC-style five-domain feature catalogue across transaction patterns,
+        account demographics, network/graph, temporal behaviour, and device/channel;
+        assess proxy-discrimination and feature fairness explicitly.
+  - [ ] Constrain LLM narratives to cited attribution/evidence fields in a fixed schema;
+        add analyst fidelity rating and periodic review rather than treating LLM output
+        as an independent basis for adverse action.
+  - [ ] Track live analyst yield rate, queue volume, and short-term monitoring outcomes
+        alongside offline PR-AUC/recall, using confirmed dispositions as feedback labels.
   - [ ] Candidate/champion evaluation gates, real canary period, verified rollback,
         and pilot outcome evaluation.
   - [ ] Defer authentication/authorization and platform-wide tracing to the following phase.

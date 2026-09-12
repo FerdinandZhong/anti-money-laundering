@@ -305,6 +305,8 @@ def get_alert_detail(alert_id: str, conn=Depends(get_db)):
     def _iso(dt):
         return dt.isoformat() if dt else None
 
+    top_features = _json_obj(alert.get("top_features"))
+    score_breakdown = top_features.get("score_breakdown")
     return {
         "case_id": case_id,
         "alert_id": alert_id,
@@ -319,7 +321,8 @@ def get_alert_detail(alert_id: str, conn=Depends(get_db)):
         "risk_band": alert.get("risk_band", "MEDIUM"),
         "triggered_rules": _json_list(alert.get("triggered_rules")),
         "reason_codes": _json_list(alert.get("reason_codes")),
-        "top_features": _json_obj(alert.get("top_features")),
+        "top_features": top_features,
+        "score_breakdown": score_breakdown,
         "model_version": alert.get("model_version"),
         "account_age_days": customer.get("account_age_days", 0),
         "expected_monthly_turnover": expected_turnover,

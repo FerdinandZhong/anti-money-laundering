@@ -1,6 +1,7 @@
 import numpy as np
 import pandas as pd
 import pytest
+import json
 
 
 def test_risk_band_boundaries():
@@ -79,7 +80,7 @@ def test_score_transactions_flags_only_suspicious_accounts(monkeypatch, db_conn,
     assert created == 4
 
     rows = db_conn.execute(
-        "SELECT account_id, risk_band, risk_score, scoring_run_at, data_cutoff_at, "
+        "SELECT account_id, risk_band, risk_score, top_features, scoring_run_at, data_cutoff_at, "
         "window_start_at, pattern_start_at, latest_contributing_at "
         "FROM alerts WHERE alert_id LIKE 'ALERT-ML-%'"
     ).fetchall()
@@ -100,6 +101,10 @@ def test_score_transactions_flags_only_suspicious_accounts(monkeypatch, db_conn,
         assert row["window_start_at"] <= row["data_cutoff_at"]
         assert row["window_start_at"] <= row["pattern_start_at"]
         assert row["pattern_start_at"] <= row["latest_contributing_at"]
+        breakdown = json.loads(row["top_features"])["score_breakdown"]
+        assert breakdown["display_priority_score"] == pytest.approx(row["risk_score"])
+        assert len(breakdown["signals"]) == 6
+        assert sum(s["weight"] for s in breakdown["signals"]) == pytest.approx(1.0)
 
     tx_scores = db_conn.execute("SELECT COUNT(*), COUNT(DISTINCT score) FROM transaction_scores").fetchone()
     assert tx_scores[0] == len(synthetic_scored_df)

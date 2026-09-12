@@ -41,7 +41,8 @@ export interface CaseDetail {
   risk_band: string
   triggered_rules: string[]
   reason_codes?: string[]
-  top_features?: Record<string, number>
+  top_features?: Record<string, unknown>
+  score_breakdown?: ScoreBreakdown | null
   model_version?: string
   account_age_days: number
   expected_monthly_turnover: number
@@ -59,6 +60,22 @@ export interface CaseDetail {
   analysis?: string | null
   analyzed_at?: string | null
   disposition?: string | null
+}
+
+export interface ScoreSignal {
+  label: string
+  key: string
+  weight: number
+  value: number
+  contribution: number
+}
+
+export interface ScoreBreakdown {
+  method: string
+  account_evidence_score: number
+  daily_queue_percentile: number
+  display_priority_score: number
+  signals: ScoreSignal[]
 }
 
 export interface TxFlag { key: string; label: string; why: string }

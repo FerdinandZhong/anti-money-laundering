@@ -1,11 +1,6 @@
 import React, { useState } from 'react'
-import { Share2, ChevronDown, ChevronRight } from 'lucide-react'
+import { Share2, ChevronDown, ChevronRight, Info } from 'lucide-react'
 import type { NetworkGraph as Graph, NetworkNode } from '../api'
-
-const COL_X: Record<string, number> = { source: 90, collector: 300, beneficiary: 510, account: 300 }
-const NODE_W = 132
-const NODE_H = 40
-const SVG_W = 640
 
 const NODE_STYLE: Record<string, { fill: string; stroke: string; text: string }> = {
   source:      { fill: '#f7f8fa', stroke: '#9aa1ac', text: '#4b5563' },
@@ -17,43 +12,58 @@ const NODE_STYLE: Record<string, { fill: string; stroke: string; text: string }>
 const short = (id: string, max = 18) => (id.length > max ? id.slice(0, max - 1) + '…' : id)
 const money = (n?: number) => (n == null ? '' : n >= 1000 ? `$${(n / 1000).toFixed(0)}k` : `$${n}`)
 
-export const NetworkGraph: React.FC<{ graph: Graph }> = ({ graph }) => {
+export const NetworkGraph: React.FC<{ graph: Graph; expanded?: boolean }> = ({ graph, expanded = false }) => {
   const [open, setOpen] = useState(true)
   if (!graph || graph.nodes.length === 0) return null
+
+  const nodeW = expanded ? 190 : 132
+  const nodeH = expanded ? 58 : 40
+  const svgW = expanded ? 1200 : 640
+  const colX: Record<string, number> = expanded
+    ? { source: 130, collector: 505, beneficiary: 880, account: 505 }
+    : { source: 90, collector: 300, beneficiary: 510, account: 300 }
 
   // group nodes into columns, assign y by index within the column
   const cols: Record<string, NetworkNode[]> = { source: [], collector: [], beneficiary: [], account: [] }
   graph.nodes.forEach(n => { (cols[n.type] ?? cols.account).push(n) })
 
   const pos: Record<string, { x: number; y: number }> = {}
-  const rowGap = NODE_H + 16
+  const rowGap = nodeH + (expanded ? 42 : 16)
   Object.entries(cols).forEach(([type, ns]) => {
-    const x = COL_X[type] ?? COL_X.account
-    const top = 20 + Math.max(0, (Math.max(...Object.values(cols).map(c => c.length)) - ns.length)) * rowGap / 2
+    const x = colX[type] ?? colX.account
+    const top = expanded
+      ? 70 + Math.max(0, (Math.max(...Object.values(cols).map(c => c.length)) - ns.length)) * rowGap / 2
+      : 20 + Math.max(0, (Math.max(...Object.values(cols).map(c => c.length)) - ns.length)) * rowGap / 2
     ns.forEach((n, i) => { pos[n.id] = { x, y: top + i * rowGap } })
   })
 
   const maxCount = Math.max(1, ...Object.values(cols).map(c => c.length))
-  const svgH = 40 + maxCount * rowGap
+  const svgH = expanded ? Math.max(540, 140 + maxCount * rowGap) : 40 + maxCount * rowGap
 
-  const cx = (id: string) => (pos[id]?.x ?? 300) + NODE_W / 2
-  const cy = (id: string) => (pos[id]?.y ?? 20) + NODE_H / 2
+  const cx = (id: string) => (pos[id]?.x ?? 300) + nodeW / 2
+  const cy = (id: string) => (pos[id]?.y ?? 20) + nodeH / 2
 
   return (
-    <div className="bg-surface-1 rounded-lg shadow-soft overflow-hidden">
+    <div className={`bg-surface-1 rounded-lg shadow-soft overflow-hidden ${expanded ? 'border border-surface-3' : ''}`}>
       <button
-        onClick={() => setOpen(v => !v)}
-        className="w-full flex items-center gap-2 border-b border-surface-3 px-4 py-2 hover:bg-surface-2 transition-colors"
+        onClick={() => { if (!expanded) setOpen(v => !v) }}
+        className={`w-full flex items-center gap-2 border-b border-surface-3 px-4 py-2 transition-colors ${expanded ? 'cursor-default' : 'hover:bg-surface-2'}`}
       >
         <Share2 className="w-3 h-3 text-accent" />
         <span className="text-2xs font-semibold tracking-wider uppercase text-ink-muted">Network Graph</span>
         <span className="ml-auto text-2xs text-ink-faint mr-2">
           {graph.nodes.length} nodes · {graph.edges.length} links
         </span>
-        {open ? <ChevronDown className="w-3 h-3 text-ink-faint" /> : <ChevronRight className="w-3 h-3 text-ink-faint" />}
+        {!expanded && (open ? <ChevronDown className="w-3 h-3 text-ink-faint" /> : <ChevronRight className="w-3 h-3 text-ink-faint" />)}
       </button>
-      {open && <div className="overflow-x-auto overflow-y-auto px-2 py-2" style={{ maxHeight: 320 }}>
-        <svg viewBox={`0 0 ${SVG_W} ${svgH}`} width="100%" style={{ minWidth: SVG_W }}>
+      {open && <>
+        {expanded && <div className="flex items-center gap-2 px-5 py-3 bg-surface-2 text-2xs text-ink-muted border-b border-surface-3">
+          <Info className="w-3.5 h-3.5 text-accent shrink-0" />
+          Solid orange arrows show funds movement; dashed violet links show a shared device or channel relationship. The orange-bordered node is the selected account.
+        </div>}
+        <div className={`overflow-auto ${expanded ? 'p-5 min-h-[620px]' : 'px-2 py-2'}`} style={expanded ? undefined : { maxHeight: 320 }}>
+        <svg viewBox={`0 0 ${svgW} ${svgH}`} width="100%" height={expanded ? 600 : undefined}
+             preserveAspectRatio="xMidYMid meet" style={{ minWidth: expanded ? 920 : svgW }}>
           <defs>
             <marker id="ng-arrow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
               <polygon points="0,0 8,4 0,8" fill="#e35b1f" />
@@ -88,13 +98,13 @@ export const NetworkGraph: React.FC<{ graph: Graph }> = ({ graph }) => {
             const s = NODE_STYLE[n.type] ?? NODE_STYLE.account
             return (
               <g key={n.id}>
-                <rect x={p.x} y={p.y} width={NODE_W} height={NODE_H} rx={7}
-                      fill={s.fill} stroke={s.stroke} strokeWidth={n.is_root ? 2 : 1} />
-                <text x={p.x + NODE_W / 2} y={p.y + 17} textAnchor="middle" fontSize={9}
+                <rect x={p.x} y={p.y} width={nodeW} height={nodeH} rx={expanded ? 10 : 7}
+                      fill={s.fill} stroke={s.stroke} strokeWidth={n.is_root ? (expanded ? 3 : 2) : 1} />
+                <text x={p.x + nodeW / 2} y={p.y + (expanded ? 25 : 17)} textAnchor="middle" fontSize={expanded ? 15 : 9}
                       fill={s.text} fontWeight="600" fontFamily="Inter,system-ui,sans-serif">
                   {short(n.label ?? n.id)}
                 </text>
-                <text x={p.x + NODE_W / 2} y={p.y + 30} textAnchor="middle" fontSize={7.5}
+                <text x={p.x + nodeW / 2} y={p.y + (expanded ? 44 : 30)} textAnchor="middle" fontSize={expanded ? 11 : 7.5}
                       fill={s.text} opacity={0.7} fontFamily="Inter,system-ui,sans-serif">
                   {n.label && n.label !== n.id ? short(n.id, 16) : n.type}{n.country ? ` · ${n.country}` : ''}
                 </text>
@@ -102,7 +112,8 @@ export const NetworkGraph: React.FC<{ graph: Graph }> = ({ graph }) => {
             )
           })}
         </svg>
-      </div>}
+        </div>
+      </>}
     </div>
   )
 }

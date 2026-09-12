@@ -160,7 +160,7 @@ export const CaseWorkbench: React.FC<Props> = ({ alertId, onDisposed }) => {
         )}
         {activeTab === 'network' && (
           detail.network && detail.network.nodes.length > 1
-            ? <NetworkGraph graph={detail.network} />
+            ? <NetworkGraph graph={detail.network} expanded />
             : <PanelEmpty icon={<Network className="w-8 h-8" />} message="No material account links were found." />
         )}
         {activeTab === 'findings' && (
@@ -263,9 +263,62 @@ const Overview: React.FC<{ detail: CaseDetail; onOpenTransactions: () => void }>
           </div>
         </section>
       </div>
+
+      <ScoreCalculation detail={detail} />
     </div>
   )
 }
+
+const ScoreCalculation: React.FC<{ detail: CaseDetail }> = ({ detail }) => {
+  const breakdown = detail.score_breakdown
+  return (
+    <section className="rounded-lg border border-surface-3 p-4 bg-white">
+      <div className="flex items-start justify-between gap-4 mb-4">
+        <div>
+          <h3 className="text-sm font-bold text-ink">How the account priority score is computed</h3>
+          <p className="text-2xs text-ink-muted mt-1">
+            The current demo first combines account evidence, then maps the account’s rank in the daily eligible queue to a review priority. It is not a calibrated crime probability.
+          </p>
+        </div>
+        <div className={`text-2xl font-black tabular-nums shrink-0 ${RISK_SCORE_COLOR(detail.risk_score)}`}>{(detail.risk_score * 100).toFixed(0)}%</div>
+      </div>
+      {breakdown ? (
+        <>
+          <div className="grid grid-cols-3 gap-3 mb-4">
+            <ScoreStep label="1 · Weighted account evidence" value={`${(breakdown.account_evidence_score * 100).toFixed(1)} / 100`} />
+            <ScoreStep label="2 · Daily queue position" value={`${(breakdown.daily_queue_percentile * 100).toFixed(0)}th percentile`} />
+            <ScoreStep label="3 · Review priority" value={`${(breakdown.display_priority_score * 100).toFixed(0)}%`} accent />
+          </div>
+          <div className="grid grid-cols-2 xl:grid-cols-3 gap-2">
+            {breakdown.signals.map(signal => (
+              <div key={signal.key} className="rounded-lg bg-surface-2 px-3 py-2.5">
+                <div className="flex justify-between gap-2 text-2xs text-ink-muted">
+                  <span className="truncate" title={signal.label}>{signal.label}</span>
+                  <span className="shrink-0">{(signal.weight * 100).toFixed(0)}% wt.</span>
+                </div>
+                <div className="flex items-end justify-between gap-2 mt-1">
+                  <span className="text-sm font-bold text-ink tabular-nums">{(signal.value * 100).toFixed(0)}%</span>
+                  <span className="text-2xs font-semibold text-accent tabular-nums">+{(signal.contribution * 100).toFixed(1)} pts</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </>
+      ) : (
+        <div className="rounded-lg bg-surface-2 px-3 py-3 text-xs text-ink-muted">
+          This is a legacy alert created before the reproducible score breakdown was persisted. Its rule evidence is visible above; run a refreshed scoring batch to display the weighted inputs and queue position.
+        </div>
+      )}
+    </section>
+  )
+}
+
+const ScoreStep: React.FC<{ label: string; value: string; accent?: boolean }> = ({ label, value, accent }) => (
+  <div className={`rounded-lg border px-3 py-2.5 ${accent ? 'border-accent/30 bg-accent/5' : 'border-surface-3'}`}>
+    <p className="text-2xs text-ink-muted">{label}</p>
+    <p className={`text-sm font-bold tabular-nums mt-1 ${accent ? 'text-accent' : 'text-ink'}`}>{value}</p>
+  </div>
+)
 
 interface TransactionsProps {
   detail: CaseDetail

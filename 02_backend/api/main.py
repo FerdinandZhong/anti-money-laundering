@@ -195,6 +195,7 @@ def get_alert_detail(alert_id: str, conn=Depends(get_db)):
     # Source (reference) data comes from the source layer (Impala/CSV), not SQLite.
     customer = source.get_customer(alert["customer_id"]) or {}
     accounts = source.get_accounts(alert["customer_id"])
+    selected_account_id = alert.get("account_id") or (accounts[0]["account_id"] if accounts else None)
 
     # KEY transactions for this alert = this account's highest-scoring transactions.
     # Per-account tx counts can be huge, so rank in SQL via transaction_scores
@@ -241,7 +242,7 @@ def get_alert_detail(alert_id: str, conn=Depends(get_db)):
         row = {
             "transaction_id": t.get("transaction_id"),
             "event_time": t.get("event_time"),
-            "direction": t.get("direction"),
+            "direction": source.account_flow_direction(t, selected_account_id) or t.get("direction"),
             "amount": t.get("amount"),
             "channel": t.get("channel"),
             "counterparty_name": t.get("counterparty_name"),
@@ -266,7 +267,7 @@ def get_alert_detail(alert_id: str, conn=Depends(get_db)):
     transactions = transactions[:20]
     transactions.sort(key=lambda r: (r.get("event_time") or ""), reverse=True)
 
-    root_account_id = accounts[0]["account_id"] if accounts else alert["customer_id"]
+    root_account_id = selected_account_id or alert["customer_id"]
     try:
         network = get_network_graph(None, root_account_id)
     except Exception:
@@ -287,15 +288,19 @@ def get_alert_detail(alert_id: str, conn=Depends(get_db)):
 
     # Compare observed 30-day outbound flow with the KYC expectation. This is an
     # observed business metric, distinct from the ML priority score.
-    observed_outflow_30d = 0.0
+    observed_outflow_30d = None
     try:
-        history = source.customer_transactions(alert["customer_id"], limit=5000)
+        history_by_id = {}
+        for account_id in acct_ids:
+            for tx in source.account_transactions(account_id, limit=5000):
+                if tx.get("transaction_id"):
+                    history_by_id[tx["transaction_id"]] = tx
         cutoff = data_cutoff or datetime.now()
         start = cutoff - timedelta(days=30)
         observed_outflow_30d = round(sum(
             float(t.get("amount") or 0)
-            for t in history
-            if t.get("direction") == "OUTBOUND"
+            for t in history_by_id.values()
+            if t.get("from_account_id") in set(acct_ids)
             and (event_dt := _parse_time(t.get("event_time")))
             and start <= event_dt <= cutoff
         ), 2)
@@ -321,6 +326,7 @@ def get_alert_detail(alert_id: str, conn=Depends(get_db)):
         "customer_industry": customer.get("industry"),
         "beneficial_owner": customer.get("beneficial_owner"),
         "kyc_last_updated": customer.get("kyc_last_updated"),
+        "kyc_documents": source.customer_kyc_documents(alert["customer_id"]),
         "account_id": alert.get("account_id") or root_account_id,
         "risk_score": alert.get("risk_score", 0.0),
         "risk_band": alert.get("risk_band", "MEDIUM"),
@@ -332,7 +338,7 @@ def get_alert_detail(alert_id: str, conn=Depends(get_db)):
         "account_age_days": customer.get("account_age_days", 0),
         "expected_monthly_turnover": expected_turnover,
         "observed_outflow_30d": observed_outflow_30d,
-        "observed_vs_expected_pct": round(observed_outflow_30d / expected_turnover * 100, 1) if expected_turnover else None,
+        "observed_vs_expected_pct": round(observed_outflow_30d / expected_turnover * 100, 1) if observed_outflow_30d is not None and expected_turnover else None,
         "pattern_start_at": _iso(pattern_start),
         "latest_contributing_at": _iso(latest_contributing),
         "window_start_at": _iso(window_start),

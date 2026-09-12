@@ -9,7 +9,9 @@ Current tasks, priorities, and known issues. Newest first.
     - [x] Generate normal history → early behavioural change → 3-day alert pattern.
     - [x] Persist data cutoff, monitoring window, pattern start, latest contributing
           transaction, and scoring-run time on every new alert.
-    - [ ] Regenerate the clean demo dataset/model/queue and refresh EN/ZH talk tracks.
+    - [x] Align scoring eligibility to the stated monitoring window; do not claim a
+          historical threshold crossing unless it is persisted.
+    - [x] Rebuild a clean reproducible dataset/model/queue and refresh EN/ZH talk tracks.
   - [ ] **1B · Polished Investigation workspace**
     - [x] Add Overview / Transactions / Network / Findings navigation.
     - [x] Add Why this alert?, Why now?, expected-vs-observed, and monitoring timeline.
@@ -22,9 +24,13 @@ Current tasks, priorities, and known issues. Newest first.
           percentile, and priority mapping for every newly scored alert.
     - [x] Recover and show the verifiable queue-rank arithmetic for older local
           alerts whose original weighted signal values were never stored.
+    - [x] Derive observed flow and network links from account endpoints, rather
+          than the transaction direction label alone.
+    - [ ] Replace global model feature importance in AI findings with per-alert
+          stored score evidence; reserve TreeSHAP for Part 2.
     - [ ] Browser-review the regenerated Corp_0294 journey at demo resolution.
   - [ ] **1C · Lightweight KYC context**
-    - [ ] Add a Documents tab and local source-of-wealth retrieval worker without
+    - [x] Add a Documents tab and local source-of-wealth retrieval worker without
           expanding into the production-grade knowledge base planned for Part 2.
 - [ ] **Part 2 — later pilot implementation**
   - [ ] Stateful bounded plan → collect → critique → verify loop with targeted re-entry.
@@ -61,7 +67,9 @@ Current tasks, priorities, and known issues. Newest first.
 - [ ] **CAII LLM broken** — `/api/health/environment` → `active_model … AttributeError:
       'str' object has no attribute 'choices'`. Investigation, verification and NARRATE
       fall back to canned output until a reachable CAII endpoint + valid model are
-      configured in the Models/Tools tab. Root-cause the client/health path.
+      configured in the Models/Tools tab. Root-cause the client/health path. *(Stale
+      locally as of 12 Sep 2026: the active-model health probe succeeds; retain this
+      only until the deployed environment is retested.)*
 - [ ] **Data quality** — `data.suspicious_rate` in config is **dead** (never used);
       positives come only from injected typologies (~119), so the positive rate falls as
       transactions grow and PR-AUC stays ~0.6. The composite floor-fallback keeps the

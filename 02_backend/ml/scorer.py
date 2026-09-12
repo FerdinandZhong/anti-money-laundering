@@ -96,12 +96,19 @@ def score_transactions(conn, model_path: str | None = None) -> int:
          for tid, acc, s in zip(scored["transaction_id"], scored["from_account_id"], scored["score"])],
     )
 
-    # Case-level aggregation (blueprint §7.2): roll every transaction up to the
+    # The daily queue uses the same three-day monitoring window shown in the
+    # investigation timeline. Older activity is available as context, but cannot
+    # silently influence a claimed recent-pattern alert.
+    monitored = scored[scored["_event_dt"] >= window_start_dt].copy()
+    if monitored.empty:
+        monitored = scored.copy()
+
+    # Case-level aggregation: roll every monitored transaction up to the
     # account. The trained model's per-tx probability is near-binary, so the raw
     # max collapses every alert to ~0.86. Blend the model signal with the diverse
     # account features (velocity, flow, device sharing, cross-border) into a
     # continuous account risk score that spreads realistically.
-    agg = scored.groupby("from_account_id").agg(
+    agg = monitored.groupby("from_account_id").agg(
         max_score=("score", "max"),
         above_pct=("score", lambda s: (s > threshold).mean()),
         vel=("tx_count_24h", "max"),
@@ -206,7 +213,7 @@ def score_transactions(conn, model_path: str | None = None) -> int:
                 for label, key, weight, value in evidence
             ],
         }
-        account_rows = scored[scored["from_account_id"] == acc_id]
+        account_rows = monitored[monitored["from_account_id"] == acc_id]
         contributing = account_rows[
             (account_rows["score"] > threshold)
             & (account_rows["_event_dt"].isna() | (account_rows["_event_dt"] >= window_start_dt))

@@ -25,7 +25,7 @@ export interface NetworkEdge {
   source: string; target: string; relation: 'shared_device' | 'fund_flow'
   amount?: number; count?: number
 }
-export interface NetworkGraph { nodes: NetworkNode[]; edges: NetworkEdge[] }
+export interface NetworkGraph { nodes: NetworkNode[]; edges: NetworkEdge[]; hidden_flow_count?: number }
 
 export interface CaseDetail {
   case_id: string
@@ -36,6 +36,7 @@ export interface CaseDetail {
   customer_industry?: string | null
   beneficial_owner?: string | null
   kyc_last_updated?: string | null
+  kyc_documents?: KycDocument[]
   account_id?: string | null
   risk_score: number
   risk_band: string
@@ -46,7 +47,7 @@ export interface CaseDetail {
   model_version?: string
   account_age_days: number
   expected_monthly_turnover: number
-  observed_outflow_30d: number
+  observed_outflow_30d: number | null
   observed_vs_expected_pct?: number | null
   pattern_start_at?: string | null
   latest_contributing_at?: string | null
@@ -61,6 +62,8 @@ export interface CaseDetail {
   analyzed_at?: string | null
   disposition?: string | null
 }
+
+export interface KycDocument { name: string; source: string; content: string }
 
 export interface ScoreSignal {
   label: string

@@ -13,6 +13,7 @@ data/aml.db
 data/aml.db-shm
 data/aml.db-wal
 data/raw/
+data/kyc_documents/
 data/processed/
 models/*.json
 models/*.ubj

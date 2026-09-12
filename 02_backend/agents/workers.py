@@ -12,7 +12,7 @@ from common.db import get_connection
 
 # Tool allow-list per worker (documentation + enforcement reference)
 WORKER_TOOLS: dict[str, list[str]] = {
-    "profile":      ["get_alert_detail", "get_customer_profile"],
+    "profile":      ["get_alert_detail", "get_customer_profile", "get_customer_kyc_documents"],
     "pattern":      ["get_transaction_history", "get_model_explanation"],
     "network":      ["get_network_graph", "get_device_overlap"],
     "screening":    ["get_customer_profile"],
@@ -24,7 +24,9 @@ _PROMPTS = {
         "You are the Profile Worker in an AML investigation. "
         "Analyze the customer profile and alert details. "
         "Focus on: account age, expected vs actual turnover, KYC tier, risk_rating, "
-        "and whether the alert's risk score is consistent with the customer profile. "
+        "declared source-of-wealth documents, and whether the alert's risk score is "
+        "consistent with the customer profile. Treat documents as onboarding context, "
+        "not proof that later activity is legitimate. "
         "Return exactly 3 concise bullet-point findings starting with '•'."
     ),
     "pattern": (
@@ -63,14 +65,16 @@ def run_profile_worker(case_id: str, alert_id: str, customer_id: str) -> dict:
     try:
         alert   = TOOLS["get_alert_detail"](conn, alert_id)
         profile = TOOLS["get_customer_profile"](conn, customer_id)
+        documents = TOOLS["get_customer_kyc_documents"](conn, customer_id)
     finally:
         conn.close()
 
     ev_ids = [
         _ev(case_id, "get_alert_detail",    alert_id,    alert,   "profile"),
         _ev(case_id, "get_customer_profile", customer_id, profile, "profile"),
+        _ev(case_id, "get_customer_kyc_documents", customer_id, documents, "profile"),
     ]
-    data = {"alert": alert, "customer": profile}
+    data = {"alert": alert, "customer": profile, "kyc_documents": documents}
     findings = chat([
         {"role": "system", "content": _PROMPTS["profile"]},
         {"role": "user",   "content": json.dumps(data, default=str)},

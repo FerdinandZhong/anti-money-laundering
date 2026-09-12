@@ -584,6 +584,37 @@ def gen_annotations() -> list[dict]:
     return rows
 
 
+def write_demo_kyc_documents() -> None:
+    """Create the small local KYC corpus used by the Part 1 document tab.
+
+    These files represent information captured at onboarding. They are synthetic
+    evidence for a demo, not a production document-management implementation.
+    """
+    doc_dir = os.path.join(PROJECT_ROOT, "data", "kyc_documents", DEMO_CUSTOMER_ID)
+    os.makedirs(doc_dir, exist_ok=True)
+    with open(os.path.join(doc_dir, "source_of_wealth.md"), "w", encoding="utf-8") as f:
+        f.write(
+            "# Source of Wealth Declaration\n\n"
+            "**Customer:** Corp_0294 Pte. Ltd.  \n"
+            "**Declared activity:** Established wholesale trading and supplier payments.  \n"
+            "**Expected monthly turnover:** SGD 421,390.  \n"
+            "**Primary markets:** Singapore and Malaysia.  \n"
+            "**Declared funding source:** Operating revenue from trading activity.\n\n"
+            "This synthetic onboarding declaration is supplied for the AML demo. "
+            "It establishes the expected customer profile; it does not clear or "
+            "explain subsequent suspicious transactions.\n"
+        )
+    with open(os.path.join(doc_dir, "beneficial_ownership.md"), "w", encoding="utf-8") as f:
+        f.write(
+            "# Beneficial Ownership Record\n\n"
+            "**Customer:** Corp_0294 Pte. Ltd.  \n"
+            "**Recorded beneficial owner:** Lim Wei Ming.  \n"
+            "**KYC review date:** Current synthetic demo record.\n\n"
+            "Use this record as onboarding context and verify any material discrepancy "
+            "through the institution's approved process.\n"
+        )
+
+
 # ---------------------------------------------------------------------------
 # Insert helpers
 # ---------------------------------------------------------------------------
@@ -697,6 +728,7 @@ def main():
     demo_history = gen_demo_customer_history(accounts)
     insert_transactions(conn, demo_history)
     conn.commit()
+    write_demo_kyc_documents()
 
     print("Injecting structuring typology...")
     str_txs = gen_structuring_transactions(accounts)

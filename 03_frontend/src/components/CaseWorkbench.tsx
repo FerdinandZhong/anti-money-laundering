@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import {
   AlertTriangle, ArrowDownLeft, ArrowUpRight, Check, ChevronDown, ChevronRight,
-  Clock3, FileSearch, LayoutDashboard, List, Network, Save, Sparkles,
+  Clock3, FileSearch, LayoutDashboard, List, Network, Save, Sparkles, FolderOpen,
 } from 'lucide-react'
 import type { CaseDetail, Transaction } from '../api'
 import { getAlertDetail, setTransactionLabels } from '../api'
@@ -14,7 +14,7 @@ interface Props {
   onDisposed?: () => void
 }
 
-type WorkspaceTab = 'overview' | 'transactions' | 'network' | 'findings'
+type WorkspaceTab = 'overview' | 'transactions' | 'network' | 'documents' | 'findings'
 type SaveState = 'idle' | 'saving' | 'saved' | 'error'
 
 const fmt = (n: number) =>
@@ -31,6 +31,7 @@ const TABS: { key: WorkspaceTab; label: string; icon: React.ReactNode }[] = [
   { key: 'overview', label: 'Overview', icon: <LayoutDashboard className="w-3.5 h-3.5" /> },
   { key: 'transactions', label: 'Transactions', icon: <List className="w-3.5 h-3.5" /> },
   { key: 'network', label: 'Network', icon: <Network className="w-3.5 h-3.5" /> },
+  { key: 'documents', label: 'KYC Documents', icon: <FolderOpen className="w-3.5 h-3.5" /> },
   { key: 'findings', label: 'AI Findings', icon: <Sparkles className="w-3.5 h-3.5" /> },
 ]
 
@@ -124,7 +125,7 @@ export const CaseWorkbench: React.FC<Props> = ({ alertId, onDisposed }) => {
         <MetaItem label="KYC Risk Rating"><Badge label={detail.customer_kyc_rating} small neutral /></MetaItem>
         <MetaItem label="Account Age">{detail.account_age_days} days</MetaItem>
         <MetaItem label="Expected Monthly Turnover">{fmt(detail.expected_monthly_turnover)}</MetaItem>
-        <MetaItem label="Observed Outflow · 30 days">{fmt(detail.observed_outflow_30d ?? 0)}</MetaItem>
+        <MetaItem label="Observed Outflow · 30 days">{detail.observed_outflow_30d == null ? 'Not available' : fmt(detail.observed_outflow_30d)}</MetaItem>
       </div>
 
       <div className="flex items-center gap-1 px-6 border-b border-surface-3 bg-surface-1 shrink-0" role="tablist">
@@ -163,6 +164,7 @@ export const CaseWorkbench: React.FC<Props> = ({ alertId, onDisposed }) => {
             ? <NetworkGraph graph={detail.network} expanded />
             : <PanelEmpty icon={<Network className="w-8 h-8" />} message="No material account links were found." />
         )}
+        {activeTab === 'documents' && <KycDocuments documents={detail.kyc_documents ?? []} />}
         {activeTab === 'findings' && (
           <AgentPanel
             caseId={detail.case_id}
@@ -176,8 +178,17 @@ export const CaseWorkbench: React.FC<Props> = ({ alertId, onDisposed }) => {
   )
 }
 
+const KycDocuments: React.FC<{ documents: NonNullable<CaseDetail['kyc_documents']> }> = ({ documents }) => (
+  documents.length ? <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
+    {documents.map(doc => <section key={doc.name} className="rounded-lg border border-surface-3 bg-white p-5 shadow-soft">
+      <div className="flex items-center gap-2 mb-3"><FileSearch className="w-4 h-4 text-accent" /><div><h3 className="text-sm font-bold text-ink">{doc.name}</h3><p className="text-2xs text-ink-muted">{doc.source}</p></div></div>
+      <div className="whitespace-pre-line text-xs leading-5 text-ink-muted">{doc.content}</div>
+    </section>)}
+  </div> : <PanelEmpty icon={<FolderOpen className="w-8 h-8" />} message="No local KYC documents are available for this customer." />
+)
+
 const Overview: React.FC<{ detail: CaseDetail; onOpenTransactions: () => void }> = ({ detail, onOpenTransactions }) => {
-  const ratio = detail.observed_vs_expected_pct ?? 0
+  const ratio = detail.observed_vs_expected_pct
   const timeline = [
     { label: 'Monitoring window opened', value: detail.window_start_at, muted: true },
     { label: 'First contributing transaction in pattern', value: detail.pattern_start_at },
@@ -213,7 +224,7 @@ const Overview: React.FC<{ detail: CaseDetail; onOpenTransactions: () => void }>
             <h3 className="text-sm font-bold text-ink">Why now?</h3>
           </div>
           <p className="text-xs leading-5 text-ink-muted">
-            The alert was created by the nightly scoring run after the recent pattern crossed the account-level prioritisation threshold. Earlier activity remains visible as context; it had not yet formed the sustained pattern shown here.
+            The alert was created by the nightly scoring run using the monitored activity shown below. Earlier activity is retained as customer context; this view does not infer an earlier threshold crossing that was not recorded.
           </p>
           <div className="mt-3 rounded-lg bg-surface-2 px-3 py-2 text-2xs text-ink-muted">
             Data included through <span className="font-semibold text-ink">{fmtDate(detail.data_cutoff_at)}</span>
@@ -244,12 +255,12 @@ const Overview: React.FC<{ detail: CaseDetail; onOpenTransactions: () => void }>
           <div className="flex items-end justify-between mb-2">
             <div>
               <p className="text-2xs uppercase tracking-wider text-ink-faint">Observed</p>
-              <p className="text-xl font-bold text-ink">{fmt(detail.observed_outflow_30d ?? 0)}</p>
+              <p className="text-xl font-bold text-ink">{detail.observed_outflow_30d == null ? 'Not available' : fmt(detail.observed_outflow_30d)}</p>
             </div>
-            <p className={`text-sm font-bold ${ratio > 100 ? 'text-red-600' : 'text-ink-muted'}`}>{ratio.toFixed(0)}%</p>
+            <p className={`text-sm font-bold ${ratio != null && ratio > 100 ? 'text-red-600' : 'text-ink-muted'}`}>{ratio == null ? '—' : `${ratio.toFixed(0)}%`}</p>
           </div>
           <div className="h-2.5 rounded-full bg-surface-3 overflow-hidden">
-            <div className="h-full rounded-full bg-accent" style={{ width: `${Math.min(ratio, 100)}%` }} />
+            <div className="h-full rounded-full bg-accent" style={{ width: `${Math.min(ratio ?? 0, 100)}%` }} />
           </div>
           <div className="flex justify-between mt-2 text-2xs text-ink-muted">
             <span>Expected {fmt(detail.expected_monthly_turnover)}</span>

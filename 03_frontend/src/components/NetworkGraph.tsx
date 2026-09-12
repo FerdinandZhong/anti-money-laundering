@@ -59,7 +59,7 @@ export const NetworkGraph: React.FC<{ graph: Graph; expanded?: boolean }> = ({ g
       {open && <>
         {expanded && <div className="flex items-center gap-2 px-5 py-3 bg-surface-2 text-2xs text-ink-muted border-b border-surface-3">
           <Info className="w-3.5 h-3.5 text-accent shrink-0" />
-          Solid orange arrows show funds movement; dashed violet links show a shared device or channel relationship. The orange-bordered node is the selected account.
+          Solid orange arrows show funds movement; dashed violet links show a shared device or channel relationship. The orange-bordered node is the selected account.{graph.hidden_flow_count ? ` The ${graph.hidden_flow_count} smaller flow${graph.hidden_flow_count === 1 ? '' : 's'} remain available in Transactions.` : ''}
         </div>}
         <div className={`overflow-auto ${expanded ? 'p-5 min-h-[620px]' : 'px-2 py-2'}`} style={expanded ? undefined : { maxHeight: 320 }}>
         <svg viewBox={`0 0 ${svgW} ${svgH}`} width="100%" height={expanded ? 600 : undefined}

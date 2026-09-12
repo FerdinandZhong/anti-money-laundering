@@ -62,5 +62,8 @@ def test_detail_includes_network_and_flags(tmp_db_path, monkeypatch):
     r = TestClient(main.app).get("/api/alerts/ALERT-1/detail")
     body = r.json()
     assert "network" in body and body["network"]["nodes"][0]["is_root"] is True
+    assert body["data_cutoff_at"].startswith("2026-07-09")
+    assert body["pattern_start_at"].startswith("2026-07-09")
+    assert body["observed_outflow_30d"] == 48201.0
     flags = {f["key"] for f in body["transactions"][0]["flags"]}
     assert "near_threshold" in flags and "off_hours" in flags and "cross_border" in flags

@@ -24,6 +24,8 @@ random.seed(42)
 # them. An analyst correcting the labels via the tx-label UI then retraining
 # produces a real, visible PR-AUC delta instead of a flat metric across runs.
 STRUCTURING_UNDERLABELED_N = 30
+DEMO_CUSTOMER_ID = "CUST-000294"
+DEMO_ACCOUNT_ID = "ACC-0000294"
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -85,7 +87,7 @@ def gen_customers(n: int) -> list[dict]:
             turnover = random.uniform(50000, 500000)
         else:
             turnover = random.uniform(500000, 5000000)
-        rows.append({
+        row = {
             "customer_id": f"CUST-{i:06d}",
             "name": f"Customer_{i:04d}" if industry == "RETAIL" else f"Corp_{i:04d} Pte. Ltd.",
             "industry": industry,
@@ -97,11 +99,24 @@ def gen_customers(n: int) -> list[dict]:
             "account_age_days": random.randint(90, 3650),
             "beneficial_owner": f"Owner_{i:04d}",
             "kyc_last_updated": _date(random.randint(30, 365)),
-        })
+        }
+        if i == 294:
+            row.update({
+                "name": "Corp_0294 Pte. Ltd.",
+                "industry": "SME_TRADING",
+                "occupation": "DIRECTOR",
+                "risk_rating": "LOW",
+                "expected_monthly_turnover": 421390.0,
+                "region": "SG",
+                "account_age_days": 617,
+                "beneficial_owner": "Lim Wei Ming",
+                "kyc_last_updated": _date(120),
+            })
+        rows.append(row)
 
     # Suspicious/mule customers
     for i in range(n_suspicious):
-        rows.append({
+        row = {
             "customer_id": f"CUST-MULE-{i:04d}",
             "name": f"Mule_Corp_{i:04d} Pte. Ltd.",
             "industry": random.choice(["SME_TRADING", "SME_SERVICES"]),
@@ -113,7 +128,8 @@ def gen_customers(n: int) -> list[dict]:
             "account_age_days": random.randint(30, 60),
             "beneficial_owner": f"Mule_Owner_{i:04d}",
             "kyc_last_updated": _date(random.randint(30, 60)),
-        })
+        }
+        rows.append(row)
 
     return rows
 
@@ -149,7 +165,7 @@ def gen_accounts(customers: list[dict], n_accounts: int) -> list[dict]:
     remaining = n_accounts - 9
     acc_idx = 0
     for cust in normal_customers[:remaining]:
-        rows.append({
+        row = {
             "account_id": f"ACC-{acc_idx:07d}",
             "customer_id": cust["customer_id"],
             "account_type": random.choice(["CURRENT", "SAVINGS", "CORPORATE"]),
@@ -157,7 +173,10 @@ def gen_accounts(customers: list[dict], n_accounts: int) -> list[dict]:
             "opening_date": _date(cust["account_age_days"]),
             "balance": round(random.uniform(0, 200000), 2),
             "currency": random.choices(["SGD", "USD", "HKD"], weights=[85, 10, 5])[0],
-        })
+        }
+        if cust["customer_id"] == DEMO_CUSTOMER_ID:
+            row.update({"account_type": "CORPORATE", "status": "ACTIVE", "currency": "SGD"})
+        rows.append(row)
         acc_idx += 1
         if acc_idx >= remaining:
             break
@@ -209,7 +228,8 @@ def gen_normal_transactions(accounts: list[dict], n: int) -> list[dict]:
     rows = []
     active_accs = [a["account_id"] for a in accounts if a["status"] == "ACTIVE"
                    and not a["account_id"].startswith("ACC-NIGHTFALL")
-                   and not a["account_id"].startswith("ACC-NETWORK")]
+                   and not a["account_id"].startswith("ACC-NETWORK")
+                   and a["account_id"] != DEMO_ACCOUNT_ID]
 
     if not active_accs:
         return rows
@@ -313,6 +333,53 @@ def gen_normal_transactions(accounts: list[dict], n: int) -> list[dict]:
     return rows
 
 
+def gen_demo_customer_history(accounts: list[dict]) -> list[dict]:
+    """A replayable Corp_0294 chronology for the “why now?” demo story.
+
+    Normal trading activity spans 20–90 days ago. Six smaller supplier payments
+    4–7 days ago show an emerging change but remain below the seeded structuring
+    pattern, which begins only inside the final 3-day monitoring window.
+    """
+    if not any(a["account_id"] == DEMO_ACCOUNT_ID and a["status"] == "ACTIVE" for a in accounts):
+        return []
+    rows: list[dict] = []
+    for i in range(24):
+        rows.append({
+            "transaction_id": f"TX-DEMO-BASE-{i:03d}",
+            "from_account_id": DEMO_ACCOUNT_ID,
+            "to_account_id": None,
+            "amount": round(7000 + (i % 6) * 1850 + random.uniform(-500, 500), 2),
+            "currency": "SGD",
+            "channel": "FAST" if i % 3 else "GIRO",
+            "direction": "OUTBOUND",
+            "counterparty_name": f"Established Supplier {i % 5 + 1}",
+            "counterparty_country": "MY" if i % 4 == 0 else "SG",
+            "event_time": _ts(20 + (i * 2.7) % 70),
+            "mcc": None,
+            "reference": f"INV-HIST-{2400 + i}",
+            "is_suspicious": 0,
+            "typology": None,
+        })
+    for i in range(6):
+        rows.append({
+            "transaction_id": f"TX-DEMO-EARLY-{i:03d}",
+            "from_account_id": DEMO_ACCOUNT_ID,
+            "to_account_id": None,
+            "amount": round(18000 + i * 1150 + random.uniform(-300, 300), 2),
+            "currency": "SGD",
+            "channel": "FAST",
+            "direction": "OUTBOUND",
+            "counterparty_name": f"New Trading Counterparty {i + 1}",
+            "counterparty_country": "MY" if i % 2 == 0 else "SG",
+            "event_time": _ts(6.8 - i * 0.5),
+            "mcc": None,
+            "reference": f"TRANSFER-EARLY-{i:03d}",
+            "is_suspicious": 0,
+            "typology": None,
+        })
+    return rows
+
+
 def gen_nightfall_transactions(accounts: list[dict]) -> list[dict]:
     rows = []
     # Yesterday's date as base (T+00:00)
@@ -406,8 +473,8 @@ def gen_structuring_transactions(accounts: list[dict]) -> list[dict]:
     if not active:
         return rows
 
-    struct_acc = random.choice(active)
-    n = random.randint(50, 100)
+    struct_acc = DEMO_ACCOUNT_ID if DEMO_ACCOUNT_ID in active else random.choice(active)
+    n = 72 if struct_acc == DEMO_ACCOUNT_ID else random.randint(50, 100)
     n_underlabeled = min(STRUCTURING_UNDERLABELED_N, n)
     for i in range(n):
         days_ago = random.uniform(0, 3)
@@ -626,6 +693,11 @@ def main():
     insert_transactions(conn, nf_txs)
     conn.commit()
 
+    print("Generating Corp_0294 baseline and emerging behaviour...")
+    demo_history = gen_demo_customer_history(accounts)
+    insert_transactions(conn, demo_history)
+    conn.commit()
+
     print("Injecting structuring typology...")
     str_txs = gen_structuring_transactions(accounts)
     insert_transactions(conn, str_txs)
@@ -656,7 +728,7 @@ def main():
     conn.execute("PRAGMA foreign_keys=ON")
     conn.close()
 
-    n_tx = len(normal_txs) + len(nf_txs) + len(str_txs) + len(hn_txs)
+    n_tx = len(normal_txs) + len(nf_txs) + len(demo_history) + len(str_txs) + len(hn_txs)
     print(f"\nGenerated: {len(customers)} customers, {len(accounts)} accounts, {n_tx} transactions")
     print(f"Alerts: {len(alert_rows)}, Cases: {len(case_rows)}")
 

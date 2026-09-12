@@ -6,10 +6,12 @@ export interface Alert {
   alert_id: string
   case_id?: string
   customer_id: string
+  customer_name?: string | null
   risk_score: number
   risk_band: string
   status: string
   created_at: string
+  scoring_run_at?: string | null
 }
 
 export interface AlertsResponse {
@@ -31,6 +33,10 @@ export interface CaseDetail {
   customer_id: string
   customer_name: string
   customer_kyc_rating: string
+  customer_industry?: string | null
+  beneficial_owner?: string | null
+  kyc_last_updated?: string | null
+  account_id?: string | null
   risk_score: number
   risk_band: string
   triggered_rules: string[]
@@ -39,6 +45,15 @@ export interface CaseDetail {
   model_version?: string
   account_age_days: number
   expected_monthly_turnover: number
+  observed_outflow_30d: number
+  observed_vs_expected_pct?: number | null
+  pattern_start_at?: string | null
+  latest_contributing_at?: string | null
+  window_start_at?: string | null
+  data_cutoff_at?: string | null
+  scoring_run_at?: string | null
+  alert_created_at?: string | null
+  sla_deadline?: string | null
   transactions: Transaction[]
   network?: NetworkGraph
   analysis?: string | null

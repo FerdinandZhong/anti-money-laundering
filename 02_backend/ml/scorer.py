@@ -9,6 +9,7 @@ import json
 import uuid
 import datetime
 import numpy as np
+import pandas as pd
 import xgboost as xgb
 
 from common.config import get_config
@@ -75,7 +76,20 @@ def score_transactions(conn, model_path: str | None = None) -> int:
     # Only flag accounts where from_account_id is set
     scored = df[df["from_account_id"].notna()].copy()
 
-    now = datetime.datetime.now().isoformat()
+    # Monitoring chronology is persisted with the alert so “why now?” is data,
+    # not presenter narration. Synthetic/local sources provide ISO event_time;
+    # tests and legacy source adapters may omit it, so fail soft to the run time.
+    run_at = datetime.datetime.now()
+    if "event_time" in scored:
+        scored["_event_dt"] = pd.to_datetime(scored["event_time"], errors="coerce")
+    else:
+        scored["_event_dt"] = pd.NaT
+    data_cutoff_dt = scored["_event_dt"].max()
+    if pd.isna(data_cutoff_dt):
+        data_cutoff_dt = pd.Timestamp(run_at)
+    window_start_dt = data_cutoff_dt - pd.Timedelta(days=3)
+
+    now = run_at.isoformat()
     conn.executemany(
         "INSERT OR REPLACE INTO transaction_scores (transaction_id, account_id, score, model_version, scored_at) "
         "VALUES (?, ?, ?, ?, ?)",
@@ -170,12 +184,21 @@ def score_transactions(conn, model_path: str | None = None) -> int:
         risk = min(0.96, max(0.63, 0.65 + 0.30 * norm + _jitter(acc_id)))
         customer_id = row["customer_id"] or None
         reasons = _reasons(row)
+        account_rows = scored[scored["from_account_id"] == acc_id]
+        contributing = account_rows[
+            (account_rows["score"] > threshold)
+            & (account_rows["_event_dt"].isna() | (account_rows["_event_dt"] >= window_start_dt))
+        ]
+        contributing_times = contributing["_event_dt"].dropna()
+        pattern_start = contributing_times.min() if len(contributing_times) else window_start_dt
+        latest_contributing = contributing_times.max() if len(contributing_times) else data_cutoff_dt
 
         alert_id = f"ALERT-ML-{uuid.uuid4().hex[:10].upper()}"
         conn.execute(
             "INSERT INTO alerts (alert_id, customer_id, account_id, triggered_rules, risk_score, "
-            "risk_band, reason_codes, model_version, status, sla_deadline) "
-            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'OPEN', ?)",
+            "risk_band, reason_codes, model_version, status, sla_deadline, scoring_run_at, "
+            "data_cutoff_at, window_start_at, pattern_start_at, latest_contributing_at) "
+            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'OPEN', ?, ?, ?, ?, ?, ?)",
             (
                 alert_id,
                 customer_id,
@@ -186,6 +209,11 @@ def score_transactions(conn, model_path: str | None = None) -> int:
                 json.dumps(reasons),
                 model_version,
                 sla,
+                now,
+                data_cutoff_dt.isoformat(),
+                window_start_dt.isoformat(),
+                pattern_start.isoformat(),
+                latest_contributing.isoformat(),
             ),
         )
         new_count += 1

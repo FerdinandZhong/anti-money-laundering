@@ -3,6 +3,34 @@
 Current tasks, priorities, and known issues. Newest first.
 
 ## In progress / next
+- [ ] **Part 1 — immediate demo improvement**
+  - [ ] **1A · Credible chronology + synthetic story**
+    - [x] Make `Corp_0294` the deterministic structuring anchor.
+    - [x] Generate normal history → early behavioural change → 3-day alert pattern.
+    - [x] Persist data cutoff, monitoring window, pattern start, latest contributing
+          transaction, and scoring-run time on every new alert.
+    - [ ] Regenerate the clean demo dataset/model/queue and refresh EN/ZH talk tracks.
+  - [ ] **1B · Polished Investigation workspace**
+    - [x] Add Overview / Transactions / Network / Findings navigation.
+    - [x] Add Why this alert?, Why now?, expected-vs-observed, and monitoring timeline.
+    - [x] Rename the account metric to **Account Priority Score** and expected turnover
+          explicitly; remove synthetic truth from analyst row styling/sorting.
+    - [x] Replace `S` / `C` controls with labelled actions and surface save state.
+    - [ ] Browser-review the regenerated Corp_0294 journey at demo resolution.
+  - [ ] **1C · Lightweight KYC context**
+    - [ ] Add a Documents tab and local source-of-wealth retrieval worker without
+          expanding into the production-grade knowledge base planned for Part 2.
+- [ ] **Part 2 — later pilot implementation**
+  - [ ] Stateful bounded plan → collect → critique → verify loop with targeted re-entry.
+  - [ ] Governed customer knowledge base with versioned, page-level citations.
+  - [ ] Approved-source external verification and counterparty identity resolution.
+  - [ ] Incremental event-time detection, watermarks, threshold-crossing history,
+        suppression/reopen policy, and SLA measurement.
+  - [ ] Replace batch-relative presentation scoring with a governed, explainable
+        account-priority methodology.
+  - [ ] Candidate/champion evaluation gates, real canary period, verified rollback,
+        and pilot outcome evaluation.
+  - [ ] Defer authentication/authorization and platform-wide tracing to the following phase.
 - [ ] **Land the CAI-integration fixes on `main`** — all fixes are on
       `feature/cai_integration` (tip: pipeline restructure + docs). Cherry-pick / merge
       when approved. CML currently syncs the feature branch.
@@ -12,6 +40,9 @@ Current tasks, priorities, and known issues. Newest first.
       path, or keep for resilience? (owner decision)
 
 ## Known issues
+- [ ] **Frontend lint baseline** — `ToolsView.tsx` has five pre-existing
+      `react-hooks/rules-of-hooks` errors. The Part 1 investigation files pass
+      scoped `oxlint`; fix ToolsView separately so the repository-wide lint gate is green.
 - [ ] **CAII LLM broken** — `/api/health/environment` → `active_model … AttributeError:
       'str' object has no attribute 'choices'`. Investigation, verification and NARRATE
       fall back to canned output until a reachable CAII endpoint + valid model are

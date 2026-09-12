@@ -34,7 +34,8 @@ def synthetic_scored_df():
                    "customer_id": f"CUST-{i:03d}", "tx_count_24h": 3.0 if i < 4 else 0.0,
                    "tx_amount_sum_24h": 60_000.0 if i < 4 else 100.0,
                    "shared_device_flag": 1 if i < 4 else 0,
-                   "is_cross_border": 1 if i < 4 else 0}
+                   "is_cross_border": 1 if i < 4 else 0,
+                   "event_time": f"2026-09-{8 + j:02d}T12:00:00"}
             for col in FEATURE_COLS:
                 row.setdefault(col, 0.0)
             row["_base_score"] = base_score
@@ -78,7 +79,9 @@ def test_score_transactions_flags_only_suspicious_accounts(monkeypatch, db_conn,
     assert created == 4
 
     rows = db_conn.execute(
-        "SELECT account_id, risk_band, risk_score FROM alerts WHERE alert_id LIKE 'ALERT-ML-%'"
+        "SELECT account_id, risk_band, risk_score, scoring_run_at, data_cutoff_at, "
+        "window_start_at, pattern_start_at, latest_contributing_at "
+        "FROM alerts WHERE alert_id LIKE 'ALERT-ML-%'"
     ).fetchall()
     assert len(rows) == 4
     flagged_accounts = {r["account_id"] for r in rows}
@@ -88,6 +91,15 @@ def test_score_transactions_flags_only_suspicious_accounts(monkeypatch, db_conn,
     assert len(set(scores)) == 4, f"expected distinct scores per account, got {scores}"
     for s in scores:
         assert 0.63 <= s <= 0.96
+
+    for row in rows:
+        assert all(row[field] for field in (
+            "scoring_run_at", "data_cutoff_at", "window_start_at",
+            "pattern_start_at", "latest_contributing_at",
+        )), "every new alert must carry an explicit detection chronology"
+        assert row["window_start_at"] <= row["data_cutoff_at"]
+        assert row["window_start_at"] <= row["pattern_start_at"]
+        assert row["pattern_start_at"] <= row["latest_contributing_at"]
 
     tx_scores = db_conn.execute("SELECT COUNT(*), COUNT(DISTINCT score) FROM transaction_scores").fetchone()
     assert tx_scores[0] == len(synthetic_scored_df)

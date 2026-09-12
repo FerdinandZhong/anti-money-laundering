@@ -41,11 +41,14 @@ export const AlertQueue: React.FC<Props> = ({ selectedAlertId, onSelect, reloadK
   useEffect(() => { load() }, [reloadKey])   // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
-    <div className="w-[28%] shrink-0 flex flex-col bg-surface-1 rounded-lg overflow-hidden shadow-soft min-h-0">
+    <div className="w-[310px] xl:w-[330px] shrink-0 flex flex-col bg-surface-1 rounded-lg overflow-hidden shadow-soft min-h-0">
       {/* Header */}
       <div className="flex items-center gap-2.5 px-4 py-3 border-b border-surface-3 shrink-0 bg-surface-2">
         <Bell className="w-3.5 h-3.5 text-accent" />
-        <h2 className="text-sm font-semibold text-ink flex-1">Alert Queue</h2>
+        <div className="flex-1 min-w-0">
+          <h2 className="text-sm font-semibold text-ink">Alert Queue</h2>
+          <p className="text-2xs text-ink-faint">Daily account priorities</p>
+        </div>
         <span className="px-2 py-0.5 text-xs font-bold rounded-full bg-accent/10 text-accent border border-accent/20">
           {counts[status]}
         </span>
@@ -100,7 +103,11 @@ export const AlertQueue: React.FC<Props> = ({ selectedAlertId, onSelect, reloadK
                 <RiskBadge band={a.risk_band} small />
                 <span className="text-2xs text-ink-faint font-mono">{a.alert_id.slice(-12)}</span>
               </div>
-              <div className="text-xs text-ink-muted mb-2 truncate">{a.customer_id}</div>
+              <div className="text-xs font-semibold text-ink mb-0.5 truncate">{a.customer_name || a.customer_id}</div>
+              <div className="flex items-center justify-between text-2xs text-ink-faint mb-2">
+                <span className="font-mono truncate">{a.customer_id}</span>
+                <span className="shrink-0 ml-2">{a.scoring_run_at ? `Scored ${new Date(a.scoring_run_at).toLocaleTimeString('en-SG', { hour: '2-digit', minute: '2-digit' })}` : 'Daily batch'}</span>
+              </div>
               <div className="flex items-center gap-2">
                 <div className="flex-1 h-1.5 rounded-full bg-surface-3">
                   <div

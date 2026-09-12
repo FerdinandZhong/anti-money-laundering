@@ -98,6 +98,21 @@ def get_connection() -> sqlite3.Connection:
         except sqlite3.OperationalError as e:
             if "duplicate column" not in str(e).lower():
                 raise
+    # Part 1A: make the alert chronology explicit for existing databases. These
+    # values are populated by the next scoring run; older alerts remain nullable
+    # and the API derives sensible fallbacks from their transaction evidence.
+    for col in (
+        "scoring_run_at TEXT",
+        "data_cutoff_at TEXT",
+        "window_start_at TEXT",
+        "pattern_start_at TEXT",
+        "latest_contributing_at TEXT",
+    ):
+        try:
+            conn.execute(f"ALTER TABLE alerts ADD COLUMN {col}")
+        except sqlite3.OperationalError as e:
+            if "duplicate column" not in str(e).lower():
+                raise
     # ponytail: runs on every connect; idempotent (WHERE status='OPEN' is a no-op once remapped)
     conn.execute(_STATUS_BACKFILL_SQL)
     conn.commit()

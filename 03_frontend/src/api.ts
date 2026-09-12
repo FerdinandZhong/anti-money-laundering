@@ -6,10 +6,12 @@ export interface Alert {
   alert_id: string
   case_id?: string
   customer_id: string
+  customer_name?: string | null
   risk_score: number
   risk_band: string
   status: string
   created_at: string
+  scoring_run_at?: string | null
 }
 
 export interface AlertsResponse {
@@ -23,7 +25,7 @@ export interface NetworkEdge {
   source: string; target: string; relation: 'shared_device' | 'fund_flow'
   amount?: number; count?: number
 }
-export interface NetworkGraph { nodes: NetworkNode[]; edges: NetworkEdge[] }
+export interface NetworkGraph { nodes: NetworkNode[]; edges: NetworkEdge[]; hidden_flow_count?: number }
 
 export interface CaseDetail {
   case_id: string
@@ -31,19 +33,55 @@ export interface CaseDetail {
   customer_id: string
   customer_name: string
   customer_kyc_rating: string
+  customer_industry?: string | null
+  beneficial_owner?: string | null
+  kyc_last_updated?: string | null
+  kyc_documents?: KycDocument[]
+  account_id?: string | null
   risk_score: number
   risk_band: string
   triggered_rules: string[]
   reason_codes?: string[]
-  top_features?: Record<string, number>
+  top_features?: Record<string, unknown>
+  score_breakdown?: ScoreBreakdown | null
   model_version?: string
   account_age_days: number
   expected_monthly_turnover: number
+  observed_outflow_30d: number | null
+  observed_vs_expected_pct?: number | null
+  pattern_start_at?: string | null
+  latest_contributing_at?: string | null
+  window_start_at?: string | null
+  data_cutoff_at?: string | null
+  scoring_run_at?: string | null
+  alert_created_at?: string | null
+  sla_deadline?: string | null
   transactions: Transaction[]
   network?: NetworkGraph
   analysis?: string | null
   analyzed_at?: string | null
   disposition?: string | null
+}
+
+export interface KycDocument { name: string; source: string; content: string }
+
+export interface ScoreSignal {
+  label: string
+  key: string
+  weight: number
+  value: number
+  contribution: number
+}
+
+export interface ScoreBreakdown {
+  method: string
+  account_evidence_score: number | null
+  daily_queue_percentile: number
+  display_priority_score: number
+  base_priority?: number
+  rank_contribution?: number
+  jitter_contribution?: number
+  signals: ScoreSignal[]
 }
 
 export interface TxFlag { key: string; label: string; why: string }

@@ -4,15 +4,16 @@ import os
 PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 sys.path.insert(0, os.path.join(PROJECT_ROOT, "02_backend"))
 
-import hashlib
 import json
 import uuid
 import datetime
 import numpy as np
+import pandas as pd
 import xgboost as xgb
 
 from common.config import get_config
 from ml.feature_engineering import build_scored_df, FEATURE_COLS
+from ml.priority import TARGET_ALERTS, display_priority
 
 
 # Daily queue size. The scorer surfaces the TARGET_ALERTS highest-composite
@@ -20,7 +21,6 @@ from ml.feature_engineering import build_scored_df, FEATURE_COLS
 # trained model scores more/less aggressively run-to-run, so a hard threshold
 # swung the queue from ~15 to ~100 alerts. Top-N keeps it a stable, reviewable
 # size. ponytail: constant, not config — one demo-curation knob, no yaml churn.
-TARGET_ALERTS = 20
 
 
 def _risk_band(score: float) -> str:
@@ -75,7 +75,20 @@ def score_transactions(conn, model_path: str | None = None) -> int:
     # Only flag accounts where from_account_id is set
     scored = df[df["from_account_id"].notna()].copy()
 
-    now = datetime.datetime.now().isoformat()
+    # Monitoring chronology is persisted with the alert so “why now?” is data,
+    # not presenter narration. Synthetic/local sources provide ISO event_time;
+    # tests and legacy source adapters may omit it, so fail soft to the run time.
+    run_at = datetime.datetime.now()
+    if "event_time" in scored:
+        scored["_event_dt"] = pd.to_datetime(scored["event_time"], errors="coerce")
+    else:
+        scored["_event_dt"] = pd.NaT
+    data_cutoff_dt = scored["_event_dt"].max()
+    if pd.isna(data_cutoff_dt):
+        data_cutoff_dt = pd.Timestamp(run_at)
+    window_start_dt = data_cutoff_dt - pd.Timedelta(days=3)
+
+    now = run_at.isoformat()
     conn.executemany(
         "INSERT OR REPLACE INTO transaction_scores (transaction_id, account_id, score, model_version, scored_at) "
         "VALUES (?, ?, ?, ?, ?)",
@@ -83,12 +96,19 @@ def score_transactions(conn, model_path: str | None = None) -> int:
          for tid, acc, s in zip(scored["transaction_id"], scored["from_account_id"], scored["score"])],
     )
 
-    # Case-level aggregation (blueprint §7.2): roll every transaction up to the
+    # The daily queue uses the same three-day monitoring window shown in the
+    # investigation timeline. Older activity is available as context, but cannot
+    # silently influence a claimed recent-pattern alert.
+    monitored = scored[scored["_event_dt"] >= window_start_dt].copy()
+    if monitored.empty:
+        monitored = scored.copy()
+
+    # Case-level aggregation: roll every monitored transaction up to the
     # account. The trained model's per-tx probability is near-binary, so the raw
     # max collapses every alert to ~0.86. Blend the model signal with the diverse
     # account features (velocity, flow, device sharing, cross-border) into a
     # continuous account risk score that spreads realistically.
-    agg = scored.groupby("from_account_id").agg(
+    agg = monitored.groupby("from_account_id").agg(
         max_score=("score", "max"),
         above_pct=("score", lambda s: (s > threshold).mean()),
         vel=("tx_count_24h", "max"),
@@ -140,11 +160,6 @@ def score_transactions(conn, model_path: str | None = None) -> int:
     # production model would be probability-calibrated instead.
     _rank = composite.rank(pct=True)
 
-    def _jitter(acc_id: str) -> float:
-        # deterministic ±0.015 so scores look organic without RNG nondeterminism
-        h = int(hashlib.md5(str(acc_id).encode()).hexdigest(), 16) % 1000
-        return (h / 1000.0 - 0.5) * 0.03
-
     def _reasons(row) -> list[str]:
         rc = []
         if row["max_score"] > 0.9:
@@ -167,15 +182,52 @@ def score_transactions(conn, model_path: str | None = None) -> int:
     for acc_id, row in flagged.iterrows():
         # percentile rank within the flagged batch -> presentation band ~0.65-0.95
         norm = float(_rank[acc_id])
-        risk = min(0.96, max(0.63, 0.65 + 0.30 * norm + _jitter(acc_id)))
+        risk = display_priority(acc_id, norm)
         customer_id = row["customer_id"] or None
         reasons = _reasons(row)
+        # Preserve every input and weighted contribution used by the current
+        # demo priority method. It is intentionally not presented as a crime
+        # probability: the final priority also includes a batch-rank mapping.
+        # A calibrated probability + SHAP replacement is a Part 2 requirement.
+        evidence = [
+            ("Highest transaction model signal", "max_model_score", 0.45, float(row["max_score"])),
+            ("Sustained high-risk activity", "above_threshold_share", 0.15, float(row["above_pct"])),
+            ("24-hour transaction velocity", "velocity_24h", 0.15, float(vel_n[acc_id])),
+            ("24-hour fund-flow intensity", "fund_flow_24h", 0.10, float(amt_n[acc_id])),
+            ("Shared-device network", "shared_device", 0.10, float(row["dev"])),
+            ("Cross-border activity", "cross_border_share", 0.05, float(row["xborder"])),
+        ]
+        score_breakdown = {
+            "method": "weighted_account_evidence_then_daily_queue_rank",
+            "account_evidence_score": round(float(row["composite"]), 4),
+            "daily_queue_percentile": round(norm, 4),
+            "display_priority_score": round(risk, 4),
+            "signals": [
+                {
+                    "label": label,
+                    "key": key,
+                    "weight": weight,
+                    "value": round(value, 4),
+                    "contribution": round(weight * value, 4),
+                }
+                for label, key, weight, value in evidence
+            ],
+        }
+        account_rows = monitored[monitored["from_account_id"] == acc_id]
+        contributing = account_rows[
+            (account_rows["score"] > threshold)
+            & (account_rows["_event_dt"].isna() | (account_rows["_event_dt"] >= window_start_dt))
+        ]
+        contributing_times = contributing["_event_dt"].dropna()
+        pattern_start = contributing_times.min() if len(contributing_times) else window_start_dt
+        latest_contributing = contributing_times.max() if len(contributing_times) else data_cutoff_dt
 
         alert_id = f"ALERT-ML-{uuid.uuid4().hex[:10].upper()}"
         conn.execute(
             "INSERT INTO alerts (alert_id, customer_id, account_id, triggered_rules, risk_score, "
-            "risk_band, reason_codes, model_version, status, sla_deadline) "
-            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'OPEN', ?)",
+            "risk_band, reason_codes, top_features, model_version, status, sla_deadline, scoring_run_at, "
+            "data_cutoff_at, window_start_at, pattern_start_at, latest_contributing_at) "
+            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'OPEN', ?, ?, ?, ?, ?, ?)",
             (
                 alert_id,
                 customer_id,
@@ -184,8 +236,14 @@ def score_transactions(conn, model_path: str | None = None) -> int:
                 round(risk, 4),
                 _risk_band(risk),
                 json.dumps(reasons),
+                json.dumps({"score_breakdown": score_breakdown}),
                 model_version,
                 sla,
+                now,
+                data_cutoff_dt.isoformat(),
+                window_start_dt.isoformat(),
+                pattern_start.isoformat(),
+                latest_contributing.isoformat(),
             ),
         )
         new_count += 1

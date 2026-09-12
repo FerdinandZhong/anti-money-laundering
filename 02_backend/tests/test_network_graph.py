@@ -23,6 +23,18 @@ def test_fund_flow_edges_empty():
     assert fund_flow_edges([], "ACC-ROOT") == []
 
 
+def test_fund_flow_uses_account_endpoints_over_ambiguous_direction_label():
+    from common.source import fund_flow_edges
+    edges = fund_flow_edges([{
+        "direction": "INBOUND", "from_account_id": "ACC-ROOT",
+        "to_account_id": "ACC-OTHER", "amount": 45592.61,
+    }], "ACC-ROOT")
+    assert edges == [{
+        "source": "ACC-ROOT", "target": "ACC-OTHER", "relation": "fund_flow",
+        "amount": 45592.61, "count": 1,
+    }]
+
+
 def test_get_network_graph_lone_account_is_failsoft(monkeypatch):
     from agents import tools
     monkeypatch.setattr(tools.source, "device_fingerprints", lambda a: [])
@@ -30,7 +42,10 @@ def test_get_network_graph_lone_account_is_failsoft(monkeypatch):
     monkeypatch.setattr(tools.source, "account_transactions", lambda a, limit=200: [])
     monkeypatch.setattr(tools.source, "get_account", lambda a: None)
     g = tools.get_network_graph(None, "ACC-LONE")
-    assert g == {"nodes": [{"id": "ACC-LONE", "type": "collector", "is_root": True, "label": "ACC-LONE"}], "edges": []}
+    assert g == {
+        "nodes": [{"id": "ACC-LONE", "type": "collector", "is_root": True, "label": "ACC-LONE"}],
+        "edges": [], "hidden_flow_count": 0,
+    }
 
 
 def test_get_network_graph_funnel(monkeypatch):
@@ -49,3 +64,4 @@ def test_get_network_graph_funnel(monkeypatch):
     assert types["Oversea Beneficiary 1 Ltd"] == "beneficiary"
     relations = {e["relation"] for e in g["edges"]}
     assert relations == {"shared_device", "fund_flow"}
+    assert g["hidden_flow_count"] == 0

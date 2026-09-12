@@ -7,7 +7,7 @@ sys.path.insert(0, os.path.join(PROJECT_ROOT, "02_backend"))
 import json
 import sqlite3
 import threading
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from uuid import uuid4
 
 from fastapi import FastAPI, Depends, HTTPException
@@ -22,6 +22,7 @@ from agents.supervisor import run_investigation
 from agents.tools import get_network_graph
 from agents import llm_client
 from ml.drift_monitor import get_drift_summary
+from ml.priority import recover_legacy_queue_position
 from agents.retraining import run_retraining
 
 # docs/openapi under /api so they're reachable through the frontend proxy
@@ -108,7 +109,17 @@ def list_alerts(
         (status, limit, offset),
     ).fetchall()
     total = conn.execute("SELECT COUNT(*) FROM alerts WHERE status = ?", (status,)).fetchone()[0]
-    return {"alerts": [dict(r) for r in rows], "total": total}
+    alerts = []
+    for row in rows:
+        alert = dict(row)
+        try:
+            customer = source.get_customer(alert["customer_id"]) or {}
+            alert["customer_name"] = customer.get("name")
+        except Exception:
+            # Queue availability is more important than optional source enrichment.
+            alert["customer_name"] = None
+        alerts.append(alert)
+    return {"alerts": alerts, "total": total}
 
 
 @app.get("/api/alerts/counts")
@@ -145,6 +156,18 @@ def _json_obj(raw) -> dict:
         return {}
 
 
+def _parse_time(raw):
+    if not raw:
+        return None
+    try:
+        parsed = datetime.fromisoformat(str(raw).replace("Z", "+00:00"))
+        if parsed.tzinfo:
+            parsed = parsed.astimezone(timezone.utc).replace(tzinfo=None)
+        return parsed
+    except (TypeError, ValueError):
+        return None
+
+
 @app.get("/api/alerts/{alert_id}/detail")
 def get_alert_detail(alert_id: str, conn=Depends(get_db)):
     """Flat, alert-driven case detail. Creates the case on first open so the
@@ -171,12 +194,14 @@ def get_alert_detail(alert_id: str, conn=Depends(get_db)):
 
     # Source (reference) data comes from the source layer (Impala/CSV), not SQLite.
     customer = source.get_customer(alert["customer_id"]) or {}
+    accounts = source.get_accounts(alert["customer_id"])
+    selected_account_id = alert.get("account_id") or (accounts[0]["account_id"] if accounts else None)
 
     # KEY transactions for this alert = this account's highest-scoring transactions.
     # Per-account tx counts can be huge, so rank in SQL via transaction_scores
     # (keyed by account_id) instead of pulling every transaction. Falls back to
     # recent transactions for DBs scored before account_id existed.
-    acct_ids = [a["account_id"] for a in source.get_accounts(alert["customer_id"])] or [alert["customer_id"]]
+    acct_ids = [a["account_id"] for a in accounts] or [alert.get("account_id") or alert["customer_id"]]
     aph = ",".join("?" * len(acct_ids))
     top = conn.execute(
         f"SELECT transaction_id, score FROM transaction_scores "
@@ -217,7 +242,7 @@ def get_alert_detail(alert_id: str, conn=Depends(get_db)):
         row = {
             "transaction_id": t.get("transaction_id"),
             "event_time": t.get("event_time"),
-            "direction": t.get("direction"),
+            "direction": source.account_flow_direction(t, selected_account_id) or t.get("direction"),
             "amount": t.get("amount"),
             "channel": t.get("channel"),
             "counterparty_name": t.get("counterparty_name"),
@@ -242,27 +267,85 @@ def get_alert_detail(alert_id: str, conn=Depends(get_db)):
     transactions = transactions[:20]
     transactions.sort(key=lambda r: (r.get("event_time") or ""), reverse=True)
 
-    accounts = source.get_accounts(alert["customer_id"])
-    root_account_id = accounts[0]["account_id"] if accounts else alert["customer_id"]
+    root_account_id = selected_account_id or alert["customer_id"]
     try:
         network = get_network_graph(None, root_account_id)
     except Exception:
         network = {"nodes": [{"id": root_account_id, "type": "collector", "is_root": True}], "edges": []}
 
+    # “Why now?” chronology. New scorer runs persist these fields; evidence-based
+    # fallbacks keep legacy alerts coherent until the next clean generation.
+    evidence_times = sorted(
+        dt for dt in (_parse_time(t.get("event_time")) for t in transactions) if dt
+    )
+    data_cutoff = _parse_time(alert.get("data_cutoff_at")) or (evidence_times[-1] if evidence_times else None)
+    pattern_start = _parse_time(alert.get("pattern_start_at")) or (evidence_times[0] if evidence_times else None)
+    latest_contributing = _parse_time(alert.get("latest_contributing_at")) or data_cutoff
+    window_start = _parse_time(alert.get("window_start_at"))
+    if not window_start and data_cutoff:
+        window_start = data_cutoff - timedelta(days=3)
+    scoring_run = _parse_time(alert.get("scoring_run_at")) or _parse_time(alert.get("created_at"))
+
+    # Compare observed 30-day outbound flow with the KYC expectation. This is an
+    # observed business metric, distinct from the ML priority score.
+    observed_outflow_30d = None
+    try:
+        history_by_id = {}
+        for account_id in acct_ids:
+            for tx in source.account_transactions(account_id, limit=5000):
+                if tx.get("transaction_id"):
+                    history_by_id[tx["transaction_id"]] = tx
+        cutoff = data_cutoff or datetime.now()
+        start = cutoff - timedelta(days=30)
+        observed_outflow_30d = round(sum(
+            float(t.get("amount") or 0)
+            for t in history_by_id.values()
+            if t.get("from_account_id") in set(acct_ids)
+            and (event_dt := _parse_time(t.get("event_time")))
+            and start <= event_dt <= cutoff
+        ), 2)
+    except Exception:
+        pass
+    expected_turnover = float(customer.get("expected_monthly_turnover") or 0)
+
+    def _iso(dt):
+        return dt.isoformat() if dt else None
+
+    top_features = _json_obj(alert.get("top_features"))
+    score_breakdown = top_features.get("score_breakdown")
+    if score_breakdown is None and alert_id.startswith("ALERT-ML-"):
+        score_breakdown = recover_legacy_queue_position(
+            alert.get("account_id"), alert.get("risk_score")
+        )
     return {
         "case_id": case_id,
         "alert_id": alert_id,
         "customer_id": alert["customer_id"],
         "customer_name": customer.get("name", alert["customer_id"]),
         "customer_kyc_rating": customer.get("risk_rating", "MEDIUM"),
+        "customer_industry": customer.get("industry"),
+        "beneficial_owner": customer.get("beneficial_owner"),
+        "kyc_last_updated": customer.get("kyc_last_updated"),
+        "kyc_documents": source.customer_kyc_documents(alert["customer_id"]),
+        "account_id": alert.get("account_id") or root_account_id,
         "risk_score": alert.get("risk_score", 0.0),
         "risk_band": alert.get("risk_band", "MEDIUM"),
         "triggered_rules": _json_list(alert.get("triggered_rules")),
         "reason_codes": _json_list(alert.get("reason_codes")),
-        "top_features": _json_obj(alert.get("top_features")),
+        "top_features": top_features,
+        "score_breakdown": score_breakdown,
         "model_version": alert.get("model_version"),
         "account_age_days": customer.get("account_age_days", 0),
-        "expected_monthly_turnover": customer.get("expected_monthly_turnover", 0),
+        "expected_monthly_turnover": expected_turnover,
+        "observed_outflow_30d": observed_outflow_30d,
+        "observed_vs_expected_pct": round(observed_outflow_30d / expected_turnover * 100, 1) if observed_outflow_30d is not None and expected_turnover else None,
+        "pattern_start_at": _iso(pattern_start),
+        "latest_contributing_at": _iso(latest_contributing),
+        "window_start_at": _iso(window_start),
+        "data_cutoff_at": _iso(data_cutoff),
+        "scoring_run_at": _iso(scoring_run),
+        "alert_created_at": alert.get("created_at"),
+        "sla_deadline": alert.get("sla_deadline"),
         "transactions": transactions,
         "network": network,
         "analysis": case.get("analysis"),

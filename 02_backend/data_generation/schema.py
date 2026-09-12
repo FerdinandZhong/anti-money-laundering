@@ -66,6 +66,11 @@ CREATE TABLE IF NOT EXISTS alerts (
     model_version TEXT,
     status TEXT DEFAULT 'OPEN',
     sla_deadline TEXT,
+    scoring_run_at TEXT,
+    data_cutoff_at TEXT,
+    window_start_at TEXT,
+    pattern_start_at TEXT,
+    latest_contributing_at TEXT,
     created_at TEXT DEFAULT (datetime('now'))
 );
 
@@ -132,6 +137,7 @@ CREATE TABLE IF NOT EXISTS deployments (
 
 CREATE TABLE IF NOT EXISTS transaction_scores (
     transaction_id TEXT PRIMARY KEY,
+    account_id TEXT,
     score REAL NOT NULL,
     model_version TEXT,
     scored_at TEXT DEFAULT (datetime('now'))

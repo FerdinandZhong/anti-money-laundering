@@ -39,6 +39,10 @@ def get_customer_profile(conn, customer_id: str) -> dict:
     return result
 
 
+def get_customer_kyc_documents(conn, customer_id: str) -> list[dict]:
+    return source.customer_kyc_documents(customer_id)
+
+
 def get_transaction_history(conn, account_id: str, limit: int = 50) -> list[dict]:
     return source.account_transactions(account_id, limit)
 
@@ -48,7 +52,11 @@ def get_network_graph(conn, account_id: str) -> dict:
     linked = source.accounts_by_fingerprints(fp_list) if fp_list else []
 
     txns = source.account_transactions(account_id, limit=200)
-    flow = source.fund_flow_edges(txns, account_id)
+    all_flow = source.fund_flow_edges(txns, account_id)
+    # A case can have dozens of one-off counterparties. The dedicated graph is
+    # an investigation canvas, not a transaction table, so show the strongest
+    # flows and direct analysts to the complete transaction evidence for detail.
+    flow = sorted(all_flow, key=lambda edge: (edge.get("amount", 0), edge.get("count", 0)), reverse=True)[:12]
 
     # node set: root + device-linked accounts + every endpoint named by a flow edge
     node_ids = {account_id}
@@ -82,7 +90,7 @@ def get_network_graph(conn, account_id: str) -> dict:
     edges = [{"source": account_id, "target": aid, "relation": "shared_device"}
              for aid in linked if aid != account_id]
     edges.extend(flow)
-    return {"nodes": nodes, "edges": edges}
+    return {"nodes": nodes, "edges": edges, "hidden_flow_count": max(0, len(all_flow) - len(flow))}
 
 
 def get_device_overlap(conn, account_id: str) -> list[dict]:
@@ -140,6 +148,7 @@ def get_drift_summary_tool(conn) -> dict:
 TOOLS: dict[str, Callable] = {
     "get_alert_detail": get_alert_detail,
     "get_customer_profile": get_customer_profile,
+    "get_customer_kyc_documents": get_customer_kyc_documents,
     "get_transaction_history": get_transaction_history,
     "get_network_graph": get_network_graph,
     "get_device_overlap": get_device_overlap,

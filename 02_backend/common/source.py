@@ -23,6 +23,7 @@ resolved backend is decided once per process and logged.
 import json
 import os
 import socket
+from pathlib import Path
 
 import pandas as pd
 
@@ -33,6 +34,7 @@ SOURCE_TABLES = ["customers", "accounts", "transactions", "devices"]
 _backend: str | None = None
 _impala_conn = None
 _csv_cache: dict[str, pd.DataFrame] = {}
+_KYC_DOCUMENT_ROOT = Path(PROJECT_ROOT) / "data" / "kyc_documents"
 
 
 # ── backend resolution ────────────────────────────────────────────────────
@@ -276,6 +278,41 @@ def account_transactions(account_id: str, limit: int = 50) -> list[dict]:
     return _records(tx)
 
 
+def account_flow_direction(transaction: dict, account_id: str) -> str | None:
+    """Return flow direction relative to an account, using endpoints first.
+
+    Some source feeds label direction from the receiving participant's point of
+    view. Endpoint ownership is therefore the authoritative interpretation.
+    """
+    if transaction.get("from_account_id") == account_id:
+        return "OUTBOUND"
+    if transaction.get("to_account_id") == account_id:
+        return "INBOUND"
+    direction = str(transaction.get("direction") or "").upper()
+    return direction if direction in {"INBOUND", "OUTBOUND"} else None
+
+
+def customer_kyc_documents(customer_id: str) -> list[dict]:
+    """Return local synthetic onboarding records for the lightweight demo tab."""
+    safe_id = "".join(c for c in customer_id if c.isalnum() or c in "-_")
+    if safe_id != customer_id:
+        return []
+    directory = _KYC_DOCUMENT_ROOT / safe_id
+    if not directory.is_dir():
+        return []
+    documents = []
+    for path in sorted(directory.glob("*.md")):
+        try:
+            documents.append({
+                "name": path.stem.replace("_", " ").title(),
+                "source": "Onboarding KYC record",
+                "content": path.read_text(encoding="utf-8"),
+            })
+        except OSError:
+            continue
+    return documents
+
+
 def transactions_by_ids(ids: list[str]) -> list[dict]:
     """Fetch specific transactions by id (small set, e.g. an alert's top-scoring
     rows). Order is not guaranteed; the caller re-orders."""
@@ -395,14 +432,16 @@ def fund_flow_edges(transactions: list[dict], root_account_id: str) -> list[dict
     to_account_id or counterparty_name). Pure: no I/O. Fail-soft on [] -> []."""
     agg: dict[tuple[str, str], dict] = {}
     for t in transactions:
-        direction = (t.get("direction") or "").upper()
+        direction = account_flow_direction(t, root_account_id)
         amount = float(t.get("amount") or 0.0)
         if direction == "INBOUND":
             src = t.get("from_account_id") or t.get("counterparty_name") or "unknown"
             dst = root_account_id
-        else:  # OUTBOUND (default)
+        elif direction == "OUTBOUND":
             src = root_account_id
             dst = t.get("to_account_id") or t.get("counterparty_name") or "unknown"
+        else:
+            continue
         if not src or not dst or src == dst:
             continue
         key = (src, dst)

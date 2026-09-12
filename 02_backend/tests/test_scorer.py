@@ -16,6 +16,30 @@ def test_risk_band_boundaries():
     assert _risk_band(0.49) == "LOW"
 
 
+def test_legacy_priority_recovers_only_verifiable_queue_arithmetic():
+    from ml.priority import display_priority, recover_legacy_queue_position
+
+    # Saved alerts from the 20-account demo batch. The weighted account inputs
+    # were not saved, but their display priorities still encode queue position.
+    for account_id, saved_score, expected_percentile in (
+        ("ACC-NETWORK-001", 0.9154, 0.85),
+        ("ACC-0000294", 0.9406, 0.95),
+    ):
+        breakdown = recover_legacy_queue_position(account_id, saved_score)
+        assert breakdown is not None
+        assert breakdown["daily_queue_percentile"] == expected_percentile
+        assert breakdown["account_evidence_score"] is None
+        assert breakdown["signals"] == []
+        assert sum(breakdown[k] for k in (
+            "base_priority", "rank_contribution", "jitter_contribution"
+        )) == pytest.approx(saved_score, abs=0.000051)
+        assert display_priority(account_id, expected_percentile) == pytest.approx(saved_score, abs=0.000051)
+
+    assert recover_legacy_queue_position("ACC-NETWORK-001", 0.91) is None
+    assert recover_legacy_queue_position("ACC-NETWORK-001", 0.96) is None
+    assert recover_legacy_queue_position(None, 0.9154) is None
+
+
 @pytest.fixture
 def synthetic_scored_df():
     """20 accounts, each with a handful of transactions, model score encoded as

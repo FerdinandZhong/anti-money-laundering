@@ -4,7 +4,6 @@ import os
 PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 sys.path.insert(0, os.path.join(PROJECT_ROOT, "02_backend"))
 
-import hashlib
 import json
 import uuid
 import datetime
@@ -14,6 +13,7 @@ import xgboost as xgb
 
 from common.config import get_config
 from ml.feature_engineering import build_scored_df, FEATURE_COLS
+from ml.priority import TARGET_ALERTS, display_priority
 
 
 # Daily queue size. The scorer surfaces the TARGET_ALERTS highest-composite
@@ -21,7 +21,6 @@ from ml.feature_engineering import build_scored_df, FEATURE_COLS
 # trained model scores more/less aggressively run-to-run, so a hard threshold
 # swung the queue from ~15 to ~100 alerts. Top-N keeps it a stable, reviewable
 # size. ponytail: constant, not config — one demo-curation knob, no yaml churn.
-TARGET_ALERTS = 20
 
 
 def _risk_band(score: float) -> str:
@@ -154,11 +153,6 @@ def score_transactions(conn, model_path: str | None = None) -> int:
     # production model would be probability-calibrated instead.
     _rank = composite.rank(pct=True)
 
-    def _jitter(acc_id: str) -> float:
-        # deterministic ±0.015 so scores look organic without RNG nondeterminism
-        h = int(hashlib.md5(str(acc_id).encode()).hexdigest(), 16) % 1000
-        return (h / 1000.0 - 0.5) * 0.03
-
     def _reasons(row) -> list[str]:
         rc = []
         if row["max_score"] > 0.9:
@@ -181,7 +175,7 @@ def score_transactions(conn, model_path: str | None = None) -> int:
     for acc_id, row in flagged.iterrows():
         # percentile rank within the flagged batch -> presentation band ~0.65-0.95
         norm = float(_rank[acc_id])
-        risk = min(0.96, max(0.63, 0.65 + 0.30 * norm + _jitter(acc_id)))
+        risk = display_priority(acc_id, norm)
         customer_id = row["customer_id"] or None
         reasons = _reasons(row)
         # Preserve every input and weighted contribution used by the current

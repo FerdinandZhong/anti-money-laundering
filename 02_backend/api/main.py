@@ -22,6 +22,7 @@ from agents.supervisor import run_investigation
 from agents.tools import get_network_graph
 from agents import llm_client
 from ml.drift_monitor import get_drift_summary
+from ml.priority import recover_legacy_queue_position
 from agents.retraining import run_retraining
 
 # docs/openapi under /api so they're reachable through the frontend proxy
@@ -307,6 +308,10 @@ def get_alert_detail(alert_id: str, conn=Depends(get_db)):
 
     top_features = _json_obj(alert.get("top_features"))
     score_breakdown = top_features.get("score_breakdown")
+    if score_breakdown is None and alert_id.startswith("ALERT-ML-"):
+        score_breakdown = recover_legacy_queue_position(
+            alert.get("account_id"), alert.get("risk_score")
+        )
     return {
         "case_id": case_id,
         "alert_id": alert_id,

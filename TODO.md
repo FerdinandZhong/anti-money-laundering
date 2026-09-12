@@ -20,6 +20,8 @@ Current tasks, priorities, and known issues. Newest first.
           relationship legend, instead of a compact/collapsible chart.
     - [x] Persist and show the weighted account-evidence inputs, daily queue
           percentile, and priority mapping for every newly scored alert.
+    - [x] Recover and show the verifiable queue-rank arithmetic for older local
+          alerts whose original weighted signal values were never stored.
     - [ ] Browser-review the regenerated Corp_0294 journey at demo resolution.
   - [ ] **1C · Lightweight KYC context**
     - [ ] Add a Documents tab and local source-of-wealth retrieval worker without

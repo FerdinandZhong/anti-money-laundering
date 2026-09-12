@@ -72,9 +72,12 @@ export interface ScoreSignal {
 
 export interface ScoreBreakdown {
   method: string
-  account_evidence_score: number
+  account_evidence_score: number | null
   daily_queue_percentile: number
   display_priority_score: number
+  base_priority?: number
+  rank_contribution?: number
+  jitter_contribution?: number
   signals: ScoreSignal[]
 }
 

@@ -282,10 +282,22 @@ const ScoreCalculation: React.FC<{ detail: CaseDetail }> = ({ detail }) => {
         </div>
         <div className={`text-2xl font-black tabular-nums shrink-0 ${RISK_SCORE_COLOR(detail.risk_score)}`}>{(detail.risk_score * 100).toFixed(0)}%</div>
       </div>
-      {breakdown ? (
+      {breakdown?.method === 'recovered_legacy_queue_mapping' ? (
+        <div className="space-y-3">
+          <div className="grid grid-cols-3 gap-3">
+            <ScoreStep label="Base review priority" value={`${((breakdown.base_priority ?? 0) * 100).toFixed(0)} points`} />
+            <ScoreStep label={`Daily queue rank · ${(breakdown.daily_queue_percentile * 100).toFixed(0)}th percentile`}
+              value={`+${((breakdown.rank_contribution ?? 0) * 100).toFixed(2)} points`} />
+            <ScoreStep label="Deterministic display offset" value={`${(breakdown.jitter_contribution ?? 0) >= 0 ? '+' : ''}${((breakdown.jitter_contribution ?? 0) * 100).toFixed(2)} points`} />
+          </div>
+          <p className="text-xs text-ink-muted leading-5">
+            These three values reproduce the stored {(detail.risk_score * 100).toFixed(2)}% review priority. The offset is for display, not risk evidence. The weighted inputs that set this older alert’s queue rank were not saved; its recorded risk signals are shown in “Why this alert?”.
+          </p>
+        </div>
+      ) : breakdown ? (
         <>
           <div className="grid grid-cols-3 gap-3 mb-4">
-            <ScoreStep label="1 · Weighted account evidence" value={`${(breakdown.account_evidence_score * 100).toFixed(1)} / 100`} />
+            <ScoreStep label="1 · Weighted account evidence" value={breakdown.account_evidence_score == null ? 'Unavailable' : `${(breakdown.account_evidence_score * 100).toFixed(1)} / 100`} />
             <ScoreStep label="2 · Daily queue position" value={`${(breakdown.daily_queue_percentile * 100).toFixed(0)}th percentile`} />
             <ScoreStep label="3 · Review priority" value={`${(breakdown.display_priority_score * 100).toFixed(0)}%`} accent />
           </div>
@@ -306,7 +318,7 @@ const ScoreCalculation: React.FC<{ detail: CaseDetail }> = ({ detail }) => {
         </>
       ) : (
         <div className="rounded-lg bg-surface-2 px-3 py-3 text-xs text-ink-muted">
-          This is a legacy alert created before the reproducible score breakdown was persisted. Its rule evidence is visible above; run a refreshed scoring batch to display the weighted inputs and queue position.
+          A score breakdown is unavailable for this alert. The recorded risk signals are shown in “Why this alert?”.
         </div>
       )}
     </section>

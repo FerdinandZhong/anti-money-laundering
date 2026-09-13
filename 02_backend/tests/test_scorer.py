@@ -200,3 +200,12 @@ def test_score_transactions_caps_queue_at_target_alerts(monkeypatch, db_conn):
 
     total = db_conn.execute("SELECT COUNT(*) FROM alerts WHERE alert_id LIKE 'ALERT-ML-%'").fetchone()[0]
     assert total == scorer.TARGET_ALERTS
+
+    # A retraining-triggered scoring pass must refresh transaction scores without
+    # appending a second top-N batch to the analyst's already-full Open queue.
+    created_again = scorer.score_transactions(db_conn, model_path="aml_model_vtest.json")
+    assert created_again == 0
+    open_total = db_conn.execute(
+        "SELECT COUNT(*) FROM alerts WHERE alert_id LIKE 'ALERT-ML-%' AND status='OPEN'"
+    ).fetchone()[0]
+    assert open_total == scorer.TARGET_ALERTS

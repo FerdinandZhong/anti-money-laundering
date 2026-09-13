@@ -95,6 +95,6 @@ then Project → **Applications → New Application**:
 - Leave **Enable Unauthenticated Access** OFF.
 
 ## GitHub Actions (CI/CD)
-`.github/workflows/deploy-to-cml.yml` runs the whole chain on push to `main` (or
-manual dispatch). Required repo secrets: `CML_HOST`, `CML_API_KEY`,
+`.github/workflows/deploy-to-cml.yml` runs the whole chain by **manual dispatch**
+only; merging a pull request into `main` does not deploy. Required repo secrets: `CML_HOST`, `CML_API_KEY`,
 `RUNTIME_IDENTIFIER`. Optional: `GH_PAT` (clone a private repo), `IMPALA_PASSWORD`.

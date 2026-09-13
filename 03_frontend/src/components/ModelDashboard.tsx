@@ -19,7 +19,7 @@ const BAND_COLOR: Record<string, string> = {
   CRITICAL: '#dc2626', HIGH: '#ea580c', MEDIUM: '#d97706', LOW: '#059669',
 }
 
-const RT_PHASES = ['PREPARE', 'TRAIN', 'CANARY', 'PROMOTE', 'NARRATE']
+const RT_PHASES = ['PREPARE', 'TRAIN', 'CANARY', 'PROMOTE', 'SCORE', 'NARRATE']
 
 // Mirrors the step names yielded by 02_backend/agents/retraining.py, grouped by phase.
 const RT_STEP_PHASE: Record<string, string> = {
@@ -27,6 +27,7 @@ const RT_STEP_PHASE: Record<string, string> = {
   create_job: 'TRAIN', run_job: 'TRAIN', train_workbench: 'TRAIN', train_local: 'TRAIN',
   canary_deploy: 'CANARY', canary_record: 'CANARY',
   promote: 'PROMOTE',
+  score: 'SCORE',
 }
 
 const STATUS_CFG: Record<string, { textCls: string; dotCls: string }> = {
@@ -80,9 +81,18 @@ export const ModelDashboard: React.FC = () => {
   // recently dated completed run — those diverge after a rollback, or when
   // /model/runs (limited to 10) no longer includes the champion's run.
   const championRun = dep ? runs.find(r => r.model_version === dep.model_version) : undefined
-  const latestRun = championRun ?? runs.filter(r => r.status.startsWith('COMPLET')).at(-1)
+  // /api/model/runs is newest-first for the history table. Its first completed
+  // row is therefore the latest fallback, while the trend below uses a separate
+  // oldest-first copy so time moves left → right.
+  const latestRun = championRun ?? runs.find(r => r.status.startsWith('COMPLET'))
   const prAuc     = latestRun ? (runMetrics(latestRun).pr_auc?.toFixed(3) ?? '—') : '—'
   const amountPsi   = drift?.features?.find(f => f.feature === 'amount_log')?.psi ?? 0
+  const runsChronological = [...runs].sort((a, b) => {
+    const byTime = new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+    return Number.isNaN(byTime) || byTime === 0
+      ? a.model_version.localeCompare(b.model_version)
+      : byTime
+  })
 
   const handleRetrainEvent = (e: Record<string, unknown>) => {
     switch (e.type) {
@@ -341,7 +351,7 @@ export const ModelDashboard: React.FC = () => {
           {runs.length > 0 ? (
             <ResponsiveContainer width="100%" height={200}>
               <LineChart
-                data={runs.map(r => ({ version: r.model_version.slice(-8), pr_auc: runMetrics(r).pr_auc ?? null }))}
+                data={runsChronological.map(r => ({ version: r.model_version.slice(-8), pr_auc: runMetrics(r).pr_auc ?? null }))}
                 margin={{ top: 4, right: 10, left: -10, bottom: 0 }}
               >
                 <CartesianGrid strokeDasharray="3 3" stroke={C.grid} />

@@ -16,11 +16,11 @@ from ml.feature_engineering import build_scored_df, FEATURE_COLS
 from ml.priority import TARGET_ALERTS, display_priority
 
 
-# Daily queue size. The scorer surfaces the TARGET_ALERTS highest-composite
-# accounts rather than everything above a fixed score threshold — a freshly
-# trained model scores more/less aggressively run-to-run, so a hard threshold
-# swung the queue from ~15 to ~100 alerts. Top-N keeps it a stable, reviewable
-# size. ponytail: constant, not config — one demo-curation knob, no yaml churn.
+# Daily queue size. The scorer surfaces only enough of the highest-composite
+# accounts to fill this review capacity. A freshly trained model scores more/less
+# aggressively run-to-run, so a hard threshold swung the queue from ~15 to ~100
+# alerts. This cap also means retraining never creates a second batch alongside
+# work that analysts already have open.
 
 
 def _risk_band(score: float) -> str:
@@ -141,17 +141,21 @@ def score_transactions(conn, model_path: str | None = None) -> int:
     floored = agg[(agg["max_score"] > 0.5) | (agg["above_pct"] > 0.0)]
     candidates = (floored if len(floored) > 0 else agg).copy()
 
-    # Existing OPEN alerts (dedupe by account): each run surfaces the top new
-    # accounts, so exclude already-open ones before ranking.
+    # Existing OPEN alerts represent analyst work already in the queue. Preserve
+    # them (and their original model/evidence snapshot) rather than appending a
+    # new set whenever a retrained champion is promoted. Scoring still refreshes
+    # transaction_scores above, but new alerts only fill spare review capacity.
     existing = set(
         r[0] for r in conn.execute(
             "SELECT account_id FROM alerts WHERE status='OPEN' AND account_id IS NOT NULL"
         ).fetchall()
     )
     candidates = candidates[~candidates.index.isin(existing)]
+    remaining_slots = max(0, TARGET_ALERTS - len(existing))
 
-    # The day's queue: the TARGET_ALERTS highest-composite accounts.
-    flagged = candidates.nlargest(TARGET_ALERTS, "composite").copy()
+    # The day's queue: only the highest-composite accounts needed to reach the
+    # fixed review capacity. A full active queue produces zero new alert rows.
+    flagged = candidates.nlargest(remaining_slots, "composite").copy()
     composite = flagged["composite"]
 
     # Spread the flagged set across the presentation band. The composite is
@@ -266,12 +270,15 @@ if __name__ == "__main__":
             "FROM alerts WHERE alert_id LIKE 'ALERT-ML%'"
         ).fetchone()
         if n_alerts:
-            # guard against alert-volume regression: a single fresh run surfaces
-            # exactly TARGET_ALERTS accounts (top-N), so the queue must not
-            # exceed it, and at least one lands in CRITICAL after band spread.
-            assert n_alerts <= TARGET_ALERTS and (n_critical or 0) >= 1, \
-                f"alert-volume regression: {n_alerts} alerts (cap {TARGET_ALERTS}), {n_critical} CRITICAL"
-            print(f"[scorer] ML alerts: {n_alerts} total, {n_critical} CRITICAL")
+            # Keep the active analyst queue bounded. Historical CLOSED alerts
+            # are intentionally excluded from this operational capacity check.
+            n_open, n_open_critical = conn.execute(
+                "SELECT COUNT(*), SUM(CASE WHEN risk_band='CRITICAL' THEN 1 ELSE 0 END) "
+                "FROM alerts WHERE alert_id LIKE 'ALERT-ML%' AND status='OPEN'"
+            ).fetchone()
+            assert n_open <= TARGET_ALERTS and (n_open == 0 or (n_open_critical or 0) >= 1), \
+                f"alert-volume regression: {n_open} OPEN alerts (cap {TARGET_ALERTS}), {n_open_critical} CRITICAL"
+            print(f"[scorer] ML alerts: {n_open} OPEN, {n_open_critical} CRITICAL")
 
         n_tx_scores, n_tx_distinct = conn.execute(
             "SELECT COUNT(*), COUNT(DISTINCT score) FROM transaction_scores"

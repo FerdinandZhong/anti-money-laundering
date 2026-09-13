@@ -4,8 +4,8 @@ Runs after Train in the chain (… -> train -> score -> launch) so the app comes
 with a ready, risk-ranked alert queue. Pure scoring: no training, no app launch.
 
 Uses the promoted CHAMPION to score transactions and insert the top-N ALERT-ML
-rows (see ml/scorer.py). Idempotent by account — re-running only surfaces new
-accounts, never duplicates an already-open one.
+rows (see ml/scorer.py). Idempotent by account and review capacity — re-running
+only fills vacant slots, never duplicates or appends beyond the active queue.
 
 CML runs job scripts in an IPython engine where __name__ != "__main__" and
 sys.exit is treated as failure — so call main() unguarded and raise on error.

@@ -20,8 +20,6 @@ on:
         required: false
         default: 'aml-platform'
         type: string
-  push:
-    branches: [main]
 
 jobs:
   # Fail fast (seconds, before any build) if required repo secrets are missing —

@@ -170,15 +170,23 @@ def run_retraining(triggered_by: str = "manual") -> Generator[dict, None, None]:
                  detail=f"{deployment_id} ({model_version}) → CHAMPION; scorer + Dashboard now use it")
 
         # ── SCORE ─────────────────────────────────────────────────────────────
-        # Refresh the alert queue with the freshly promoted champion. Without
-        # this the retrain flow leaves a model but no alerts (empty dashboard) —
-        # the scorer is the only thing that writes the ALERT-ML queue.
+        # Score transaction data with the freshly promoted champion. The scorer
+        # only fills vacant queue capacity, so active alerts retain the original
+        # evidence snapshot their analyst is already reviewing.
         yield _e("phase", phase="SCORE")
         try:
             from ml.scorer import score_transactions
             created = score_transactions(conn)
+            open_alerts = conn.execute(
+                "SELECT COUNT(*) FROM alerts WHERE status='OPEN'"
+            ).fetchone()[0]
+            detail = (
+                f"scored champion → {created} new alert(s); {open_alerts} OPEN in the review queue"
+                if created else
+                f"scored champion; retained {open_alerts} existing OPEN alert(s) and their case evidence"
+            )
             yield _e("step", step="score", status="ok",
-                     detail=f"scored champion → {created} new alert(s) in the queue")
+                     detail=detail)
         except Exception as ex:
             yield _e("step", step="score", status="error", detail=f"scoring failed: {ex}")
 

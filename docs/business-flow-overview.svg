@@ -123,7 +123,7 @@
   <g id="node-evidence" data-graph-role="node" data-node-id="evidence" data-semantic-role="rect" data-motion-role="" data-motion-stage="" data-motion-order="" data-parent="" data-deployment-id="" data-topic-id="" data-span-id="" data-station-order="" data-status="" data-start-ms="" data-duration-ms="" data-parent-span="" data-graph-bounds="90,314,290,406">
   <rect x="90.0" y="314.0" width="200.0" height="92.0" rx="10.0" fill="#f5f3ff" stroke="#7c3aed" stroke-width="1.8" filter="url(#shadowSoft)"/>
   <text x="190.0" y="360.0" text-anchor="middle" class="node-title" font-size="14.97">Evidence &amp; Narrative</text>
-  <text x="190.0" y="382.0" text-anchor="middle" class="node-sub">findings · SHAP · network</text>
+  <text x="190.0" y="382.0" text-anchor="middle" class="node-sub">findings · evidence · network</text>
   </g>
   <g id="node-decision" data-graph-role="node" data-node-id="decision" data-semantic-role="speech" data-motion-role="" data-motion-stage="" data-motion-order="" data-parent="" data-deployment-id="" data-topic-id="" data-span-id="" data-station-order="" data-status="" data-start-ms="" data-duration-ms="" data-parent-span="" data-graph-bounds="480,444,720,504">
   <path d="M 490.0 444.0 L 710.0 444.0 Q 720.0 444.0 720.0 454.0 L 720.0 494.0 Q 720.0 504.0 710.0 504.0 L 506.0 504.0 L 492.0 522.0 L 496.0 504.0 L 490.0 504.0 Q 480.0 504.0 480.0 494.0 L 480.0 454.0 Q 480.0 444.0 490.0 444.0 Z" fill="#f0fdfa" stroke="#0d9488" stroke-width="2.0" filter="url(#shadowSoft)"/>

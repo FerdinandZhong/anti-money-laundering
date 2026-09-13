@@ -24,7 +24,7 @@
 
     { "id": "case_file", "kind": "rect", "x": 810, "y": 314, "width": 220, "height": 92, "label": "Case File", "sublabel": "opened on first review", "fill": "#f8fafc", "stroke": "#475569" },
     { "id": "ai_team", "kind": "double_rect", "x": 460, "y": 314, "width": 220, "height": 92, "label": "AI Investigation Team", "sublabel": "4 parallel specialist agents", "fill": "#faf5ff", "stroke": "#9333ea" },
-    { "id": "evidence", "kind": "rect", "x": 90, "y": 314, "width": 200, "height": 92, "label": "Evidence & Narrative", "sublabel": "findings · SHAP · network", "fill": "#f5f3ff", "stroke": "#7c3aed" },
+    { "id": "evidence", "kind": "rect", "x": 90, "y": 314, "width": 200, "height": 92, "label": "Evidence & Narrative", "sublabel": "findings · evidence · network", "fill": "#f5f3ff", "stroke": "#7c3aed" },
 
     { "id": "decision", "kind": "speech", "x": 480, "y": 444, "width": 240, "height": 60, "label": "Disposition Decision", "sublabel": "analyst adjudicates", "fill": "#f0fdfa", "stroke": "#0d9488" },
     { "id": "sar", "kind": "rect", "x": 190, "y": 528, "width": 200, "height": 66, "label": "SAR / STR Filing", "sublabel": "regulatory submission", "fill": "#fef2f2", "stroke": "#dc2626" },

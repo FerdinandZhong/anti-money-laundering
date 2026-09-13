@@ -33,6 +33,6 @@ prod. Forking onto a real warehouse is a config change (`source.impala.database`
 prod DB path) — no API or frontend change. See [architecture.md](architecture.md).
 
 ## Tech stack
-Python 3.11 · FastAPI · React 19 + Vite + Tailwind · XGBoost + SHAP · SQLite (ops
-store) · Impala/Iceberg (source) · LLM via Cloudera AI Inferencing (CAII), swappable
+Python 3.11 · FastAPI · React 19 + Vite + Tailwind · CPU XGBoost with transparent
+account evidence (TreeSHAP planned) · SQLite (ops store) · Impala/Iceberg (source) · LLM via Cloudera AI Inferencing (CAII), swappable
 to vLLM/Ollama · MCP (stdio) for agent access.

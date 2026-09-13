@@ -32,7 +32,7 @@ CAI Application
 - `RegulatoryAgent` — FATF / FinCEN red-flag cross-reference
 - `NarrativeAgent` — SAR draft generation
 
-**ML stack** — XGBoost classifier with SHAP explainability, SQLite feature store, versioned model registry, canary shadow-scoring.
+**ML stack** — CPU XGBoost classifier with transparent account-evidence scoring, SQLite feature store, versioned model registry, and canary shadow-scoring. Per-case TreeSHAP is a planned pilot enhancement.
 
 ## Quick Start
 
@@ -291,7 +291,7 @@ currently routes through MCP tools only).
 
 - **Python 3.11**, FastAPI, Uvicorn
 - **React 19**, Vite, Tailwind CSS
-- **XGBoost** (risk model), SHAP (explainability)
+- **CPU XGBoost** (risk model); per-case TreeSHAP attribution planned for the pilot phase
 - **SQLite** (feature store + case DB)
 - **Multi-agent**: Supervisor + 4 specialist workers via OpenAI-compatible API
 - **LLM**: Cloudera AI Inferencing (CAII) — swap to vLLM or Ollama via config

@@ -39,6 +39,12 @@ def train_model(conn) -> str:
     scale_pos_weight = neg / max(pos, 1)
 
     model = xgb.XGBClassifier(
+        # This blueprint intentionally uses the CPU histogram algorithm. Its
+        # ~100k-row synthetic tabular dataset does not justify a GPU request,
+        # and the explicit device prevents a GPU-enabled CML runtime changing
+        # training behaviour or resource requirements.
+        tree_method="hist",
+        device="cpu",
         max_depth=cfg.get("max_depth", 6),
         learning_rate=cfg.get("learning_rate", 0.1),
         n_estimators=cfg.get("n_estimators", 300),

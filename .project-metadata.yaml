@@ -36,7 +36,7 @@ tasks:
       via nvm, and builds the production React frontend bundle.
     cpu: 2
     memory: 4
-    gpu: 1
+    gpu: 0
 
   - type: run_session
     name: Generate Synthetic Data
@@ -62,7 +62,7 @@ tasks:
       populates the SQLite feature store for model training.
     cpu: 2
     memory: 8
-    gpu: 1
+    gpu: 0
 
   - type: run_session
     name: Train Risk Model
@@ -70,12 +70,12 @@ tasks:
     kernel: python3
     short_summary: Train XGBoost AML risk model and register in model registry
     long_summary: >-
-      Trains an XGBoost classifier on the engineered AML features. Evaluates
-      on a held-out test set, computes SHAP feature importances, and saves
-      the model to the registry with a versioned metadata record.
+      Trains a CPU XGBoost classifier on the engineered AML features, evaluates
+      it on a held-out test set, and saves it to the registry with a versioned
+      metadata record. Per-case TreeSHAP attribution is a future pilot feature.
     cpu: 2
     memory: 8
-    gpu: 1
+    gpu: 0
 
   - type: run_session
     name: Score Transactions

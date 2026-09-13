@@ -5,6 +5,9 @@ platform's customer-centric API (`/api/customers/{id}/...`) — it holds no data
 logic and no DB access, so it runs anywhere `uvx` does (Cloudera AI Studio, Claude
 Code, …) and talks to the **hosted** API over HTTP.
 
+> **SDK compatibility:** `aml-mcp` 0.2.0 uses the MCP Python SDK v2
+> `MCPServer` API and declares `mcp>=2,<3`. Do not pin it to MCP 1.x.
+
 ## Tools
 
 | Tool | Reads/Writes |

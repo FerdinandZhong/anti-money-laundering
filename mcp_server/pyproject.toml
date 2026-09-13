@@ -1,10 +1,13 @@
 [project]
 name = "aml-mcp"
-version = "0.1.0"
+version = "0.2.0"
 description = "MCP server exposing the AML Investigation Platform's investigation tools over its HTTP API"
 requires-python = ">=3.10"
 dependencies = [
-    "mcp>=1.0.0",
+    # The server uses the v2 MCPServer API.  Do not leave this unbounded: an
+    # Agent Studio / uvx install otherwise resolves a major version that may
+    # silently change the server contract again.
+    "mcp>=2.0.0,<3.0.0",
     "httpx>=0.27",
 ]
 

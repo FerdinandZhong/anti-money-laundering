@@ -95,6 +95,19 @@ _DISPOSITION_TO_STATUS = {
 }
 
 
+def _visible_open_alert_sql(alias: str = "a") -> str:
+    """Exclude legacy duplicate OPEN rows once the same account/source-data
+    snapshot has been processed. A changed cutoff remains a new episode."""
+    return f"""
+        AND NOT EXISTS (
+            SELECT 1 FROM alerts processed
+            WHERE processed.account_id = {alias}.account_id
+              AND processed.status IN ('PROPOSED', 'PENDING', 'CLOSED')
+              AND COALESCE(processed.data_cutoff_at, '') = COALESCE({alias}.data_cutoff_at, '')
+        )
+    """
+
+
 @app.get("/api/alerts")
 def list_alerts(
     status: str = "OPEN",
@@ -104,11 +117,15 @@ def list_alerts(
     conn=Depends(get_db),
 ):
     order_by = _ALERT_SORTS.get(sort, _ALERT_SORTS["risk_score"])
+    open_visibility = _visible_open_alert_sql() if status == "OPEN" else ""
     rows = conn.execute(
-        f"SELECT * FROM alerts WHERE status = ? ORDER BY {order_by} LIMIT ? OFFSET ?",
+        f"SELECT a.* FROM alerts a WHERE a.status = ? {open_visibility} "
+        f"ORDER BY {order_by} LIMIT ? OFFSET ?",
         (status, limit, offset),
     ).fetchall()
-    total = conn.execute("SELECT COUNT(*) FROM alerts WHERE status = ?", (status,)).fetchone()[0]
+    total = conn.execute(
+        f"SELECT COUNT(*) FROM alerts a WHERE a.status = ? {open_visibility}", (status,)
+    ).fetchone()[0]
     alerts = []
     for row in rows:
         alert = dict(row)
@@ -128,6 +145,9 @@ def alert_counts(conn=Depends(get_db)):
     counts = {"OPEN": 0, "PROPOSED": 0, "PENDING": 0, "CLOSED": 0}
     for r in rows:
         counts[r["status"]] = r["n"]
+    counts["OPEN"] = conn.execute(
+        f"SELECT COUNT(*) FROM alerts a WHERE a.status = 'OPEN' {_visible_open_alert_sql()}"
+    ).fetchone()[0]
     return {"counts": counts}
 
 
@@ -421,8 +441,13 @@ def dispose_case(case_id: str, body: DisposeBody, conn=Depends(get_db)):
     )
     conn.execute(
         "UPDATE alerts SET status = ? "
-        "WHERE alert_id = (SELECT alert_id FROM cases WHERE case_id = ?)",
-        (_DISPOSITION_TO_STATUS[body.disposition], case_id),
+        "WHERE account_id = (SELECT account_id FROM alerts WHERE alert_id = "
+        "                    (SELECT alert_id FROM cases WHERE case_id = ?)) "
+        "  AND status = 'OPEN' "
+        "  AND COALESCE(data_cutoff_at, '') = COALESCE("
+        "      (SELECT data_cutoff_at FROM alerts WHERE alert_id = "
+        "       (SELECT alert_id FROM cases WHERE case_id = ?)), '')",
+        (_DISPOSITION_TO_STATUS[body.disposition], case_id, case_id),
     )
     conn.commit()
 

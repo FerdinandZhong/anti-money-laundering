@@ -34,3 +34,24 @@ def test_false_positive_closes_alert(tmp_db_path):
     client.post("/api/cases/CASE-1/dispose", json={"disposition": "FALSE_POSITIVE"})
     status = get_connection().execute("SELECT status FROM alerts WHERE alert_id='ALERT-1'").fetchone()["status"]
     assert status == "CLOSED"
+
+
+def test_disposition_removes_same_snapshot_duplicate_from_open(tmp_db_path):
+    from common.db import get_connection
+    conn = get_connection()
+    _seed(conn)
+    conn.execute(
+        "INSERT INTO alerts (alert_id, customer_id, account_id, risk_score, risk_band, status, data_cutoff_at) "
+        "VALUES ('ALERT-1-DUP','CUST-1','ACC-1',0.9,'CRITICAL','OPEN','2026-09-13T13:32:00')"
+    )
+    conn.execute("UPDATE alerts SET data_cutoff_at='2026-09-13T13:32:00' WHERE alert_id='ALERT-1'")
+    conn.commit()
+    import api.main as main
+    client = TestClient(main.app)
+
+    response = client.post("/api/cases/CASE-1/dispose", json={"disposition": "SUSPICIOUS"})
+    assert response.status_code == 200
+    statuses = [r["status"] for r in get_connection().execute(
+        "SELECT status FROM alerts WHERE account_id='ACC-1' ORDER BY alert_id"
+    ).fetchall()]
+    assert statuses == ["PROPOSED", "PROPOSED"]

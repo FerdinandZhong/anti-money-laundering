@@ -156,6 +156,13 @@ def test_score_transactions_dedupes_existing_open_alerts(monkeypatch, db_conn, s
     assert first == 4
     assert second == 0, "re-running scoring must not duplicate alerts for already-OPEN accounts"
 
+    # No new source activity was added. A processed account in this static
+    # source-data snapshot must not be reissued by a retraining score pass.
+    db_conn.execute("UPDATE alerts SET status='PROPOSED' WHERE account_id='ACC-000'")
+    db_conn.commit()
+    third = scorer.score_transactions(db_conn, model_path="aml_model_vtest.json")
+    assert third == 0, "retraining must not re-alert an account from the same static batch"
+
 
 def test_score_transactions_caps_queue_at_target_alerts(monkeypatch, db_conn):
     """When far more than TARGET_ALERTS accounts are suspicious, the queue is

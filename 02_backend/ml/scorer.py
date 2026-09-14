@@ -141,17 +141,24 @@ def score_transactions(conn, model_path: str | None = None) -> int:
     floored = agg[(agg["max_score"] > 0.5) | (agg["above_pct"] > 0.0)]
     candidates = (floored if len(floored) > 0 else agg).copy()
 
-    # Existing OPEN alerts represent analyst work already in the queue. Preserve
-    # them (and their original model/evidence snapshot) rather than appending a
-    # new set whenever a retrained champion is promoted. Scoring still refreshes
-    # transaction_scores above, but new alerts only fill spare review capacity.
-    existing = set(
+    # Each account may be alerted only once for a source-data cutoff. That
+    # prevents retraining from reissuing the same static demo pattern after an
+    # analyst has processed it. A later cutoff is a new monitoring episode.
+    cutoff_key = data_cutoff_dt.isoformat()
+    alerted_in_snapshot = set(
         r[0] for r in conn.execute(
-            "SELECT account_id FROM alerts WHERE status='OPEN' AND account_id IS NOT NULL"
+            "SELECT account_id FROM alerts WHERE account_id IS NOT NULL "
+            "AND COALESCE(data_cutoff_at, '') = COALESCE(?, '')",
+            (cutoff_key,),
         ).fetchall()
     )
-    candidates = candidates[~candidates.index.isin(existing)]
-    remaining_slots = max(0, TARGET_ALERTS - len(existing))
+    open_accounts = set(
+        r[0] for r in conn.execute(
+            "SELECT DISTINCT account_id FROM alerts WHERE status='OPEN' AND account_id IS NOT NULL"
+        ).fetchall()
+    )
+    candidates = candidates[~candidates.index.isin(alerted_in_snapshot)]
+    remaining_slots = max(0, TARGET_ALERTS - len(open_accounts))
 
     # The day's queue: only the highest-composite accounts needed to reach the
     # fixed review capacity. A full active queue produces zero new alert rows.

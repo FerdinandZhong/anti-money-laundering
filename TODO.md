@@ -32,6 +32,18 @@ Current tasks, priorities, and known issues. Newest first.
   - [ ] **1C · Lightweight KYC context**
     - [x] Add a Documents tab and local source-of-wealth retrieval worker without
           expanding into the production-grade knowledge base planned for Part 2.
+  - [x] **1.5 · Governed AML semantic layer and MCP discovery**
+    - [x] Add an Ossie-aligned, versioned YAML semantic model, AML ontology, and
+          investigation-context registry under `semantic/`.
+    - [x] Add a bounded resolver over existing source/ops APIs: concept and metric
+          definitions, declared relationship paths, time-scoped case context, and
+          intent-allow-listed fact retrieval—never arbitrary SQL.
+    - [x] Expose read-only `/api/semantic/*` routes and six corresponding `aml-mcp`
+          tools for Agent Studio discovery and governed case retrieval.
+    - [x] Supply the same exact-alert semantic context to internal profile, pattern,
+          network, and screening workers; persist it as investigation evidence.
+    - [x] Show the model version, data cutoff, supplied facts, sources, evidence
+          count, and a claim limitation in the AI Findings “Analysis basis” panel.
 - [ ] **Part 2 — later pilot implementation**
   - [ ] Stateful bounded plan → collect → critique → verify loop with targeted re-entry.
   - [ ] Governed customer knowledge base with versioned, page-level citations.

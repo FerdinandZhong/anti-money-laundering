@@ -24,6 +24,15 @@ from agents import llm_client
 from ml.drift_monitor import get_drift_summary
 from ml.priority import recover_legacy_queue_position
 from agents.retraining import run_retraining
+from semantic.resolver import (
+    build_case_context,
+    list_intents as semantic_intents,
+    metric_definition,
+    model_summary as semantic_model_summary,
+    query_case_facts,
+    relationship_paths,
+    resolve_concept,
+)
 
 # docs/openapi under /api so they're reachable through the frontend proxy
 # (which only forwards /api/*) — the hosted app's Swagger UI lives at /api/docs.
@@ -662,6 +671,82 @@ def customer_investigate(customer_id: str, conn=Depends(get_db)):
     conn.commit()
     return {"case_id": case_id, "analysis": analysis, "verdicts": verdicts,
             "worker_findings": worker_findings}
+
+
+# ── Governed AML semantic layer ────────────────────────────────────────────
+# These routes deliberately accept business concepts and declared investigation
+# intents. They never accept SQL, table names, or arbitrary field selection.
+
+
+class SemanticContextBody(BaseModel):
+    customer_id: str
+    intent: str
+    alert_id: str | None = None
+
+
+class SemanticQueryBody(SemanticContextBody):
+    concepts: list[str]
+
+
+@app.get("/api/semantic/model")
+def get_semantic_model():
+    """Published AML semantic-model summary, safe for agent discovery."""
+    return semantic_model_summary()
+
+
+@app.get("/api/semantic/intents")
+def get_semantic_intents():
+    """Declared investigation intents and their permitted semantic scope."""
+    return semantic_intents()
+
+
+@app.get("/api/semantic/concepts/{term}")
+def get_semantic_concept(term: str):
+    """Resolve an AML business term by declared id, label, or synonym."""
+    result = resolve_concept(term)
+    if result is None:
+        raise HTTPException(404, f"Unknown AML semantic concept: {term}")
+    return result
+
+
+@app.get("/api/semantic/metrics/{metric}")
+def get_semantic_metric(metric: str):
+    """Definition and AI-use guidance for a declared AML metric."""
+    result = metric_definition(metric)
+    if result is None:
+        raise HTTPException(404, f"Unknown AML semantic metric: {metric}")
+    return result
+
+
+@app.get("/api/semantic/relationships")
+def get_semantic_relationships(from_concept: str, to_concept: str):
+    """Declared ontology paths only; this is semantic discovery, not a graph query."""
+    return {"from": from_concept, "to": to_concept,
+            "paths": relationship_paths(from_concept, to_concept)}
+
+
+@app.post("/api/semantic/context")
+def get_semantic_context(body: SemanticContextBody, conn=Depends(get_db)):
+    """Bounded facts, definitions, evidence references and claim limitations for
+    one customer and one declared investigation intent. Read-only."""
+    try:
+        return build_case_context(conn, body.customer_id, body.intent, body.alert_id)
+    except LookupError as exc:
+        raise HTTPException(404, str(exc)) from exc
+    except ValueError as exc:
+        raise HTTPException(422, str(exc)) from exc
+
+
+@app.post("/api/semantic/query")
+def semantic_query(body: SemanticQueryBody, conn=Depends(get_db)):
+    """Retrieve approved facts for declared concepts. Arbitrary SQL is intentionally
+    unsupported; unknown or out-of-intent concepts are returned as unavailable."""
+    try:
+        return query_case_facts(conn, body.customer_id, body.intent, body.concepts, body.alert_id)
+    except LookupError as exc:
+        raise HTTPException(404, str(exc)) from exc
+    except ValueError as exc:
+        raise HTTPException(422, str(exc)) from exc
 
 
 # ── Dashboard B: Model & Data ─────────────────────────────────────────────────

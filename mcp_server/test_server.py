@@ -39,8 +39,8 @@ class _FakeClient:
         _FakeClient.last = {"method": "GET", "url": url, "params": params, "headers": headers}
         return _FakeResp({"ok": "get", "url": url, "params": params})
 
-    def post(self, url, headers=None):
-        _FakeClient.last = {"method": "POST", "url": url, "headers": headers}
+    def post(self, url, headers=None, json=None):
+        _FakeClient.last = {"method": "POST", "url": url, "headers": headers, "json": json}
         return _FakeResp({"ok": "post", "url": url})
 
 
@@ -74,6 +74,22 @@ def test_trigger_investigation_is_a_post():
     server.trigger_investigation("CUST-3")
     assert _FakeClient.last["method"] == "POST"
     assert _FakeClient.last["url"].endswith("/customers/CUST-3/investigate")
+
+
+def test_semantic_context_posts_governed_request():
+    server.get_case_semantic_context("CUST-4", "score_explanation")
+    assert _FakeClient.last["url"].endswith("/semantic/context")
+    assert _FakeClient.last["json"] == {"customer_id": "CUST-4", "intent": "score_explanation"}
+
+
+def test_semantic_discovery_paths():
+    server.resolve_aml_concept("risk score")
+    assert _FakeClient.last["url"].endswith("/semantic/concepts/risk score")
+    server.query_case_facts("CUST-4", "kyc_review", ["expected turnover"])
+    assert _FakeClient.last["url"].endswith("/semantic/query")
+    assert _FakeClient.last["json"]["concepts"] == ["expected turnover"]
+    server.find_aml_relationship_path("Customer", "Transaction")
+    assert _FakeClient.last["params"] == {"from_concept": "Customer", "to_concept": "Transaction"}
 
 
 def test_token_becomes_bearer_header(monkeypatch):

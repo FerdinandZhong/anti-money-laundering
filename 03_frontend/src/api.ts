@@ -65,6 +65,25 @@ export interface CaseDetail {
 
 export interface KycDocument { name: string; source: string; content: string }
 
+export interface SemanticFact {
+  id: string
+  concept: string
+  value: unknown
+  source_ref: string
+  scope: Record<string, unknown>
+}
+
+export interface SemanticContext {
+  semantic_model_version: string
+  ontology_version: string
+  intent: string
+  alert_id?: string | null
+  scope: { data_cutoff_at?: string; window_start_at?: string; selected_account_id?: string }
+  facts: SemanticFact[]
+  evidence_refs: { evidence_id: string }[]
+  claim_limitations: string[]
+}
+
 export interface ScoreSignal {
   label: string
   key: string
@@ -148,6 +167,11 @@ export interface EnvironmentHealth {
 }
 
 export type AlertSort = 'risk_score' | 'newest' | 'oldest'
+
+export const getCaseSemanticContext = (customerId: string, intent: string, alertId?: string | null) =>
+  api.post<SemanticContext>('/semantic/context', {
+    customer_id: customerId, intent, ...(alertId ? { alert_id: alertId } : {}),
+  }).then(r => r.data)
 export type AlertStatus = 'OPEN' | 'PROPOSED' | 'PENDING' | 'CLOSED'
 
 export const getEnvironmentHealth = () =>

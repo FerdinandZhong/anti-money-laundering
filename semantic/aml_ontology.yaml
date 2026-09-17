@@ -1,0 +1,62 @@
+ontology_version: "aml-0.1"
+name: aml_case_ontology
+description: Business definitions and claim boundaries for AML investigations.
+concepts:
+  - id: customer
+    label: Customer
+    definition: Legal or natural person with a KYC profile.
+    synonyms: [client, account holder]
+  - id: account
+    label: Account
+    definition: Financial account owned by a customer and monitored for activity.
+  - id: transaction
+    label: Transaction
+    definition: A monetary movement. Direction is always evaluated relative to the selected account.
+  - id: kyc_declaration
+    label: KYC declaration
+    definition: Onboarding statement or document-derived profile value. It is context, not proof that later activity is legitimate.
+    synonyms: [expected turnover, source of wealth]
+  - id: observed_outbound_flow_30d
+    label: Observed outbound flow (30 days)
+    definition: Actual outbound amount in the 30 days ending at the alert data cutoff.
+    synonyms: [observed outflow, 30 day outflow]
+  - id: account_priority_score
+    label: Account priority score
+    definition: Daily ranking used to prioritise analyst review. It is not a probability of financial crime.
+    synonyms: [risk score, alert score, priority score]
+  - id: model_signal
+    label: Model signal
+    definition: Predictive model output or deterministic signal used for prioritisation; it requires corroborating evidence.
+  - id: sustained_pattern
+    label: Sustained pattern
+    definition: Defined contributing activity within the recorded monitoring window; historical activity outside it is context only.
+  - id: evidence
+    label: Evidence
+    definition: Timestamped retrieval or verification record linked to an investigation case.
+  - id: case
+    label: Investigation case
+    definition: Analyst work item created from an alert.
+relations:
+  - id: owns
+    from: customer
+    to: account
+    definition: A customer owns one or more accounts.
+  - id: sends
+    from: account
+    to: transaction
+    definition: An account is the outbound side of a transaction.
+  - id: prioritises
+    from: account_priority_score
+    to: account
+    definition: A score prioritises analyst review of an account.
+  - id: supports_review_of
+    from: evidence
+    to: case
+    definition: Evidence supports review; it does not by itself prove a conclusion.
+claim_constraints:
+  - id: score_not_probability
+    rule: Account priority score must never be described as a probability or proof of crime.
+  - id: kyc_not_exculpatory
+    rule: KYC declarations and documents are onboarding context, not proof of legitimacy.
+  - id: time_bound_observation
+    rule: Observed flow and sustained-pattern claims must include account scope and data cutoff.

@@ -137,7 +137,7 @@ platform's customer-centric API — no DB access of its own. It runs as a `uvx`
 stdio process wherever the agent lives; the **API is the hosted CAI Application**
 (the existing `aml-platform` app, whose Swagger UI is at `/api/docs`).
 
-Five tools; **only `trigger_investigation` mutates** (the API persists the
+Eleven tools; **only `trigger_investigation` mutates** (the API persists the
 analysis to the case) — everything else is read-only. Disposition / labels /
 retrain / config are not exposed.
 
@@ -148,6 +148,17 @@ retrain / config are not exposed.
 | `get_case_status(customer_id)` | `GET /api/customers/{id}/case-status` | never creates a case |
 | `get_customer_network_graph(customer_id)` | `GET /api/customers/{id}/network` | `{nodes, edges}` |
 | `trigger_investigation(customer_id)` | `POST /api/customers/{id}/investigate` | runs the workflow, persists + returns the analysis (needs an LLM) |
+| `resolve_aml_concept(term)` | `GET /api/semantic/concepts/{term}` | governed definition, synonyms, and caveats |
+| `get_aml_metric_definition(metric)` | `GET /api/semantic/metrics/{metric}` | metric scope and AI-use guidance |
+| `list_aml_investigation_intents()` | `GET /api/semantic/intents` | supported, bounded investigation intents |
+| `get_case_semantic_context(customer_id, intent)` | `POST /api/semantic/context` | facts, cutoff, evidence refs, and claim limits |
+| `query_case_facts(customer_id, intent, concepts)` | `POST /api/semantic/query` | only facts permitted for the selected intent |
+| `find_aml_relationship_path(from_concept, to_concept)` | `GET /api/semantic/relationships` | declared ontology path, not customer graph data |
+
+The semantic tools use the versioned YAML contract in `semantic/`. They make
+business definitions available to external Agent Studio agents without granting
+raw SQL/database access. In particular, `account_priority_score` is a queue
+ranking, not a probability or conclusion of financial crime.
 
 Configure it in Cloudera AI Studio (or any MCP client) — points at the deployed API:
 

@@ -53,9 +53,9 @@ def run_investigation(
 
     _workers = [
         ("profile",   run_profile_worker,   dict(case_id=case_id, alert_id=alert_id, customer_id=customer_id)),
-        ("pattern",   run_pattern_worker,   dict(case_id=case_id, customer_id=customer_id, account_id=account_id)),
-        ("network",   run_network_worker,   dict(case_id=case_id, account_id=account_id)),
-        ("screening", run_screening_worker, dict(case_id=case_id, customer_id=customer_id)),
+        ("pattern",   run_pattern_worker,   dict(case_id=case_id, alert_id=alert_id, customer_id=customer_id, account_id=account_id)),
+        ("network",   run_network_worker,   dict(case_id=case_id, alert_id=alert_id, customer_id=customer_id, account_id=account_id)),
+        ("screening", run_screening_worker, dict(case_id=case_id, alert_id=alert_id, customer_id=customer_id)),
     ]
 
     findings_list: list[dict] = []

@@ -54,9 +54,12 @@ def _get(path: str, params: dict | None = None) -> dict:
         return r.json()
 
 
-def _post(path: str) -> dict:
+def _post(path: str, body: dict | None = None) -> dict:
     with httpx.Client(timeout=_TIMEOUT, follow_redirects=True) as c:
-        r = c.post(f"{_base_url()}{path}", headers=_headers())
+        kwargs = {"headers": _headers()}
+        if body is not None:
+            kwargs["json"] = body
+        r = c.post(f"{_base_url()}{path}", **kwargs)
         r.raise_for_status()
         return r.json()
 
@@ -89,6 +92,66 @@ def get_customer_network_graph(customer_id: str) -> dict:
     """Fund-flow + shared-device network graph around the customer's primary account:
     {nodes, edges}. Read-only."""
     return _get(f"/customers/{customer_id}/network")
+
+
+@mcp.tool()
+def resolve_aml_concept(term: str) -> dict:
+    """Resolve a governed AML business term by name or synonym. Returns its
+    definition, semantic type, permitted use, and caveats. Use this before
+    interpreting terms such as risk score, expected turnover, or observed flow.
+    Read-only."""
+    return _get(f"/semantic/concepts/{term}")
+
+
+@mcp.tool()
+def get_aml_metric_definition(metric: str) -> dict:
+    """Return the governed definition of an AML metric, including its intended
+    scope and AI-use guidance. For example, account_priority_score is a daily
+    analyst-prioritisation score, not a probability of financial crime.
+    Read-only."""
+    return _get(f"/semantic/metrics/{metric}")
+
+
+@mcp.tool()
+def list_aml_investigation_intents() -> dict:
+    """List supported AML investigation intents and the concepts each may use:
+    score_explanation, kyc_review, pattern_analysis, network_review, and
+    case_narration. Read-only."""
+    return _get("/semantic/intents")
+
+
+@mcp.tool()
+def get_case_semantic_context(customer_id: str, intent: str, alert_id: str | None = None) -> dict:
+    """Return the governed, case-scoped fact bundle for one customer and one
+    declared investigation intent. Includes cutoff, account scope, definitions,
+    evidence references, allowed conclusions, and claim limitations. Read-only."""
+    body = {"customer_id": customer_id, "intent": intent}
+    if alert_id:
+        body["alert_id"] = alert_id
+    return _post("/semantic/context", body)
+
+
+@mcp.tool()
+def query_case_facts(customer_id: str, intent: str, concepts: list[str], alert_id: str | None = None) -> dict:
+    """Retrieve only approved semantic facts for a customer and investigation
+    intent. This is not a free-form SQL interface: unavailable concepts are
+    returned explicitly rather than inferred. Read-only."""
+    body = {
+        "customer_id": customer_id, "intent": intent, "concepts": concepts,
+    }
+    if alert_id:
+        body["alert_id"] = alert_id
+    return _post("/semantic/query", body)
+
+
+@mcp.tool()
+def find_aml_relationship_path(from_concept: str, to_concept: str) -> dict:
+    """Explain declared AML ontology paths between two concepts, for example
+    Customer to Transaction. Returns semantic relationships, not customer data.
+    Read-only."""
+    return _get("/semantic/relationships", {
+        "from_concept": from_concept, "to_concept": to_concept,
+    })
 
 
 @mcp.tool()

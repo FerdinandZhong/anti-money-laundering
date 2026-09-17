@@ -1,0 +1,132 @@
+version: "0.1"
+semantic_model:
+  - name: aml_investigation
+    description: >-
+      Governed semantic model for AML alert prioritisation and investigation.
+      A priority score ranks analyst work; it is not a probability or a finding
+      of criminal activity.
+    ai_context:
+      instructions: >-
+        Use this model for case-scoped AML investigation. Preserve the recorded
+        data cutoff and distinguish KYC declarations, observed activity, model
+        signals, and analyst conclusions.
+      synonyms: ["aml", "investigation", "account review"]
+      examples:
+        - "Why was this account prioritised today?"
+        - "Compare observed outbound flow to the KYC expectation."
+    datasets:
+      - name: customer
+        source: aml.customers
+        primary_key: [customer_id]
+        description: Customer KYC and onboarding profile.
+        ai_context:
+          synonyms: ["client", "account holder", "customer profile"]
+        fields:
+          - name: customer_id
+            dimension: { }
+          - name: risk_rating
+            dimension: { }
+          - name: expected_monthly_turnover
+            description: KYC-declared expected monthly turnover; it is not observed activity.
+            dimension: { }
+          - name: beneficial_owner
+            dimension: { }
+          - name: kyc_last_updated
+            dimension: { is_time: true }
+      - name: account
+        source: aml.accounts
+        primary_key: [account_id]
+        description: Customer account used as the scope for transaction monitoring.
+        fields:
+          - name: account_id
+            dimension: { }
+          - name: customer_id
+            dimension: { }
+          - name: status
+            dimension: { }
+      - name: transaction
+        source: aml.transactions
+        primary_key: [transaction_id]
+        description: Monetary movement; direction must be interpreted relative to the selected account.
+        fields:
+          - name: transaction_id
+            dimension: { }
+          - name: from_account_id
+            dimension: { }
+          - name: to_account_id
+            dimension: { }
+          - name: amount
+            dimension: { }
+          - name: event_time
+            dimension: { is_time: true }
+          - name: counterparty_country
+            dimension: { }
+      - name: alert
+        source: aml.alerts
+        primary_key: [alert_id]
+        description: A nightly, account-level prioritisation result.
+        fields:
+          - name: alert_id
+            dimension: { }
+          - name: customer_id
+            dimension: { }
+          - name: account_id
+            dimension: { }
+          - name: risk_score
+            description: Daily analyst-prioritisation score; not a probability of criminal conduct.
+            dimension: { }
+          - name: data_cutoff_at
+            dimension: { is_time: true }
+      - name: case
+        source: aml.cases
+        primary_key: [case_id]
+        description: Analyst investigation record opened from an alert.
+        fields:
+          - name: case_id
+            dimension: { }
+          - name: alert_id
+            dimension: { }
+          - name: state
+            dimension: { }
+      - name: evidence
+        source: aml.evidence
+        primary_key: [evidence_id]
+        description: Immutable pointer to a worker retrieval or verification result.
+        fields:
+          - name: evidence_id
+            dimension: { }
+          - name: case_id
+            dimension: { }
+          - name: data_version
+            dimension: { }
+    relationships:
+      - name: account_to_customer
+        from: account.customer_id
+        to: customer.customer_id
+        description: An account belongs to one customer.
+      - name: transaction_from_account
+        from: transaction.from_account_id
+        to: account.account_id
+        description: A transaction is outbound from an account.
+      - name: alert_to_account
+        from: alert.account_id
+        to: account.account_id
+        description: An alert prioritises an account for analyst review.
+      - name: case_to_alert
+        from: case.alert_id
+        to: alert.alert_id
+        description: A case is created from an alert.
+      - name: evidence_to_case
+        from: evidence.case_id
+        to: case.case_id
+        description: Evidence supports review of a case.
+    metrics:
+      - name: observed_outbound_flow_30d
+        description: Sum of outbound transaction amounts for the selected account(s) in the 30 days ending at data_cutoff_at.
+        ai_context:
+          synonyms: ["observed outflow", "30 day outbound flow"]
+          instructions: Do not compare this value with KYC turnover without retaining the account scope and cutoff.
+      - name: observed_vs_expected_pct
+        description: Observed outbound flow in the 30-day window divided by KYC-declared expected monthly turnover.
+      - name: account_priority_score
+        description: Daily queue-prioritisation score built from model and deterministic risk signals; it is not a probability.

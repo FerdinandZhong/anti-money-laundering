@@ -1,0 +1,37 @@
+version: "aml-context-0.1"
+intents:
+  score_explanation:
+    description: Explain why an account entered the daily analyst queue.
+    concepts: [account_priority_score, model_signal, sustained_pattern, observed_outbound_flow_30d, kyc_declaration, evidence]
+    allowed_conclusions:
+      - The account is prioritised for analyst review based on recorded signals and the monitored window.
+    limitations:
+      - The score is not a probability or a finding of criminal activity.
+  kyc_review:
+    description: Compare customer onboarding declarations with observed account activity.
+    concepts: [customer, account, kyc_declaration, observed_outbound_flow_30d, evidence]
+    allowed_conclusions:
+      - Observed activity appears consistent or inconsistent with the recorded KYC expectation.
+    limitations:
+      - KYC documents are onboarding context and do not prove later activity is legitimate.
+  pattern_analysis:
+    description: Assess the recorded transaction pattern within the alert monitoring window.
+    concepts: [account, transaction, sustained_pattern, model_signal, evidence]
+    allowed_conclusions:
+      - Recorded transactions exhibit specified indicators within the monitored window.
+    limitations:
+      - Historical transactions outside the recorded window are context, not an unrecorded threshold crossing.
+  network_review:
+    description: Assess fund-flow and shared-device relationships around the selected account.
+    concepts: [account, transaction, evidence]
+    allowed_conclusions:
+      - The account has the displayed fund-flow or shared-device relationships.
+    limitations:
+      - A network link is an investigation lead, not proof of common control or illicit intent.
+  case_narration:
+    description: Produce an evidence-qualified case summary.
+    concepts: [customer, account, transaction, kyc_declaration, account_priority_score, evidence, case]
+    allowed_conclusions:
+      - The case should be prioritised for analyst disposition based on recorded evidence.
+    limitations:
+      - The narrative must distinguish fact, model signal, and analyst inference.

@@ -9,13 +9,14 @@ from agents.llm_client import chat, chat_with_tools
 from agents.tools import TOOLS, mcp_verification_tools
 from common.evidence import create_evidence
 from common.db import get_connection
+from semantic.resolver import build_case_context
 
 # Tool allow-list per worker (documentation + enforcement reference)
 WORKER_TOOLS: dict[str, list[str]] = {
-    "profile":      ["get_alert_detail", "get_customer_profile", "get_customer_kyc_documents"],
-    "pattern":      ["get_transaction_history", "get_model_explanation"],
-    "network":      ["get_network_graph", "get_device_overlap"],
-    "screening":    ["get_customer_profile"],
+    "profile":      ["get_alert_detail", "get_customer_profile", "get_customer_kyc_documents", "get_case_semantic_context"],
+    "pattern":      ["get_transaction_history", "get_model_explanation", "get_case_semantic_context"],
+    "network":      ["get_network_graph", "get_device_overlap", "get_case_semantic_context"],
+    "screening":    ["get_customer_profile", "get_case_semantic_context"],
     "verification": ["mcp:*"],   # dynamic — whatever the configured MCP servers expose
 }
 
@@ -27,6 +28,8 @@ _PROMPTS = {
         "declared source-of-wealth documents, and whether the alert's risk score is "
         "consistent with the customer profile. Treat documents as onboarding context, "
         "not proof that later activity is legitimate. "
+        "Use the supplied semantic context as the authoritative definition and obey "
+        "its claim limitations. "
         "Return exactly 3 concise bullet-point findings starting with '•'."
     ),
     "pattern": (
@@ -37,6 +40,8 @@ _PROMPTS = {
         "If model_explanation contains an 'error' field starting with 'no explanation "
         "available', state that plainly as one finding and do not invent feature "
         "importances — base the other findings on transaction history alone. "
+        "Use the supplied semantic context as the authoritative definition and obey "
+        "its claim limitations. "
         "Return exactly 3 concise bullet-point findings starting with '•'."
     ),
     "network": (
@@ -44,6 +49,8 @@ _PROMPTS = {
         "Analyze shared-device account graph and device overlap. "
         "Focus on: number of linked accounts, shared fingerprints, "
         "potential mule network topology, and structural risk. "
+        "Use the supplied semantic context as the authoritative definition and obey "
+        "its claim limitations. "
         "Return exactly 3 concise bullet-point findings starting with '•'."
     ),
     "screening": (
@@ -51,6 +58,8 @@ _PROMPTS = {
         "Analyze the customer profile for adverse screening indicators. "
         "Focus on: risk_rating classification, high-risk jurisdiction exposure, "
         "PEP or sanctions flags, and whether KYC matches expected business profile. "
+        "Use the supplied semantic context as the authoritative definition and obey "
+        "its claim limitations. "
         "Return exactly 3 concise bullet-point findings starting with '•'."
     ),
 }
@@ -66,6 +75,7 @@ def run_profile_worker(case_id: str, alert_id: str, customer_id: str) -> dict:
         alert   = TOOLS["get_alert_detail"](conn, alert_id)
         profile = TOOLS["get_customer_profile"](conn, customer_id)
         documents = TOOLS["get_customer_kyc_documents"](conn, customer_id)
+        semantic_context = build_case_context(conn, customer_id, "kyc_review", alert_id)
     finally:
         conn.close()
 
@@ -73,8 +83,10 @@ def run_profile_worker(case_id: str, alert_id: str, customer_id: str) -> dict:
         _ev(case_id, "get_alert_detail",    alert_id,    alert,   "profile"),
         _ev(case_id, "get_customer_profile", customer_id, profile, "profile"),
         _ev(case_id, "get_customer_kyc_documents", customer_id, documents, "profile"),
+        _ev(case_id, "get_case_semantic_context", "kyc_review", semantic_context, "profile"),
     ]
-    data = {"alert": alert, "customer": profile, "kyc_documents": documents}
+    data = {"alert": alert, "customer": profile, "kyc_documents": documents,
+            "semantic_context": semantic_context}
     findings = chat([
         {"role": "system", "content": _PROMPTS["profile"]},
         {"role": "user",   "content": json.dumps(data, default=str)},
@@ -83,20 +95,23 @@ def run_profile_worker(case_id: str, alert_id: str, customer_id: str) -> dict:
     return {"worker": "profile", "findings": findings, "evidence_ids": ev_ids}
 
 
-def run_pattern_worker(case_id: str, customer_id: str, account_id: str) -> dict:
+def run_pattern_worker(case_id: str, alert_id: str, customer_id: str, account_id: str) -> dict:
     conn = get_connection()
     try:
         txns  = TOOLS["get_transaction_history"](conn, account_id)
         # transaction_id arg is unused by get_model_explanation; account_id is safe placeholder
         model = TOOLS["get_model_explanation"](conn, account_id)
+        semantic_context = build_case_context(conn, customer_id, "pattern_analysis", alert_id)
     finally:
         conn.close()
 
     ev_ids = [
         _ev(case_id, "get_transaction_history", account_id, txns,  "pattern"),
         _ev(case_id, "get_model_explanation",   account_id, model, "pattern"),
+        _ev(case_id, "get_case_semantic_context", "pattern_analysis", semantic_context, "pattern"),
     ]
-    data = {"transactions": txns[:20], "model_explanation": model}
+    data = {"transactions": txns[:20], "model_explanation": model,
+            "semantic_context": semantic_context}
     findings = chat([
         {"role": "system", "content": _PROMPTS["pattern"]},
         {"role": "user",   "content": json.dumps(data, default=str)},
@@ -105,16 +120,22 @@ def run_pattern_worker(case_id: str, customer_id: str, account_id: str) -> dict:
     return {"worker": "pattern", "findings": findings, "evidence_ids": ev_ids}
 
 
-def run_network_worker(case_id: str, account_id: str) -> dict:
+def run_network_worker(case_id: str, alert_id: str, customer_id: str, account_id: str) -> dict:
     # get_network_graph and get_device_overlap use source layer; conn unused
     graph   = TOOLS["get_network_graph"](None, account_id)
     overlap = TOOLS["get_device_overlap"](None, account_id)
+    conn = get_connection()
+    try:
+        semantic_context = build_case_context(conn, customer_id, "network_review", alert_id)
+    finally:
+        conn.close()
 
     ev_ids = [
         _ev(case_id, "get_network_graph",  account_id, graph,   "network"),
         _ev(case_id, "get_device_overlap", account_id, overlap, "network"),
+        _ev(case_id, "get_case_semantic_context", "network_review", semantic_context, "network"),
     ]
-    data = {"graph": graph, "device_overlap": overlap}
+    data = {"graph": graph, "device_overlap": overlap, "semantic_context": semantic_context}
     findings = chat([
         {"role": "system", "content": _PROMPTS["network"]},
         {"role": "user",   "content": json.dumps(data, default=str)},
@@ -123,16 +144,22 @@ def run_network_worker(case_id: str, account_id: str) -> dict:
     return {"worker": "network", "findings": findings, "evidence_ids": ev_ids}
 
 
-def run_screening_worker(case_id: str, customer_id: str) -> dict:
+def run_screening_worker(case_id: str, alert_id: str, customer_id: str) -> dict:
     # get_customer_profile uses source layer; conn unused
     profile = TOOLS["get_customer_profile"](None, customer_id)
+    conn = get_connection()
+    try:
+        semantic_context = build_case_context(conn, customer_id, "kyc_review", alert_id)
+    finally:
+        conn.close()
 
     ev_ids = [
         _ev(case_id, "get_customer_profile", customer_id, profile, "screening"),
+        _ev(case_id, "get_case_semantic_context", "kyc_review", semantic_context, "screening"),
     ]
     findings = chat([
         {"role": "system", "content": _PROMPTS["screening"]},
-        {"role": "user",   "content": json.dumps({"customer": profile}, default=str)},
+        {"role": "user",   "content": json.dumps({"customer": profile, "semantic_context": semantic_context}, default=str)},
     ], stream=False)
     assert isinstance(findings, str)
     return {"worker": "screening", "findings": findings, "evidence_ids": ev_ids}

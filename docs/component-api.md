@@ -12,6 +12,26 @@ Swagger UI: `${API}/api/docs` · OpenAPI: `${API}/api/openapi.json`
 | `/api/customers/{id}/network` | GET | `{nodes, edges}` graph |
 | `/api/customers/{id}/investigate` | POST | runs the workflow, persists + returns analysis (needs LLM) |
 
+## Governed semantic API
+
+The semantic layer is a versioned, Ossie-aligned YAML contract in `semantic/`.
+It maps AML terms to the existing source/ops data and returns bounded context;
+it does **not** expose raw SQL or direct database access.
+
+| Route | Method | Purpose |
+|---|---|---|
+| `/api/semantic/model` | GET | published model/version and discoverable datasets, metrics, relationships |
+| `/api/semantic/intents` | GET | supported investigation intents and allowed concept scope |
+| `/api/semantic/concepts/{term}` | GET | resolve a declared term or synonym, with definition/caveat |
+| `/api/semantic/metrics/{metric}` | GET | governed metric definition and AI-use guidance |
+| `/api/semantic/relationships?from_concept=&to_concept=` | GET | declared ontology path(s), not customer graph data |
+| `/api/semantic/context` | POST | case-scoped facts, cutoff, evidence refs, allowed conclusions and limitations |
+| `/api/semantic/query` | POST | approved facts for a customer, intent, and declared concepts |
+
+`/context` and `/query` require `{ "customer_id", "intent" }`; `/query` also
+requires `concepts`. Unknown or out-of-intent concepts are reported as
+`unavailable_concepts` rather than guessed.
+
 ## MCP tools (`mcp_server/`, `aml-mcp`)
 Thin stdio HTTP client over the API — configure in Cloudera AI Agent Studio / any MCP
 client pointing at the deployed API. Only `trigger_investigation` mutates.
@@ -23,6 +43,12 @@ client pointing at the deployed API. Only `trigger_investigation` mutates.
 | `get_case_status(id)` | `GET /api/customers/{id}/case-status` |
 | `get_customer_network_graph(id)` | `GET /api/customers/{id}/network` |
 | `trigger_investigation(id)` | `POST /api/customers/{id}/investigate` (write) |
+| `resolve_aml_concept(term)` | `GET /api/semantic/concepts/{term}` |
+| `get_aml_metric_definition(metric)` | `GET /api/semantic/metrics/{metric}` |
+| `list_aml_investigation_intents()` | `GET /api/semantic/intents` |
+| `get_case_semantic_context(id, intent)` | `POST /api/semantic/context` |
+| `query_case_facts(id, intent, concepts)` | `POST /api/semantic/query` |
+| `find_aml_relationship_path(from, to)` | `GET /api/semantic/relationships` |
 
 ## Dashboard A — alerts & cases
 | Route | Method |

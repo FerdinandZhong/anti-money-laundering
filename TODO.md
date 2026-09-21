@@ -2,6 +2,17 @@
 
 Current tasks, priorities, and known issues. Newest first.
 
+## Semantic demonstration enhancement (Phase 1.5)
+- [x] Foldable exact-source YAML viewer for the Ossie-style model and AML extensions, distinct from runtime output.
+- [x] Dedicated Semantic context tab with live, read-only intent/query previews.
+- [x] Three demo presets: KYC comparison, score explanation, and intent exclusion.
+- [x] Show definitions, source lineage, account/time scope, interpretation limits and declared relationships.
+- [x] Expose missing fact coverage and retrieval limits without implying full ontology execution.
+- [x] Remove misleading source-of-wealth synonym for expected turnover; add API regression tests.
+- [x] EN/ZH presenter walkthrough: `docs/semantic-demo-walkthrough.md`.
+- [ ] Later: compare persisted worker input snapshots with generated findings, and validate claim compliance.
+- [ ] Later: complete declared account/transaction/evidence/case fact providers and replace capped flow retrieval with complete source-side aggregation.
+
 ## In progress / next
 - [ ] **Part 1 — immediate demo improvement**
   - [ ] **1A · Credible chronology + synthetic story**

@@ -178,9 +178,12 @@ def _active_alert(conn, customer_id: str) -> dict[str, Any] | None:
 
 
 def _fact(concept: str, value: Any, source_ref: str, *, scope: dict[str, Any] | None = None) -> dict[str, Any]:
+    definition = resolve_concept(concept) or {}
     return {
         "id": f"fact:{concept}", "concept": concept, "value": value,
         "source_ref": source_ref, "scope": scope or {},
+        "label": definition.get("label", concept.replace("_", " ").title()),
+        "definition": definition.get("definition") or definition.get("description", ""),
     }
 
 
@@ -273,6 +276,14 @@ def build_case_context(conn, customer_id: str, intent: str, alert_id: str | None
         "alert_id": (alert or {}).get("alert_id"),
         "scope": scope,
         "facts": visible_facts,
+        "declared_concepts": sorted(allowed),
+        "unavailable_fact_concepts": sorted(allowed - {f["concept"] for f in visible_facts}),
+        "retrieval_notes": [
+            "Live read-only context, not a historical worker-input snapshot.",
+            "Observed flow aggregates the customer's listed accounts; the priority score belongs to the selected alert account.",
+            "Transaction retrieval is capped at 5,000 records per account; flow may be incomplete if that cap is reached.",
+            "Evidence references are retrieval records, not independent corroborations. Some declared concepts are supplied by separate worker tools, not this fact bundle.",
+        ],
         "relationships": relations,
         "evidence_refs": evidence,
         "allowed_conclusions": intent_config.get("allowed_conclusions", []),

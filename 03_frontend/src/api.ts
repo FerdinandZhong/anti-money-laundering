@@ -71,6 +71,8 @@ export interface SemanticFact {
   value: unknown
   source_ref: string
   scope: Record<string, unknown>
+  label?: string
+  definition?: string
 }
 
 export interface SemanticContext {
@@ -78,11 +80,44 @@ export interface SemanticContext {
   ontology_version: string
   intent: string
   alert_id?: string | null
-  scope: { data_cutoff_at?: string; window_start_at?: string; selected_account_id?: string }
+  scope: { data_cutoff_at?: string; window_start_at?: string; selected_account_id?: string; account_ids?: string[] }
   facts: SemanticFact[]
   evidence_refs: { evidence_id: string }[]
   claim_limitations: string[]
+  intent_description?: string
+  allowed_conclusions?: string[]
+  declared_concepts?: string[]
+  unavailable_fact_concepts?: string[]
+  retrieval_notes?: string[]
+  requested_concepts?: string[]
+  unavailable_concepts?: string[]
 }
+
+export interface SemanticIntent {
+  description: string
+  concepts: string[]
+}
+
+export interface SemanticContractSource {
+  filename: string
+  title: string
+  description: string
+  content: string
+}
+
+export const getSemanticContracts = () =>
+  api.get<{ contracts: SemanticContractSource[] }>('/semantic/contracts').then(r => r.data.contracts)
+
+export const getSemanticIntents = () =>
+  api.get<{ intents: Record<string, SemanticIntent> }>('/semantic/intents').then(r => r.data.intents)
+
+export const querySemanticFacts = (customerId: string, alertId: string, intent: string, concepts: string[]) =>
+  api.post<SemanticContext>('/semantic/query', { customer_id: customerId, alert_id: alertId, intent, concepts }).then(r => r.data)
+
+export const getSemanticPaths = () =>
+  api.get<{ paths: { id: string; from: string; to: string; definition: string }[][] }>('/semantic/relationships', {
+    params: { from_concept: 'customer', to_concept: 'transaction' },
+  }).then(r => r.data.paths)
 
 export interface ScoreSignal {
   label: string

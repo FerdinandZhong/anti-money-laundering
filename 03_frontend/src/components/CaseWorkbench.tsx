@@ -3,18 +3,19 @@ import {
   AlertTriangle, ArrowDownLeft, ArrowUpRight, Check, ChevronDown, ChevronRight,
   Clock3, FileSearch, LayoutDashboard, List, Network, Save, Sparkles, FolderOpen,
 } from 'lucide-react'
-import type { CaseDetail, SemanticContext, Transaction } from '../api'
-import { getAlertDetail, getCaseSemanticContext, setTransactionLabels } from '../api'
+import type { CaseDetail, Transaction } from '../api'
+import { getAlertDetail, setTransactionLabels } from '../api'
 import { Badge, RiskBadge } from './Badge'
 import { AgentPanel } from './AgentPanel'
 import { NetworkGraph } from './NetworkGraph'
+import { SemanticExplorer } from './SemanticExplorer'
 
 interface Props {
   alertId: string | null
   onDisposed?: () => void
 }
 
-type WorkspaceTab = 'overview' | 'transactions' | 'network' | 'documents' | 'findings'
+type WorkspaceTab = 'overview' | 'transactions' | 'network' | 'documents' | 'semantic' | 'findings'
 type SaveState = 'idle' | 'saving' | 'saved' | 'error'
 
 const fmt = (n: number) =>
@@ -32,6 +33,7 @@ const TABS: { key: WorkspaceTab; label: string; icon: React.ReactNode }[] = [
   { key: 'transactions', label: 'Transactions', icon: <List className="w-3.5 h-3.5" /> },
   { key: 'network', label: 'Network', icon: <Network className="w-3.5 h-3.5" /> },
   { key: 'documents', label: 'KYC Documents', icon: <FolderOpen className="w-3.5 h-3.5" /> },
+  { key: 'semantic', label: 'Semantic context', icon: <FileSearch className="w-3.5 h-3.5" /> },
   { key: 'findings', label: 'AI Findings', icon: <Sparkles className="w-3.5 h-3.5" /> },
 ]
 
@@ -42,24 +44,22 @@ export const CaseWorkbench: React.FC<Props> = ({ alertId, onDisposed }) => {
   const [labels, setLabels] = useState<Record<string, number | null>>({})
   const [saveState, setSaveState] = useState<SaveState>('idle')
   const [openRow, setOpenRow] = useState<number | null>(null)
-  const [semanticContext, setSemanticContext] = useState<SemanticContext | null>(null)
 
   useEffect(() => {
     if (!alertId) return
+    let cancelled = false
     setDetail(null)
     setError(false)
     setActiveTab('overview')
     setSaveState('idle')
-    setSemanticContext(null)
     getAlertDetail(alertId)
       .then(d => {
+        if (cancelled) return
         if (!d?.case_id) { setError(true); return }
         setDetail(d)
-        void getCaseSemanticContext(d.customer_id, 'case_narration', d.alert_id)
-          .then(setSemanticContext)
-          .catch(() => setSemanticContext(null))
       })
-      .catch(() => setError(true))
+      .catch(() => { if (!cancelled) setError(true) })
+    return () => { cancelled = true }
   }, [alertId])
 
   useEffect(() => {
@@ -136,14 +136,14 @@ export const CaseWorkbench: React.FC<Props> = ({ alertId, onDisposed }) => {
         <MetaItem label="Observed Outflow · 30 days">{detail.observed_outflow_30d == null ? 'Not available' : fmt(detail.observed_outflow_30d)}</MetaItem>
       </div>
 
-      <div className="flex items-center gap-1 px-6 border-b border-surface-3 bg-surface-1 shrink-0" role="tablist">
+      <div className="flex items-center gap-1 px-6 border-b border-surface-3 bg-surface-1 shrink-0 overflow-x-auto" role="tablist">
         {TABS.map(tab => (
           <button
             key={tab.key}
             role="tab"
             aria-selected={activeTab === tab.key}
             onClick={() => setActiveTab(tab.key)}
-            className={`flex items-center gap-1.5 px-3 py-3 text-xs font-semibold border-b-2 transition-colors ${
+            className={`flex shrink-0 items-center gap-1.5 px-3 py-3 text-xs font-semibold border-b-2 transition-colors ${
               activeTab === tab.key
                 ? 'border-accent text-accent'
                 : 'border-transparent text-ink-muted hover:text-ink'
@@ -173,9 +173,14 @@ export const CaseWorkbench: React.FC<Props> = ({ alertId, onDisposed }) => {
             : <PanelEmpty icon={<Network className="w-8 h-8" />} message="No material account links were found." />
         )}
         {activeTab === 'documents' && <KycDocuments documents={detail.kyc_documents ?? []} />}
+        {activeTab === 'semantic' && <SemanticExplorer key={detail.alert_id} customerId={detail.customer_id} alertId={detail.alert_id} />}
         {activeTab === 'findings' && (
           <div className="space-y-4">
-            <SemanticBasis context={semanticContext} />
+            <section className="rounded-lg border border-surface-3 bg-white p-4 text-xs">
+              <h3 className="font-bold text-ink">Analysis basis</h3>
+              <p className="mt-2 text-ink-muted">Workers receive intent-specific facts, definitions and claim limitations. Explore the current contract separately from saved findings.</p>
+              <button onClick={() => setActiveTab('semantic')} className="mt-3 text-accent font-semibold">Explore semantic context →</button>
+            </section>
             <AgentPanel
               caseId={detail.case_id}
               savedAnalysis={detail.analysis ? { text: detail.analysis, at: detail.analyzed_at ?? '' } : undefined}
@@ -196,42 +201,6 @@ const KycDocuments: React.FC<{ documents: NonNullable<CaseDetail['kyc_documents'
       <div className="whitespace-pre-line text-xs leading-5 text-ink-muted">{doc.content}</div>
     </section>)}
   </div> : <PanelEmpty icon={<FolderOpen className="w-8 h-8" />} message="No local KYC documents are available for this customer." />
-)
-
-const semanticValue = (value: unknown) => {
-  if (value == null) return 'Not available'
-  if (typeof value === 'number') return Number.isFinite(value) ? value.toLocaleString('en-SG') : String(value)
-  if (typeof value === 'string') return value
-  const text = JSON.stringify(value)
-  return text.length > 180 ? `${text.slice(0, 177)}…` : text
-}
-
-const SemanticBasis: React.FC<{ context: SemanticContext | null }> = ({ context }) => (
-  <section className="rounded-lg border border-surface-3 bg-white p-4 shadow-soft">
-    <div className="flex items-start justify-between gap-4 mb-3">
-      <div>
-        <h3 className="text-sm font-bold text-ink">Analysis basis</h3>
-        <p className="text-2xs text-ink-muted mt-1">Governed facts supplied to the investigation workflow—not an independent finding.</p>
-      </div>
-      {context && <span className="text-2xs font-mono text-ink-faint shrink-0">{context.semantic_model_version} · {context.ontology_version}</span>}
-    </div>
-    {!context ? <p className="text-xs text-ink-muted">Semantic context is unavailable for this case.</p> : <>
-      <div className="grid grid-cols-2 gap-2 mb-3 text-2xs">
-        <div className="rounded-md bg-surface-2 px-3 py-2"><span className="text-ink-faint uppercase tracking-wider">Data cutoff</span><p className="text-ink font-semibold mt-0.5">{fmtDate(context.scope.data_cutoff_at)}</p></div>
-        <div className="rounded-md bg-surface-2 px-3 py-2"><span className="text-ink-faint uppercase tracking-wider">Evidence records</span><p className="text-ink font-semibold mt-0.5">{context.evidence_refs.length} available</p></div>
-      </div>
-      <div className="grid grid-cols-1 xl:grid-cols-2 gap-2">
-        {context.facts.slice(0, 6).map(fact => <div key={fact.id} className="rounded-md border border-surface-3 px-3 py-2">
-          <p className="text-2xs uppercase tracking-wider text-ink-faint">{fact.concept.replaceAll('_', ' ')}</p>
-          <p className="text-xs text-ink mt-1 break-words">{semanticValue(fact.value)}</p>
-          <p className="text-2xs text-ink-faint mt-1">Source: {fact.source_ref}</p>
-        </div>)}
-      </div>
-      <div className="mt-3 border-l-2 border-accent pl-2 text-2xs text-ink-muted leading-4">
-        {context.claim_limitations[0] ?? 'Interpret facts within the recorded account scope and time window.'}
-      </div>
-    </>}
-  </section>
 )
 
 const Overview: React.FC<{ detail: CaseDetail; onOpenTransactions: () => void }> = ({ detail, onOpenTransactions }) => {

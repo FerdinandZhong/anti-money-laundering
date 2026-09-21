@@ -15,7 +15,7 @@ concepts:
   - id: kyc_declaration
     label: KYC declaration
     definition: Onboarding statement or document-derived profile value. It is context, not proof that later activity is legitimate.
-    synonyms: [expected turnover, source of wealth]
+    synonyms: [expected turnover]
   - id: observed_outbound_flow_30d
     label: Observed outbound flow (30 days)
     definition: Actual outbound amount in the 30 days ending at the alert data cutoff.

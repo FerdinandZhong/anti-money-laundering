@@ -5,7 +5,7 @@ from fastapi.testclient import TestClient
 
 
 def _seed(conn):
-    now = datetime.now(timezone.utc).isoformat()
+    now = datetime(2026, 9, 11, 12, tzinfo=timezone.utc).isoformat()
     conn.execute("INSERT INTO customers (customer_id, name) VALUES ('CUST-S1','Semantic Test Ltd.')")
     conn.execute("INSERT INTO accounts (account_id, customer_id) VALUES ('ACC-S1','CUST-S1')")
     conn.execute(
@@ -93,3 +93,43 @@ def test_semantic_relationship_path(tmp_db_path):
     assert response.status_code == 200
     path = response.json()["paths"][0]
     assert [step["id"] for step in path] == ["owns", "sends"]
+
+
+def test_context_explains_meaning_and_missing_coverage(tmp_db_path, monkeypatch):
+    from common.db import get_connection
+    conn = get_connection(); _seed(conn)
+    _source(monkeypatch)
+    body = _client().post('/api/semantic/context', json={
+        'customer_id': 'CUST-S1', 'intent': 'kyc_review', 'alert_id': 'ALERT-S1',
+    }).json()
+    facts = {fact['concept']: fact for fact in body['facts']}
+    assert facts['kyc_declaration']['label'] == 'KYC declaration'
+    assert 'not proof' in facts['kyc_declaration']['definition']
+    assert facts['observed_outbound_flow_30d']['source_ref'] == 'transactions.amount'
+    assert 'account' in body['declared_concepts']
+    assert 'account' in body['unavailable_fact_concepts']
+    assert 'account_priority_score' not in facts
+    assert any('5,000' in note for note in body['retrieval_notes'])
+
+
+def test_demo_queries_and_distinct_kyc_concepts(tmp_db_path, monkeypatch):
+    from common.db import get_connection
+    conn = get_connection(); _seed(conn)
+    _source(monkeypatch)
+    c = _client()
+    assert c.get('/api/semantic/concepts/source%20of%20wealth').status_code == 404
+    for intent, terms, expected in [
+        ('kyc_review', ['expected turnover', 'observed outflow'], {'kyc_declaration', 'observed_outbound_flow_30d'}),
+        ('score_explanation', ['risk score', 'model signal', 'sustained pattern'], {'account_priority_score', 'model_signal', 'sustained_pattern'}),
+    ]:
+        response = c.post('/api/semantic/query', json={
+            'customer_id': 'CUST-S1', 'alert_id': 'ALERT-S1', 'intent': intent, 'concepts': terms,
+        })
+        assert response.status_code == 200
+        body = response.json()
+        assert set(body['requested_concepts']) == expected
+        assert not body['unavailable_concepts']
+        assert all(fact['definition'] for fact in body['facts'])
+    assert c.post('/api/semantic/context', json={
+        'customer_id': 'CUST-S1', 'alert_id': 'OTHER', 'intent': 'kyc_review',
+    }).status_code == 404

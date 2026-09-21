@@ -3,6 +3,7 @@
 Current tasks, priorities, and known issues. Newest first.
 
 ## Semantic demonstration enhancement (Phase 1.5)
+- [x] Foldable exact-source YAML viewer for the Ossie-style model and AML extensions, distinct from runtime output.
 - [x] Dedicated Semantic context tab with live, read-only intent/query previews.
 - [x] Three demo presets: KYC comparison, score explanation, and intent exclusion.
 - [x] Show definitions, source lineage, account/time scope, interpretation limits and declared relationships.

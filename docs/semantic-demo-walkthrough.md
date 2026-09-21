@@ -4,6 +4,8 @@
 
 Open an alert, then select **Semantic context**. This tab calls the existing semantic APIs. It does not run an investigation, change labels, or create alerts.
 
+Expand **Source contracts: Ossie-style model and AML extensions (YAML)** to show the exact source files. Expand the semantic model to explain datasets, relationships and metrics; the ontology and context registry are separate AML extensions. These are our source contracts, not official Ossie examples. Contrast them with **Inspect returned JSON**, which shows case-specific runtime output.
+
 1. **Compare KYC with activity.** Click the first preset. “Expected turnover” resolves to `kyc_declaration`; “observed outflow” resolves to `observed_outbound_flow_30d`. Show the definition, value and source for each. One is an onboarding declaration; the other is observed outbound activity. Retain the displayed account scope and 30-day cutoff. A mismatch is a lead, not proof of crime. Do not assume turnover and outbound flow are interchangeable accounting measures.
 2. **Explain the priority score.** Click the second preset. “Risk score” resolves to `account_priority_score`. Show the priority definition, model/rule signal details, recorded pattern dates, and claim limitations. This is a prioritisation score, not a crime probability. These explanations are not SHAP attributions.
 3. **Test the intent boundary.** Click the third preset. The same risk-score term is now unavailable because the request is scoped to `kyc_review`. Expected turnover is still returned. This demonstrates actual backend fact-selection rules, not a warning appended to a generated answer. It is not a user-authorisation boundary: a caller can select another declared intent.
@@ -25,6 +27,8 @@ Open an alert, then select **Semantic context**. This tab calls the existing sem
 ## 中文：三分钟演示
 
 打开一个预警，进入 **Semantic context**。此页调用现有语义 API，只读查询，不启动调查、不修改标签，也不生成新预警。
+
+展开 **Source contracts: Ossie-style model and AML extensions (YAML)**，查看完整源文件。用语义模型说明数据集、关系和指标，再展示独立的 AML 本体及调查上下文扩展。这些是本项目的源契约，不是 Ossie 官方示例；**Inspect returned JSON** 则展示具体案件的运行时查询结果。
 
 1. **比较 KYC 与实际行为。** 点击第一个示例。“Expected turnover” 被映射为 `kyc_declaration`，“observed outflow” 被映射为 `observed_outbound_flow_30d`。展示各自的定义、数值和来源：前者是开户申报，后者是实际转出记录。必须保留账户范围、30 天窗口及截止时间。差异是调查线索，不是犯罪证据；营业额与转出金额也不一定是相同的会计口径。
 2. **解释优先级评分。** 点击第二个示例。“Risk score” 被映射为 `account_priority_score`。展示评分定义、模型与规则信号、行为模式时间和结论限制。此分数用于安排调查优先级，不代表犯罪概率，也不是 SHAP 特征归因。

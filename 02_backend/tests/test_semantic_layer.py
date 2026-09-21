@@ -95,6 +95,19 @@ def test_semantic_relationship_path(tmp_db_path):
     assert [step["id"] for step in path] == ["owns", "sends"]
 
 
+def test_semantic_contract_sources_are_exact_and_fixed(tmp_db_path):
+    from semantic.model_loader import SEMANTIC_ROOT
+    response = _client().get('/api/semantic/contracts')
+    assert response.status_code == 200
+    contracts = response.json()['contracts']
+    assert {item['filename'] for item in contracts} == {
+        'aml_semantic_model.ossie.yaml', 'aml_ontology.yaml', 'aml_context_registry.yaml',
+    }
+    for item in contracts:
+        assert item['content'] == (SEMANTIC_ROOT / item['filename']).read_text(encoding='utf-8')
+        assert item['title'] and item['description']
+
+
 def test_context_explains_meaning_and_missing_coverage(tmp_db_path, monkeypatch):
     from common.db import get_connection
     conn = get_connection(); _seed(conn)

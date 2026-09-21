@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { getCaseSemanticContext, getSemanticIntents, getSemanticPaths, querySemanticFacts } from '../api'
 import type { SemanticContext, SemanticIntent } from '../api'
+import { SemanticContracts } from './SemanticContracts'
 
 const label = (value: string) => value.replaceAll('_', ' ')
 const presets = [
@@ -96,6 +97,7 @@ export function SemanticExplorer({ customerId, alertId }: { customerId: string; 
       <p className="text-ink-muted mt-2">The contract describes how concepts relate. This is not a detected fund-flow network; use the Network tab for account links.</p>
     </section>
 
+    <SemanticContracts />
     <div aria-live="polite">{busy ? 'Retrieving scoped facts…' : error || (!context ? 'Choose a demo query above to inspect its result.' : '')}</div>
     {context && <>
       <section className="rounded-lg border border-surface-3 bg-white p-4">

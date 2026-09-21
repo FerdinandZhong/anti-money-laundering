@@ -98,6 +98,16 @@ export interface SemanticIntent {
   concepts: string[]
 }
 
+export interface SemanticContractSource {
+  filename: string
+  title: string
+  description: string
+  content: string
+}
+
+export const getSemanticContracts = () =>
+  api.get<{ contracts: SemanticContractSource[] }>('/semantic/contracts').then(r => r.data.contracts)
+
 export const getSemanticIntents = () =>
   api.get<{ intents: Record<string, SemanticIntent> }>('/semantic/intents').then(r => r.data.intents)
 

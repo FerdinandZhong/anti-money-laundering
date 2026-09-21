@@ -688,6 +688,13 @@ class SemanticQueryBody(SemanticContextBody):
     concepts: list[str]
 
 
+@app.get("/api/semantic/contracts")
+def get_semantic_contracts():
+    """Exact source YAML for the fixed, public AML semantic contract files."""
+    from semantic.model_loader import contract_sources
+    return {"contracts": contract_sources()}
+
+
 @app.get("/api/semantic/model")
 def get_semantic_model():
     """Published AML semantic-model summary, safe for agent discovery."""

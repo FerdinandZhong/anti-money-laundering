@@ -24,6 +24,12 @@ data:
   raw_dir: data/raw
   processed_dir: data/processed
 
+knowledge:
+  directory: data/knowledge
+  # Optional local BGE-M3 ONNX directory; no runtime downloads.
+  # Must contain model_quantized.onnx and tokenizer.json matching the release.
+  embedding_model_dir: ""
+
 source:
   # Source (reference) bank data: customers, accounts, transactions, devices.
   # Read from Impala/Iceberg in prod; fall back to local CSV when unreachable.

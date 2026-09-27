@@ -33,6 +33,12 @@ If VERIFICATION VERDICTS are present, weight confirmed claims up and refuted cla
 down, cite the verdicts, and let unresolved/refuted items lower your confidence.
 Be concise, evidence-based, and write in the present tense."""
 
+_NARRATIVE_SYSTEM += (
+    " Synthetic KYC control outcomes are deterministic DEMO results, not legal conclusions."
+    " Preserve conflicts, gaps, unavailable inputs and their historical cutoff;"
+    " do not infer a control passed from the worker's general narrative."
+)
+
 
 def _e(type_: str, **kw) -> dict:
     return {"type": type_, **kw}
@@ -115,6 +121,10 @@ def run_investigation(
     ]
     for token in chat(messages, stream=True):
         yield _e("token", text=token)
+
+    for result in findings_list:
+        if result.get('control_summary'):
+            yield _e('token', text='\n\n' + result['control_summary'])
 
     # ── Phase 3: REVIEWED ────────────────────────────────────────────────────
     state = transition(state, CaseState.REVIEWED)

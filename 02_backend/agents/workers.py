@@ -10,6 +10,7 @@ from agents.tools import TOOLS, mcp_verification_tools
 from common.evidence import create_evidence
 from common.db import get_connection
 from semantic.resolver import build_case_context
+from compliance.investigation import collect as collect_controls, summary as control_summary
 
 # Tool allow-list per worker (documentation + enforcement reference)
 WORKER_TOOLS: dict[str, list[str]] = {
@@ -76,6 +77,7 @@ def run_profile_worker(case_id: str, alert_id: str, customer_id: str) -> dict:
         profile = TOOLS["get_customer_profile"](conn, customer_id)
         documents = TOOLS["get_customer_kyc_documents"](conn, customer_id)
         semantic_context = build_case_context(conn, customer_id, "kyc_review", alert_id)
+        controls = collect_controls(conn, alert_id, customer_id)
     finally:
         conn.close()
 
@@ -84,6 +86,7 @@ def run_profile_worker(case_id: str, alert_id: str, customer_id: str) -> dict:
         _ev(case_id, "get_customer_profile", customer_id, profile, "profile"),
         _ev(case_id, "get_customer_kyc_documents", customer_id, documents, "profile"),
         _ev(case_id, "get_case_semantic_context", "kyc_review", semantic_context, "profile"),
+        _ev(case_id, "get_kyc_controls", alert_id, controls, "profile"),
     ]
     data = {"alert": alert, "customer": profile, "kyc_documents": documents,
             "semantic_context": semantic_context}
@@ -92,7 +95,10 @@ def run_profile_worker(case_id: str, alert_id: str, customer_id: str) -> dict:
         {"role": "user",   "content": json.dumps(data, default=str)},
     ], stream=False)
     assert isinstance(findings, str)
-    return {"worker": "profile", "findings": findings, "evidence_ids": ev_ids}
+    deterministic = control_summary(controls)
+    return {"worker": "profile", "findings": findings + '\n\n' + deterministic,
+            "evidence_ids": ev_ids, "control_summary": deterministic,
+            "control_assessment": controls}
 
 
 def run_pattern_worker(case_id: str, alert_id: str, customer_id: str, account_id: str) -> dict:

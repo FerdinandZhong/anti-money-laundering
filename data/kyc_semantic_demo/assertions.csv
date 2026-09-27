@@ -1,0 +1,7 @@
+assertion_id,customer_id,account_id,source,field,value,received_at,effective_from,source_ref,page,verified,confidence
+A-SG-REG-OWNER,CUST-000294,ACC-0000294,registry,受益所有人,Lim Wei Ming,2026-09-01T00:00:00Z,2026-08-01T00:00:00Z,records/sg_registry.md,1,true,0.98
+A-SG-DECL-OWNER,CUST-000294,ACC-0000294,declaration,UBO,Chen Min,2026-09-03T00:00:00Z,2026-08-01T00:00:00Z,records/sg_declaration.md,2,true,0.96
+A-SG-REP,CUST-000294,ACC-0000294,registry,法定代表人,Lim Wei Ming,2026-09-01T00:00:00Z,2026-08-01T00:00:00Z,records/sg_registry.md,1,true,0.98
+A-SG-FOUNDS,CUST-000294,ACC-0000294,onboarding,funding_origin,Sales proceeds,2026-09-18T00:00:00Z,2026-09-01T00:00:00Z,records/sg_funding.md,1,true,0.95
+A-HK-CONTROL,CUST-000295,ACC-0000295,registry,significant_controller,Anita Wong,2026-09-01T00:00:00Z,2026-08-01T00:00:00Z,records/hk_registry.md,1,true,0.97
+A-HK-MANDATE,CUST-000295,ACC-0000295,mandate,authorized_signatory,Anita Wong,2026-09-02T00:00:00Z,2026-08-01T00:00:00Z,records/hk_mandate.md,1,true,0.96

@@ -18,6 +18,42 @@ environment_variables:
     default: "caii"
     description: "LLM provider: caii, vllm, or ollama"
     required: false
+  AML_PREPARE_KYC:
+    default: "1"
+    description: "Prepare bilingual PDF and scanned KYC evidence with real OCR and LanceDB during generation; 0 skips preparation"
+    required: false
+  AML_ENABLE_KYC_DEMO_CONTROLS:
+    default: "1"
+    description: "Enable synthetic SG/HK controls and retained investigation assessments; these are demo policies, not legal determinations"
+    required: false
+  AML_KYC_DOCUMENT_MODE:
+    default: "pdf"
+    description: "pdf generates native and image-only PDFs with real OCR; markdown selects the lightweight text demo"
+    required: false
+  AML_KYC_EXPANDED_CORPUS:
+    default: "1"
+    description: "Link 12 synthetic customer groups, 30 accounts and 120 bilingual document versions to the AMP source and semantic CSVs"
+    required: false
+  AML_KYC_SEMANTIC_DIR:
+    default: "data/kyc_semantic_runtime"
+    description: "Generated eight-table semantic source contract used by demo assessments; point to a populated CSV directory"
+    required: false
+  AML_KYC_AUDIT_HMAC_KEY_FILE:
+    default: "data/kyc_audit_demo.key"
+    description: "Demo HMAC seal key created by installer; for production use a protected key mount outside project storage"
+    required: false
+  AML_KYC_MANIFEST:
+    default: ""
+    description: "Optional previously extracted manifest in project storage; blank generates the bundled synthetic evidence"
+    required: false
+  AML_KNOWLEDGE_DIR:
+    default: "data/knowledge"
+    description: "Persistent project directory for versioned KYC assets and LanceDB indexes"
+    required: false
+  AML_EMBEDDING_MODEL_DIR:
+    default: ""
+    description: "Optional provisioned BGE-M3 ONNX model directory for hybrid retrieval; blank uses bilingual keyword search"
+    required: false
 
 runtimes:
   - editor: JupyterLab
@@ -34,6 +70,7 @@ tasks:
       Validates system resources, creates data and model directories, installs
       Python dependencies from requirements.txt, ensures Node.js is available
       via nvm, and builds the production React frontend bundle.
+      Installs CPU PDF/OCR dependencies when KYC preparation is enabled.
     cpu: 2
     memory: 4
     gpu: 0
@@ -47,6 +84,9 @@ tasks:
       Creates synthetic customers, accounts, and transactions with realistic
       AML patterns including layering, structuring, smurfing, and cross-border
       wire transfers. Writes raw data to SQLite and CSV for downstream processing.
+      By default also renders bilingual KYC PDFs for 12 linked customer groups,
+      extracts native text and scans with OCR, builds a versioned LanceDB index,
+      and extends the eight-table semantic CSV contract.
     cpu: 2
     memory: 4
     gpu: 0
@@ -94,6 +134,7 @@ tasks:
     name: AML Platform
     subdomain: aml-platform
     script: 03_frontend/start_frontend.py
+    bypass_authentication: false
     kernel: python3
     short_summary: Launch the AML investigation dashboard and API in one app
     long_summary: >-
@@ -106,6 +147,7 @@ tasks:
     gpu: 0
     environment_variables:
       TASK_TYPE: START_APPLICATION
+      AML_KYC_APP_PRIVATE: "1"
       BACKEND_PORT:
         default: "7078"
         description: "Localhost port the co-located FastAPI backend binds to"

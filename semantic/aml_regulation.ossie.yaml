@@ -1,0 +1,85 @@
+version: '0.1'
+semantic_model:
+  - name: aml_regulatory_meaning
+    description: Regulatory vocabulary and requirement summaries, independent of account evidence.
+    datasets:
+      - name: regulation
+        source: regulatory_source_register.sources
+        primary_key: [id]
+      - name: requirement
+        source: aml_regulation.requirements
+        primary_key: [id]
+      - name: business_concept
+        source: aml_source_mappings.mappings
+        primary_key: [id]
+    relationships:
+      - name: requirement_belongs_to_regulation
+        from: requirement.source_id
+        to: regulation.id
+      - name: requirement_relates_to_concept
+        from: requirement.business_concepts
+        to: business_concept.concept
+    ai_context:
+      instructions: >-
+        Distinguish regulatory meaning, applicability and evidence assessment.
+        A related field is not legal equivalence or proof of compliance.
+        Missing evidence does not remove a requirement. Unknown booking jurisdiction
+        or institution type leaves applicability undetermined. Read the cited
+        edition for exceptions and conditions; summaries are not exhaustive rules.
+# AML extension: source-linked definitions and requirement meaning.
+requirements:
+  - id: sg-authority
+    source_id: SG-MAS-626
+    clause: '6.11'
+    term: Authority to act
+    meaning: A person acting for a customer needs authority as well as an identified identity.
+    requirement: Verify identity and due authority of persons appointed to act for the customer.
+    applicability: Banks in Singapore; where a person is appointed to act for the customer.
+    business_concepts: [account_signing_authority]
+    fields: [mandate.authorized_signatory]
+    evidence_types: [Account mandate, Identity record, Authority documentation]
+    distinction: An authorized signatory is not automatically a beneficial owner.
+  - id: sg-owner
+    source_id: SG-MAS-626
+    clause: '6.13-6.14'
+    term: Beneficial owner
+    meaning: The individual behind ultimate ownership or control, including someone on whose behalf the relationship or transaction exists.
+    requirement: Establish whether beneficial owners exist and identify and reasonably verify them, subject to the cited exceptions.
+    applicability: Banks in Singapore; customer due diligence, subject to paragraph 6.16 and relevant ownership or control conditions.
+    business_concepts: [beneficial_owner, registry_owner_record, disclosed_ownership_paths]
+    fields: [registry.受益所有人, declaration.UBO, customers.beneficial_owner]
+    evidence_types: [Ownership structure, Owner identity record, Registry extract]
+    distinction: A named shareholder or legal representative alone does not establish ultimate ownership or control.
+  - id: sg-monitoring
+    source_id: SG-MAS-626
+    clause: '6.19-6.24'
+    term: Ongoing monitoring
+    meaning: Customer knowledge and transaction behaviour need to remain consistent over time.
+    requirement: Monitor relationships, scrutinise activity and maintain current due-diligence information on a risk-sensitive basis.
+    applicability: Banks in Singapore during customer relationships; additional checks depend on activity and risk.
+    business_concepts: [periodic_review_due, account_external_outflow_30d, source_of_funds]
+    fields: [customers.expected_monthly_turnover, transactions.amount, onboarding.funding_origin, customers.kyc_last_updated]
+    evidence_types: [Transaction history, Customer profile, Funding explanation, Review records]
+    distinction: A turnover comparison is one indicator, not the whole monitoring requirement.
+  - id: sg-records
+    source_id: SG-MAS-626
+    clause: '12.1-12.5'
+    term: Record keeping
+    meaning: Records must preserve the information needed to reconstruct transactions and due diligence.
+    requirement: Maintain retrievable records under applicable retention periods and any longer authority-directed retention.
+    applicability: Banks in Singapore; required transaction and due-diligence records, with periods and triggers defined in the cited clauses.
+    business_concepts: [retained_assessment, review_event]
+    fields: [retained_assessment, review_event]
+    evidence_types: [Transaction records, Due-diligence records, Retention policy]
+    distinction: Application assessment history represents only part of the required records.
+  - id: hk-owner
+    source_id: HKMA-AML2-2023
+    clause: '4.4.1-4.4.4'
+    term: Beneficial owner
+    meaning: The individual with ultimate ownership or control, or for whom a transaction or activity is conducted.
+    requirement: Identify beneficial owners and take reasonable measures to verify identity using reliable information and the relevant ownership or control conditions.
+    applicability: Hong Kong authorized institutions; customer due diligence. Entity-specific conditions are detailed in the surrounding section 4.4.
+    business_concepts: [registry_owner_record, controlling_person, beneficial_owner]
+    fields: [registry.significant_controller, customers.beneficial_owner]
+    evidence_types: [Ownership structure, Identity record, Independent corroboration]
+    distinction: A registry controller label is related evidence, not automatic equivalence to every regulatory condition.

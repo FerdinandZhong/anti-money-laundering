@@ -12,9 +12,13 @@ build/
 data/aml.db
 data/aml.db-shm
 data/aml.db-wal
+data/kyc_audit_demo.key
 data/raw/
 data/kyc_documents/
+data/knowledge/
+data/kyc_semantic_runtime/
 data/processed/
+artifacts/
 models/*.json
 models/*.ubj
 models/registry/*.json

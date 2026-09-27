@@ -15,6 +15,7 @@ numpy>=1.26.0
 
 # Data
 pyarrow>=15.0.0
+lancedb==0.30.0     # immutable KYC releases + native full-text/vector search
 
 # Utilities
 python-dotenv>=1.0.0

@@ -24,6 +24,7 @@ runs the multi-agent analysis and persists it to the case (the API's only mutati
 on this surface). Disposition / labels / retrain / config are not exposed.
 """
 import os
+from urllib.parse import quote
 
 import httpx
 from mcp.server import MCPServer
@@ -62,6 +63,44 @@ def _post(path: str, body: dict | None = None) -> dict:
         r = c.post(f"{_base_url()}{path}", **kwargs)
         r.raise_for_status()
         return r.json()
+
+
+@mcp.tool()
+def list_kyc_evidence(alert_id: str) -> dict:
+    """List versioned KYC documents in this alert's customer/account scope.
+
+    The library may include later receipts and illustrative fixtures; these are
+    not verified customer facts. Use search_kyc_evidence for cutoff-bound search.
+    """
+    return _get(f"/alerts/{quote(alert_id,safe='')}/knowledge")
+
+
+@mcp.tool()
+def search_kyc_evidence(alert_id: str, query: str, release_id: str, limit: int = 10) -> dict:
+    """Read-only bilingual evidence search using the alert's recorded cutoff.
+
+    Pass release_id from list_kyc_evidence to pin citations. Results include page,
+    source version and OCR evidence. Similarity is not proof of correctness;
+    illustrative fixtures must never be presented as verified customer records.
+    """
+    return _get(f"/alerts/{quote(alert_id,safe='')}/knowledge/search",
+                params={'q':query,'release':release_id,'limit':limit})
+
+
+@mcp.tool()
+def get_kyc_controls(alert_id: str) -> dict:
+    """Read deterministic synthetic KYC controls and cited evidence at the alert cutoff.
+
+    Requires explicit demo enablement. Outcomes include missing sources, ownership
+    paths and decimal activity calculations; they are not legal certification.
+    """
+    return _get(f"/alerts/{quote(alert_id,safe='')}/controls")
+
+
+@mcp.tool()
+def replay_kyc_assessment(alert_id: str, assessment_id: str) -> dict:
+    """Read-only replay of a previously retained assessment from its saved inputs."""
+    return _get(f"/alerts/{quote(alert_id,safe='')}/controls/assessments/{quote(assessment_id,safe='')}/replay")
 
 
 @mcp.tool()

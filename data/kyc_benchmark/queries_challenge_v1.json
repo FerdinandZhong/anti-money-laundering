@@ -1,0 +1,546 @@
+{
+  "version": "linked-corpus-challenge-v1",
+  "frozen_before_first_run": true,
+  "queries": [
+    {
+      "id": "C001",
+      "category": "held_out_paraphrase_en",
+      "customer_id": "CUST-000296",
+      "account_id": "ACC-0000296",
+      "as_of": "2026-09-25T00:00:00Z",
+      "query": "Who ultimately controls this company beyond its registered representative?",
+      "expected_document_id": "corpus-001-registry"
+    },
+    {
+      "id": "C002",
+      "category": "held_out_paraphrase_zh",
+      "customer_id": "CUST-000296",
+      "account_id": "ACC-0000296",
+      "as_of": "2026-09-25T00:00:00Z",
+      "query": "谁有权批准该账户的对外付款？",
+      "expected_document_id": "corpus-001-mandate"
+    },
+    {
+      "id": "C003",
+      "category": "held_out_paraphrase_en",
+      "customer_id": "CUST-000296",
+      "account_id": "ACC-0000296",
+      "as_of": "2026-09-25T00:00:00Z",
+      "query": "Which trade paperwork explains where the credited money came from?",
+      "expected_document_id": "corpus-001-funding"
+    },
+    {
+      "id": "C004",
+      "category": "held_out_paraphrase_zh",
+      "customer_id": "CUST-000296",
+      "account_id": "ACC-0000296",
+      "as_of": "2026-09-25T00:00:00Z",
+      "query": "客户过去积累的资产是通过什么方式形成的？",
+      "expected_document_id": "corpus-001-wealth"
+    },
+    {
+      "id": "C005",
+      "category": "held_out_paraphrase_en",
+      "customer_id": "CUST-000296",
+      "account_id": "ACC-0000296",
+      "as_of": "2026-09-25T00:00:00Z",
+      "query": "Is a reputational name match still awaiting human investigation?",
+      "expected_document_id": "corpus-001-review"
+    },
+    {
+      "id": "C006",
+      "category": "held_out_paraphrase_en",
+      "customer_id": "CUST-000297",
+      "account_id": "ACC-0000297",
+      "as_of": "2026-09-25T00:00:00Z",
+      "query": "Who ultimately controls this company beyond its registered representative?",
+      "expected_document_id": "corpus-002-registry"
+    },
+    {
+      "id": "C007",
+      "category": "held_out_paraphrase_zh",
+      "customer_id": "CUST-000297",
+      "account_id": "ACC-0000297",
+      "as_of": "2026-09-25T00:00:00Z",
+      "query": "谁有权批准该账户的对外付款？",
+      "expected_document_id": "corpus-002-mandate"
+    },
+    {
+      "id": "C008",
+      "category": "held_out_paraphrase_en",
+      "customer_id": "CUST-000297",
+      "account_id": "ACC-0000297",
+      "as_of": "2026-09-25T00:00:00Z",
+      "query": "Which trade paperwork explains where the credited money came from?",
+      "expected_document_id": "corpus-002-funding"
+    },
+    {
+      "id": "C009",
+      "category": "held_out_paraphrase_zh",
+      "customer_id": "CUST-000297",
+      "account_id": "ACC-0000297",
+      "as_of": "2026-09-25T00:00:00Z",
+      "query": "客户过去积累的资产是通过什么方式形成的？",
+      "expected_document_id": "corpus-002-wealth"
+    },
+    {
+      "id": "C010",
+      "category": "held_out_paraphrase_en",
+      "customer_id": "CUST-000297",
+      "account_id": "ACC-0000297",
+      "as_of": "2026-09-25T00:00:00Z",
+      "query": "Is a reputational name match still awaiting human investigation?",
+      "expected_document_id": "corpus-002-review"
+    },
+    {
+      "id": "C011",
+      "category": "held_out_paraphrase_en",
+      "customer_id": "CUST-000298",
+      "account_id": "ACC-0000298",
+      "as_of": "2026-09-25T00:00:00Z",
+      "query": "Who ultimately controls this company beyond its registered representative?",
+      "expected_document_id": "corpus-003-registry"
+    },
+    {
+      "id": "C012",
+      "category": "held_out_paraphrase_zh",
+      "customer_id": "CUST-000298",
+      "account_id": "ACC-0000298",
+      "as_of": "2026-09-25T00:00:00Z",
+      "query": "谁有权批准该账户的对外付款？",
+      "expected_document_id": "corpus-003-mandate"
+    },
+    {
+      "id": "C013",
+      "category": "held_out_paraphrase_en",
+      "customer_id": "CUST-000298",
+      "account_id": "ACC-0000298",
+      "as_of": "2026-09-25T00:00:00Z",
+      "query": "Which trade paperwork explains where the credited money came from?",
+      "expected_document_id": "corpus-003-funding"
+    },
+    {
+      "id": "C014",
+      "category": "held_out_paraphrase_zh",
+      "customer_id": "CUST-000298",
+      "account_id": "ACC-0000298",
+      "as_of": "2026-09-25T00:00:00Z",
+      "query": "客户过去积累的资产是通过什么方式形成的？",
+      "expected_document_id": "corpus-003-wealth"
+    },
+    {
+      "id": "C015",
+      "category": "held_out_paraphrase_en",
+      "customer_id": "CUST-000298",
+      "account_id": "ACC-0000298",
+      "as_of": "2026-09-25T00:00:00Z",
+      "query": "Is a reputational name match still awaiting human investigation?",
+      "expected_document_id": "corpus-003-review"
+    },
+    {
+      "id": "C016",
+      "category": "held_out_paraphrase_en",
+      "customer_id": "CUST-000299",
+      "account_id": "ACC-0000299",
+      "as_of": "2026-09-25T00:00:00Z",
+      "query": "Who ultimately controls this company beyond its registered representative?",
+      "expected_document_id": "corpus-004-registry"
+    },
+    {
+      "id": "C017",
+      "category": "held_out_paraphrase_zh",
+      "customer_id": "CUST-000299",
+      "account_id": "ACC-0000299",
+      "as_of": "2026-09-25T00:00:00Z",
+      "query": "谁有权批准该账户的对外付款？",
+      "expected_document_id": "corpus-004-mandate"
+    },
+    {
+      "id": "C018",
+      "category": "held_out_paraphrase_en",
+      "customer_id": "CUST-000299",
+      "account_id": "ACC-0000299",
+      "as_of": "2026-09-25T00:00:00Z",
+      "query": "Which trade paperwork explains where the credited money came from?",
+      "expected_document_id": "corpus-004-funding"
+    },
+    {
+      "id": "C019",
+      "category": "held_out_paraphrase_zh",
+      "customer_id": "CUST-000299",
+      "account_id": "ACC-0000299",
+      "as_of": "2026-09-25T00:00:00Z",
+      "query": "客户过去积累的资产是通过什么方式形成的？",
+      "expected_document_id": "corpus-004-wealth"
+    },
+    {
+      "id": "C020",
+      "category": "held_out_paraphrase_en",
+      "customer_id": "CUST-000299",
+      "account_id": "ACC-0000299",
+      "as_of": "2026-09-25T00:00:00Z",
+      "query": "Is a reputational name match still awaiting human investigation?",
+      "expected_document_id": "corpus-004-review"
+    },
+    {
+      "id": "C021",
+      "category": "held_out_paraphrase_en",
+      "customer_id": "CUST-000300",
+      "account_id": "ACC-0000300",
+      "as_of": "2026-09-25T00:00:00Z",
+      "query": "Who ultimately controls this company beyond its registered representative?",
+      "expected_document_id": "corpus-005-registry"
+    },
+    {
+      "id": "C022",
+      "category": "held_out_paraphrase_zh",
+      "customer_id": "CUST-000300",
+      "account_id": "ACC-0000300",
+      "as_of": "2026-09-25T00:00:00Z",
+      "query": "谁有权批准该账户的对外付款？",
+      "expected_document_id": "corpus-005-mandate"
+    },
+    {
+      "id": "C023",
+      "category": "held_out_paraphrase_en",
+      "customer_id": "CUST-000300",
+      "account_id": "ACC-0000300",
+      "as_of": "2026-09-25T00:00:00Z",
+      "query": "Which trade paperwork explains where the credited money came from?",
+      "expected_document_id": "corpus-005-funding"
+    },
+    {
+      "id": "C024",
+      "category": "held_out_paraphrase_zh",
+      "customer_id": "CUST-000300",
+      "account_id": "ACC-0000300",
+      "as_of": "2026-09-25T00:00:00Z",
+      "query": "客户过去积累的资产是通过什么方式形成的？",
+      "expected_document_id": "corpus-005-wealth"
+    },
+    {
+      "id": "C025",
+      "category": "held_out_paraphrase_en",
+      "customer_id": "CUST-000300",
+      "account_id": "ACC-0000300",
+      "as_of": "2026-09-25T00:00:00Z",
+      "query": "Is a reputational name match still awaiting human investigation?",
+      "expected_document_id": "corpus-005-review"
+    },
+    {
+      "id": "C026",
+      "category": "held_out_paraphrase_en",
+      "customer_id": "CUST-000301",
+      "account_id": "ACC-0000301",
+      "as_of": "2026-09-25T00:00:00Z",
+      "query": "Who ultimately controls this company beyond its registered representative?",
+      "expected_document_id": "corpus-006-registry"
+    },
+    {
+      "id": "C027",
+      "category": "held_out_paraphrase_zh",
+      "customer_id": "CUST-000301",
+      "account_id": "ACC-0000301",
+      "as_of": "2026-09-25T00:00:00Z",
+      "query": "谁有权批准该账户的对外付款？",
+      "expected_document_id": "corpus-006-mandate"
+    },
+    {
+      "id": "C028",
+      "category": "held_out_paraphrase_en",
+      "customer_id": "CUST-000301",
+      "account_id": "ACC-0000301",
+      "as_of": "2026-09-25T00:00:00Z",
+      "query": "Which trade paperwork explains where the credited money came from?",
+      "expected_document_id": "corpus-006-funding"
+    },
+    {
+      "id": "C029",
+      "category": "held_out_paraphrase_zh",
+      "customer_id": "CUST-000301",
+      "account_id": "ACC-0000301",
+      "as_of": "2026-09-25T00:00:00Z",
+      "query": "客户过去积累的资产是通过什么方式形成的？",
+      "expected_document_id": "corpus-006-wealth"
+    },
+    {
+      "id": "C030",
+      "category": "held_out_paraphrase_en",
+      "customer_id": "CUST-000301",
+      "account_id": "ACC-0000301",
+      "as_of": "2026-09-25T00:00:00Z",
+      "query": "Is a reputational name match still awaiting human investigation?",
+      "expected_document_id": "corpus-006-review"
+    },
+    {
+      "id": "C031",
+      "category": "held_out_paraphrase_en",
+      "customer_id": "CUST-000302",
+      "account_id": "ACC-0000302",
+      "as_of": "2026-09-25T00:00:00Z",
+      "query": "Who ultimately controls this company beyond its registered representative?",
+      "expected_document_id": "corpus-007-registry"
+    },
+    {
+      "id": "C032",
+      "category": "held_out_paraphrase_zh",
+      "customer_id": "CUST-000302",
+      "account_id": "ACC-0000302",
+      "as_of": "2026-09-25T00:00:00Z",
+      "query": "谁有权批准该账户的对外付款？",
+      "expected_document_id": "corpus-007-mandate"
+    },
+    {
+      "id": "C033",
+      "category": "held_out_paraphrase_en",
+      "customer_id": "CUST-000302",
+      "account_id": "ACC-0000302",
+      "as_of": "2026-09-25T00:00:00Z",
+      "query": "Which trade paperwork explains where the credited money came from?",
+      "expected_document_id": "corpus-007-funding"
+    },
+    {
+      "id": "C034",
+      "category": "held_out_paraphrase_zh",
+      "customer_id": "CUST-000302",
+      "account_id": "ACC-0000302",
+      "as_of": "2026-09-25T00:00:00Z",
+      "query": "客户过去积累的资产是通过什么方式形成的？",
+      "expected_document_id": "corpus-007-wealth"
+    },
+    {
+      "id": "C035",
+      "category": "held_out_paraphrase_en",
+      "customer_id": "CUST-000302",
+      "account_id": "ACC-0000302",
+      "as_of": "2026-09-25T00:00:00Z",
+      "query": "Is a reputational name match still awaiting human investigation?",
+      "expected_document_id": "corpus-007-review"
+    },
+    {
+      "id": "C036",
+      "category": "held_out_paraphrase_en",
+      "customer_id": "CUST-000303",
+      "account_id": "ACC-0000303",
+      "as_of": "2026-09-25T00:00:00Z",
+      "query": "Who ultimately controls this company beyond its registered representative?",
+      "expected_document_id": "corpus-008-registry"
+    },
+    {
+      "id": "C037",
+      "category": "held_out_paraphrase_zh",
+      "customer_id": "CUST-000303",
+      "account_id": "ACC-0000303",
+      "as_of": "2026-09-25T00:00:00Z",
+      "query": "谁有权批准该账户的对外付款？",
+      "expected_document_id": "corpus-008-mandate"
+    },
+    {
+      "id": "C038",
+      "category": "held_out_paraphrase_en",
+      "customer_id": "CUST-000303",
+      "account_id": "ACC-0000303",
+      "as_of": "2026-09-25T00:00:00Z",
+      "query": "Which trade paperwork explains where the credited money came from?",
+      "expected_document_id": "corpus-008-funding"
+    },
+    {
+      "id": "C039",
+      "category": "held_out_paraphrase_zh",
+      "customer_id": "CUST-000303",
+      "account_id": "ACC-0000303",
+      "as_of": "2026-09-25T00:00:00Z",
+      "query": "客户过去积累的资产是通过什么方式形成的？",
+      "expected_document_id": "corpus-008-wealth"
+    },
+    {
+      "id": "C040",
+      "category": "held_out_paraphrase_en",
+      "customer_id": "CUST-000303",
+      "account_id": "ACC-0000303",
+      "as_of": "2026-09-25T00:00:00Z",
+      "query": "Is a reputational name match still awaiting human investigation?",
+      "expected_document_id": "corpus-008-review"
+    },
+    {
+      "id": "C041",
+      "category": "held_out_paraphrase_en",
+      "customer_id": "CUST-000304",
+      "account_id": "ACC-0000304",
+      "as_of": "2026-09-25T00:00:00Z",
+      "query": "Who ultimately controls this company beyond its registered representative?",
+      "expected_document_id": "corpus-009-registry"
+    },
+    {
+      "id": "C042",
+      "category": "held_out_paraphrase_zh",
+      "customer_id": "CUST-000304",
+      "account_id": "ACC-0000304",
+      "as_of": "2026-09-25T00:00:00Z",
+      "query": "谁有权批准该账户的对外付款？",
+      "expected_document_id": "corpus-009-mandate"
+    },
+    {
+      "id": "C043",
+      "category": "held_out_paraphrase_en",
+      "customer_id": "CUST-000304",
+      "account_id": "ACC-0000304",
+      "as_of": "2026-09-25T00:00:00Z",
+      "query": "Which trade paperwork explains where the credited money came from?",
+      "expected_document_id": "corpus-009-funding"
+    },
+    {
+      "id": "C044",
+      "category": "held_out_paraphrase_zh",
+      "customer_id": "CUST-000304",
+      "account_id": "ACC-0000304",
+      "as_of": "2026-09-25T00:00:00Z",
+      "query": "客户过去积累的资产是通过什么方式形成的？",
+      "expected_document_id": "corpus-009-wealth"
+    },
+    {
+      "id": "C045",
+      "category": "held_out_paraphrase_en",
+      "customer_id": "CUST-000304",
+      "account_id": "ACC-0000304",
+      "as_of": "2026-09-25T00:00:00Z",
+      "query": "Is a reputational name match still awaiting human investigation?",
+      "expected_document_id": "corpus-009-review"
+    },
+    {
+      "id": "C046",
+      "category": "held_out_paraphrase_en",
+      "customer_id": "CUST-000305",
+      "account_id": "ACC-0000305",
+      "as_of": "2026-09-25T00:00:00Z",
+      "query": "Who ultimately controls this company beyond its registered representative?",
+      "expected_document_id": "corpus-010-registry"
+    },
+    {
+      "id": "C047",
+      "category": "held_out_paraphrase_zh",
+      "customer_id": "CUST-000305",
+      "account_id": "ACC-0000305",
+      "as_of": "2026-09-25T00:00:00Z",
+      "query": "谁有权批准该账户的对外付款？",
+      "expected_document_id": "corpus-010-mandate"
+    },
+    {
+      "id": "C048",
+      "category": "held_out_paraphrase_en",
+      "customer_id": "CUST-000305",
+      "account_id": "ACC-0000305",
+      "as_of": "2026-09-25T00:00:00Z",
+      "query": "Which trade paperwork explains where the credited money came from?",
+      "expected_document_id": "corpus-010-funding"
+    },
+    {
+      "id": "C049",
+      "category": "held_out_paraphrase_zh",
+      "customer_id": "CUST-000305",
+      "account_id": "ACC-0000305",
+      "as_of": "2026-09-25T00:00:00Z",
+      "query": "客户过去积累的资产是通过什么方式形成的？",
+      "expected_document_id": "corpus-010-wealth"
+    },
+    {
+      "id": "C050",
+      "category": "held_out_paraphrase_en",
+      "customer_id": "CUST-000305",
+      "account_id": "ACC-0000305",
+      "as_of": "2026-09-25T00:00:00Z",
+      "query": "Is a reputational name match still awaiting human investigation?",
+      "expected_document_id": "corpus-010-review"
+    },
+    {
+      "id": "C051",
+      "category": "held_out_paraphrase_en",
+      "customer_id": "CUST-000306",
+      "account_id": "ACC-0000306",
+      "as_of": "2026-09-25T00:00:00Z",
+      "query": "Who ultimately controls this company beyond its registered representative?",
+      "expected_document_id": "corpus-011-registry"
+    },
+    {
+      "id": "C052",
+      "category": "held_out_paraphrase_zh",
+      "customer_id": "CUST-000306",
+      "account_id": "ACC-0000306",
+      "as_of": "2026-09-25T00:00:00Z",
+      "query": "谁有权批准该账户的对外付款？",
+      "expected_document_id": "corpus-011-mandate"
+    },
+    {
+      "id": "C053",
+      "category": "held_out_paraphrase_en",
+      "customer_id": "CUST-000306",
+      "account_id": "ACC-0000306",
+      "as_of": "2026-09-25T00:00:00Z",
+      "query": "Which trade paperwork explains where the credited money came from?",
+      "expected_document_id": "corpus-011-funding"
+    },
+    {
+      "id": "C054",
+      "category": "held_out_paraphrase_zh",
+      "customer_id": "CUST-000306",
+      "account_id": "ACC-0000306",
+      "as_of": "2026-09-25T00:00:00Z",
+      "query": "客户过去积累的资产是通过什么方式形成的？",
+      "expected_document_id": "corpus-011-wealth"
+    },
+    {
+      "id": "C055",
+      "category": "held_out_paraphrase_en",
+      "customer_id": "CUST-000306",
+      "account_id": "ACC-0000306",
+      "as_of": "2026-09-25T00:00:00Z",
+      "query": "Is a reputational name match still awaiting human investigation?",
+      "expected_document_id": "corpus-011-review"
+    },
+    {
+      "id": "C056",
+      "category": "held_out_paraphrase_en",
+      "customer_id": "CUST-000307",
+      "account_id": "ACC-0000307",
+      "as_of": "2026-09-25T00:00:00Z",
+      "query": "Who ultimately controls this company beyond its registered representative?",
+      "expected_document_id": "corpus-012-registry"
+    },
+    {
+      "id": "C057",
+      "category": "held_out_paraphrase_zh",
+      "customer_id": "CUST-000307",
+      "account_id": "ACC-0000307",
+      "as_of": "2026-09-25T00:00:00Z",
+      "query": "谁有权批准该账户的对外付款？",
+      "expected_document_id": "corpus-012-mandate"
+    },
+    {
+      "id": "C058",
+      "category": "held_out_paraphrase_en",
+      "customer_id": "CUST-000307",
+      "account_id": "ACC-0000307",
+      "as_of": "2026-09-25T00:00:00Z",
+      "query": "Which trade paperwork explains where the credited money came from?",
+      "expected_document_id": "corpus-012-funding"
+    },
+    {
+      "id": "C059",
+      "category": "held_out_paraphrase_zh",
+      "customer_id": "CUST-000307",
+      "account_id": "ACC-0000307",
+      "as_of": "2026-09-25T00:00:00Z",
+      "query": "客户过去积累的资产是通过什么方式形成的？",
+      "expected_document_id": "corpus-012-wealth"
+    },
+    {
+      "id": "C060",
+      "category": "held_out_paraphrase_en",
+      "customer_id": "CUST-000307",
+      "account_id": "ACC-0000307",
+      "as_of": "2026-09-25T00:00:00Z",
+      "query": "Is a reputational name match still awaiting human investigation?",
+      "expected_document_id": "corpus-012-review"
+    }
+  ]
+}

@@ -1,0 +1,155 @@
+version: demo-mappings-v2
+classification: DEMO
+mappings:
+  - id: m-reg-owner
+    source: registry
+    field: 受益所有人
+    concept: beneficial_owner
+    relation: equivalent
+    jurisdiction: SG
+    effective_from: '2026-01-01'
+    review_status: approved_demo
+  - id: m-decl-owner
+    source: declaration
+    field: UBO
+    concept: beneficial_owner
+    relation: equivalent
+    jurisdiction: SG
+    effective_from: '2026-01-01'
+    review_status: approved_demo
+  - id: m-representative
+    source: registry
+    field: 法定代表人
+    concept: legal_representative
+    relation: equivalent
+    jurisdiction: SG
+    effective_from: '2026-01-01'
+    review_status: approved_demo
+  - id: m-representative-not-owner
+    source: registry
+    field: 法定代表人
+    concept: beneficial_owner
+    relation: not_equivalent
+    jurisdiction: SG
+    effective_from: '2026-01-01'
+    review_status: approved_demo
+  - id: m-hk-controller
+    source: registry
+    field: significant_controller
+    concept: controlling_person
+    relation: equivalent
+    jurisdiction: HK
+    effective_from: '2026-01-01'
+    review_status: approved_demo
+  - id: m-hk-representative
+    source: mandate
+    field: authorized_signatory
+    concept: authorized_signatory
+    relation: equivalent
+    jurisdiction: HK
+    effective_from: '2026-01-01'
+    review_status: approved_demo
+  - id: m-funding
+    source: onboarding
+    field: funding_origin
+    concept: source_of_funds
+    relation: equivalent
+    jurisdiction: SG
+    effective_from: '2026-01-01'
+    review_status: approved_demo
+  - id: m-wealth
+    source: onboarding
+    field: wealth_origin
+    concept: source_of_wealth
+    relation: equivalent
+    jurisdiction: SG
+    effective_from: '2026-01-01'
+    review_status: approved_demo
+  - id: m-turnover
+    source: customers
+    field: expected_monthly_turnover
+    concept: expected_monthly_activity
+    relation: related
+    jurisdiction: SG
+    effective_from: '2026-01-01'
+    review_status: approved_demo
+  - id: m-corpus-sg-owner
+    source: registry
+    field: Beneficial owner / 受益所有人
+    concept: registry_owner_record
+    relation: equivalent
+    jurisdiction: SG
+    effective_from: '2026-01-01'
+    review_status: approved_demo
+  - id: m-corpus-hk-owner
+    source: registry
+    field: Beneficial owner / 受益所有人
+    concept: registry_owner_record
+    relation: equivalent
+    jurisdiction: HK
+    effective_from: '2026-01-01'
+    review_status: approved_demo
+  - id: m-corpus-sg-signatory
+    source: mandate
+    field: Authorized signatory / 授权签字人
+    concept: account_signing_authority
+    relation: equivalent
+    jurisdiction: SG
+    effective_from: '2026-01-01'
+    review_status: approved_demo
+  - id: m-corpus-hk-signatory
+    source: mandate
+    field: Authorized signatory / 授权签字人
+    concept: account_signing_authority
+    relation: equivalent
+    jurisdiction: HK
+    effective_from: '2026-01-01'
+    review_status: approved_demo
+  - id: m-corpus-sg-funds
+    source: onboarding
+    field: Funding origin / 资金来源
+    concept: source_of_funds
+    relation: equivalent
+    jurisdiction: SG
+    effective_from: '2026-01-01'
+    review_status: approved_demo
+  - id: m-corpus-hk-funds
+    source: onboarding
+    field: Funding origin / 资金来源
+    concept: source_of_funds
+    relation: equivalent
+    jurisdiction: HK
+    effective_from: '2026-01-01'
+    review_status: approved_demo
+  - id: m-corpus-sg-wealth
+    source: onboarding
+    field: Wealth origin / 财富来源
+    concept: source_of_wealth
+    relation: equivalent
+    jurisdiction: SG
+    effective_from: '2026-01-01'
+    review_status: approved_demo
+  - id: m-corpus-hk-wealth
+    source: onboarding
+    field: Wealth origin / 财富来源
+    concept: source_of_wealth
+    relation: equivalent
+    jurisdiction: HK
+    effective_from: '2026-01-01'
+    review_status: approved_demo
+  - id: m-corpus-sg-review
+    source: review
+    field: Review due date / 复核到期日
+    concept: periodic_review_due
+    relation: equivalent
+    jurisdiction: SG
+    effective_from: '2026-01-01'
+    review_status: approved_demo
+  - id: m-corpus-hk-review
+    source: review
+    field: Review due date / 复核到期日
+    concept: periodic_review_due
+    relation: equivalent
+    jurisdiction: HK
+    effective_from: '2026-01-01'
+    review_status: approved_demo

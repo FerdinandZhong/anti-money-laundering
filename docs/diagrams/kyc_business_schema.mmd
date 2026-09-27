@@ -1,0 +1,59 @@
+erDiagram
+    PARTIES ||--o{ CUSTOMERS : represents
+    CUSTOMERS ||--o{ ACCOUNTS : owns
+    PARTIES ||--o{ OWNERSHIP_EDGES : owner
+    PARTIES ||--o{ OWNERSHIP_EDGES : subject
+    PARTIES ||--o{ PARTY_PROFILES : has_history
+    ACCOUNTS ||--o{ ACCOUNT_REGULATORY_PROFILES : has_context
+    PARTIES ||--o{ ACCOUNT_REGULATORY_PROFILES : booking_entity
+    ACCOUNTS ||--o{ ACCOUNT_MANDATES : authorizes
+    PARTIES ||--o{ ACCOUNT_MANDATES : representative
+    ACCOUNTS o|--o{ TRANSACTIONS : sends
+    ACCOUNTS o|--o{ TRANSACTIONS : receives
+    CUSTOMERS ||--o{ EXPECTED_ACTIVITY_PROFILES : declares
+    PARTIES ||--o{ DOCUMENT_LINKS : supported_by
+    DOCUMENT_MANIFEST ||--o{ DOCUMENT_LINKS : linked_to
+    DOCUMENT_MANIFEST ||--|{ DOCUMENT_VERSIONS : versioned_as
+    DOCUMENT_VERSIONS ||--|{ DOCUMENT_PAGES : contains
+    DOCUMENT_PAGES ||--o{ EXTRACTED_FACTS : supports
+    PARTIES ||--o{ EXTRACTED_FACTS : subject
+    SOURCE_RECORDS ||--o{ EXTRACTED_FACTS : preserves_raw_payload
+    MAPPING_VERSIONS o|--o{ EXTRACTED_FACTS : normalizes
+    PARTIES {
+        string party_id PK
+        string party_type
+    }
+    CUSTOMERS {
+        string customer_id PK
+        string party_id FK
+    }
+    ACCOUNTS {
+        string account_id PK
+        string customer_id FK
+        string currency
+    }
+    OWNERSHIP_EDGES {
+        string edge_version_id PK
+        string owner_party_id FK
+        string subject_party_id FK
+        string relation_type
+        decimal ownership_fraction
+        timestamp valid_from
+        timestamp recorded_from
+    }
+    DOCUMENT_VERSIONS {
+        string document_version_id PK
+        string document_id FK
+        string object_uri
+        string sha256
+        timestamp received_at
+    }
+    EXTRACTED_FACTS {
+        string fact_id PK
+        string page_id FK
+        string concept_version_id FK
+        string mapping_version_id FK
+        string raw_value
+        string normalized_value_type
+        decimal confidence
+    }

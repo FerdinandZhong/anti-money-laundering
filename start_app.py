@@ -1,4 +1,4 @@
-"""Start both the FastAPI backend and the React frontend for the AML Platform."""
+"""Start the local AML app through its single frontend/backend entry point."""
 
 import os
 import sys
@@ -56,19 +56,7 @@ def main():
     env["BACKEND_PORT"] = str(BACKEND_PORT)
     env["FRONTEND_PORT"] = str(FRONTEND_PORT)
 
-    # Start backend
-    print(f"Starting backend on port {BACKEND_PORT}...")
-    backend = subprocess.Popen(
-        [sys.executable, os.path.join(PROJECT_ROOT, "02_backend", "start_backend.py")],
-        env=env,
-        cwd=PROJECT_ROOT,
-    )
-    processes.append(backend)
-
-    # Give backend a moment to bind
-    time.sleep(2)
-
-    # Start frontend (prod if dist/ exists, else dev)
+    # The frontend entry point starts and proxies one co-located backend.
     dist_dir = os.path.join(PROJECT_ROOT, "03_frontend", "dist")
     if os.path.isdir(dist_dir):
         print(f"Starting frontend (production) on port {FRONTEND_PORT}...")
@@ -93,7 +81,7 @@ def main():
     print("Press Ctrl+C to stop both services.")
     print()
 
-    # Wait for either process to exit
+    # Wait for the application process to exit.
     while True:
         for proc in processes:
             ret = proc.poll()

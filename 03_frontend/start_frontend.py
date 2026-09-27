@@ -10,6 +10,9 @@ import sys
 import time
 import atexit
 import subprocess
+import secrets
+import hashlib
+import hmac
 
 try:
     _HERE = os.path.dirname(os.path.abspath(__file__))
@@ -43,6 +46,7 @@ def _bind_host() -> str:
 
 
 _backend_proc: subprocess.Popen | None = None
+_proxy_secret = secrets.token_hex(32)
 
 
 def _stop_backend():
@@ -75,6 +79,9 @@ def _start_backend(port: int):
     global _backend_proc
     env = os.environ.copy()
     env["BACKEND_PORT"] = str(port)
+    env["AML_KYC_PROXY_SECRET"] = _proxy_secret
+    if os.environ.get("CDSW_APP_PORT"):
+        env["AML_KYC_REVIEW_AUTH_MODE"] = "cml" if os.environ.get("AML_KYC_APP_PRIVATE") == "1" else "disabled"
     env.pop("CDSW_APP_PORT", None)  # backend must not claim the public port
     backend_script = os.path.join(PROJECT_ROOT, "02_backend", "start_backend.py")
     print(f"Starting co-located backend on 127.0.0.1:{port} ...")
@@ -118,7 +125,16 @@ def serve_production():
             url = f"{url}?{request.url.query}"
         body = await request.body()
         headers = {k: v for k, v in request.headers.items()
-                   if k.lower() not in ("host", "content-length")}
+                   if k.lower() not in ("host", "content-length") and not k.lower().startswith("x-aml-")}
+        if os.environ.get("AML_KYC_APP_PRIVATE") == "1":
+            actor=request.headers.get("remote-user", "")
+            permission=request.headers.get("remote-user-perm", "")
+            if actor and permission == "RW":
+                stamp=str(int(time.time()))
+                payload="\n".join((actor,permission,request.method.upper(),request.url.path,stamp)).encode()
+                headers.update({"x-aml-actor":actor,"x-aml-permission":permission,
+                                "x-aml-timestamp":stamp,
+                                "x-aml-signature":hmac.new(_proxy_secret.encode(),payload,hashlib.sha256).hexdigest()})
         # Stream the upstream response through so SSE (chunked, long-lived) works
         # and never gets buffered — buffering broke with RemoteProtocolError.
         req = client.build_request(request.method, url, content=body, headers=headers)

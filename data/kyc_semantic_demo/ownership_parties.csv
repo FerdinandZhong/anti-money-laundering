@@ -1,0 +1,7 @@
+customer_id,party_id,kind,verified,effective_from,received_at
+CUST-000294,P-SG,legal,true,2026-08-01,2026-09-01
+CUST-000294,H-SG,legal,true,2026-08-01,2026-09-01
+CUST-000294,LIM,natural,true,2026-08-01,2026-09-01
+CUST-000294,CHEN,natural,true,2026-08-01,2026-09-01
+CUST-000295,P-HK,legal,true,2026-08-01,2026-09-01
+CUST-000295,ANITA,natural,true,2026-08-01,2026-09-01

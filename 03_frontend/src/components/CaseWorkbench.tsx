@@ -9,6 +9,7 @@ import { Badge, RiskBadge } from './Badge'
 import { AgentPanel } from './AgentPanel'
 import { NetworkGraph } from './NetworkGraph'
 import { SemanticExplorer } from './SemanticExplorer'
+import { KycKnowledge } from './KycKnowledge'
 
 interface Props {
   alertId: string | null
@@ -172,8 +173,8 @@ export const CaseWorkbench: React.FC<Props> = ({ alertId, onDisposed }) => {
             ? <NetworkGraph graph={detail.network} expanded />
             : <PanelEmpty icon={<Network className="w-8 h-8" />} message="No material account links were found." />
         )}
-        {activeTab === 'documents' && <KycDocuments documents={detail.kyc_documents ?? []} />}
-        {activeTab === 'semantic' && <SemanticExplorer key={detail.alert_id} customerId={detail.customer_id} alertId={detail.alert_id} />}
+        {activeTab === 'documents' && <KycKnowledge key={detail.alert_id} alertId={detail.alert_id} legacy={detail.kyc_documents ?? []} />}
+        {activeTab === 'semantic' && <SemanticExplorer key={detail.alert_id} customerId={detail.customer_id} alertId={detail.alert_id} detail={detail} />}
         {activeTab === 'findings' && (
           <div className="space-y-4">
             <section className="rounded-lg border border-surface-3 bg-white p-4 text-xs">
@@ -193,15 +194,6 @@ export const CaseWorkbench: React.FC<Props> = ({ alertId, onDisposed }) => {
     </div>
   )
 }
-
-const KycDocuments: React.FC<{ documents: NonNullable<CaseDetail['kyc_documents']> }> = ({ documents }) => (
-  documents.length ? <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
-    {documents.map(doc => <section key={doc.name} className="rounded-lg border border-surface-3 bg-white p-5 shadow-soft">
-      <div className="flex items-center gap-2 mb-3"><FileSearch className="w-4 h-4 text-accent" /><div><h3 className="text-sm font-bold text-ink">{doc.name}</h3><p className="text-2xs text-ink-muted">{doc.source}</p></div></div>
-      <div className="whitespace-pre-line text-xs leading-5 text-ink-muted">{doc.content}</div>
-    </section>)}
-  </div> : <PanelEmpty icon={<FolderOpen className="w-8 h-8" />} message="No local KYC documents are available for this customer." />
-)
 
 const Overview: React.FC<{ detail: CaseDetail; onOpenTransactions: () => void }> = ({ detail, onOpenTransactions }) => {
   const ratio = detail.observed_vs_expected_pct

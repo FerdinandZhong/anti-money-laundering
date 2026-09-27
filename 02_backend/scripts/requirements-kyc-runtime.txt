@@ -1,0 +1,7 @@
+# CPU PDF rendering and bundled local OCR models; no Impala client required.
+rapidocr_onnxruntime==1.2.3
+onnxruntime==1.24.4
+opencv-python==5.0.0.93
+numpy==2.2.6
+PyMuPDF==1.26.7
+Pillow==12.3.0

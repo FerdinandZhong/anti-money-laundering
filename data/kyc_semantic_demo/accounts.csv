@@ -1,0 +1,3 @@
+account_id,customer_id,booking_jurisdiction,product,booking_entity
+ACC-0000294,CUST-000294,SG,CORPORATE,Synthetic SG Bank
+ACC-0000295,CUST-000295,HK,CURRENT,Synthetic HK Bank

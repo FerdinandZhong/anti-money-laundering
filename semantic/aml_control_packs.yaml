@@ -1,0 +1,181 @@
+version: demo-controls-v3
+classification: DEMO
+notice: Synthetic institutional examples. No current regulatory obligation is asserted.
+controls:
+  - id: DEMO-SG-OWNER
+    jurisdiction: SG
+    product: CORPORATE
+    concept: beneficial_owner
+    required_sources: [registry, declaration]
+    evaluator: consistent_assertions
+    effective_from: '2026-01-01'
+    effective_to: '2026-09-15'
+    source_label: Synthetic institution policy example, version 1
+  - id: DEMO-SG-OWNER
+    jurisdiction: SG
+    product: CORPORATE
+    concept: beneficial_owner
+    required_sources: [registry, declaration]
+    evaluator: consistent_assertions
+    effective_from: '2026-09-15'
+    source_label: Synthetic institution policy example, version 2
+  - id: DEMO-SG-SOF
+    jurisdiction: SG
+    product: CORPORATE
+    concept: source_of_funds
+    required_sources: [onboarding]
+    evaluator: evidence_present
+    effective_from: '2026-01-01'
+    source_label: Synthetic institution policy example
+  - id: DEMO-HK-CONTROL
+    jurisdiction: HK
+    product: CURRENT
+    concept: controlling_person
+    required_sources: [registry]
+    evaluator: consistent_assertions
+    effective_from: '2026-01-01'
+    source_label: Synthetic institution policy example
+  - id: DEMO-HK-MANDATE
+    jurisdiction: HK
+    product: CURRENT
+    concept: authorized_signatory
+    required_sources: [mandate]
+    evaluator: evidence_present
+    effective_from: '2026-01-01'
+    source_label: Synthetic institution policy example
+  - id: DEMO-SG-OWNERSHIP-PATHS
+    jurisdiction: SG
+    product: CORPORATE
+    concept: disclosed_ownership_paths
+    evaluator: ownership_graph
+    effective_from: '2026-01-01'
+    source_label: Synthetic policy requiring complete disclosed shareholding paths; no legal ownership threshold implied
+  - id: DEMO-HK-OWNERSHIP-PATHS
+    jurisdiction: HK
+    product: CURRENT
+    concept: disclosed_ownership_paths
+    evaluator: ownership_graph
+    effective_from: '2026-01-01'
+    source_label: Synthetic policy requiring complete disclosed shareholding paths; no legal ownership threshold implied
+  - id: DEMO-SG-ACTIVITY
+    jurisdiction: SG
+    product: CORPORATE
+    concept: account_external_outflow_30d
+    evaluator: activity_deviation
+    effective_from: '2026-01-01'
+    source_label: Synthetic 30-day external outflow policy; explicit demo FX and internal-transfer classification
+  - id: DEMO-HK-ACTIVITY
+    jurisdiction: HK
+    product: CURRENT
+    concept: account_external_outflow_30d
+    evaluator: activity_deviation
+    effective_from: '2026-01-01'
+    source_label: Synthetic 30-day external outflow policy; explicit demo FX and internal-transfer classification
+  - id: DEMO-CORPUS-SG-REGISTRY
+    jurisdiction: SG
+    product: KYC_CORPUS
+    concept: registry_owner_record
+    required_sources: [registry]
+    evaluator: evidence_present
+    effective_from: '2026-01-01'
+    source_label: Synthetic registry evidence presence; not a beneficial-owner determination
+  - id: DEMO-CORPUS-HK-REGISTRY
+    jurisdiction: HK
+    product: KYC_CORPUS
+    concept: registry_owner_record
+    required_sources: [registry]
+    evaluator: evidence_present
+    effective_from: '2026-01-01'
+    source_label: Synthetic registry evidence presence; not a beneficial-owner determination
+  - id: DEMO-CORPUS-SG-MANDATE
+    jurisdiction: SG
+    product: KYC_CORPUS
+    concept: account_signing_authority
+    required_sources: [mandate]
+    evaluator: evidence_present
+    effective_from: '2026-01-01'
+    source_label: Synthetic account mandate evidence presence
+  - id: DEMO-CORPUS-HK-MANDATE
+    jurisdiction: HK
+    product: KYC_CORPUS
+    concept: account_signing_authority
+    required_sources: [mandate]
+    evaluator: evidence_present
+    effective_from: '2026-01-01'
+    source_label: Synthetic account mandate evidence presence
+  - id: DEMO-CORPUS-SG-FUNDS
+    jurisdiction: SG
+    product: KYC_CORPUS
+    concept: source_of_funds
+    required_sources: [onboarding]
+    evaluator: evidence_present
+    effective_from: '2026-01-01'
+    source_label: Synthetic funding evidence presence; distinct from accumulated wealth
+  - id: DEMO-CORPUS-HK-FUNDS
+    jurisdiction: HK
+    product: KYC_CORPUS
+    concept: source_of_funds
+    required_sources: [onboarding]
+    evaluator: evidence_present
+    effective_from: '2026-01-01'
+    source_label: Synthetic funding evidence presence; distinct from accumulated wealth
+  - id: DEMO-CORPUS-SG-WEALTH
+    jurisdiction: SG
+    product: KYC_CORPUS
+    concept: source_of_wealth
+    required_sources: [onboarding]
+    evaluator: evidence_present
+    effective_from: '2026-01-01'
+    source_label: Synthetic accumulated wealth evidence presence; distinct from funding
+  - id: DEMO-CORPUS-HK-WEALTH
+    jurisdiction: HK
+    product: KYC_CORPUS
+    concept: source_of_wealth
+    required_sources: [onboarding]
+    evaluator: evidence_present
+    effective_from: '2026-01-01'
+    source_label: Synthetic accumulated wealth evidence presence; distinct from funding
+  - id: DEMO-CORPUS-SG-REVIEW
+    jurisdiction: SG
+    product: KYC_CORPUS
+    concept: periodic_review_due
+    required_sources: [review]
+    evaluator: evidence_present
+    effective_from: '2026-01-01'
+    source_label: Synthetic periodic-review evidence presence; no timeliness determination
+  - id: DEMO-CORPUS-HK-REVIEW
+    jurisdiction: HK
+    product: KYC_CORPUS
+    concept: periodic_review_due
+    required_sources: [review]
+    evaluator: evidence_present
+    effective_from: '2026-01-01'
+    source_label: Synthetic periodic-review evidence presence; no timeliness determination
+  - id: DEMO-CORPUS-SG-OWNERSHIP-PATHS
+    jurisdiction: SG
+    product: KYC_CORPUS
+    concept: disclosed_ownership_paths
+    evaluator: ownership_graph
+    effective_from: '2026-01-01'
+    source_label: Synthetic disclosed-shareholding path completeness; no legal ownership threshold
+  - id: DEMO-CORPUS-HK-OWNERSHIP-PATHS
+    jurisdiction: HK
+    product: KYC_CORPUS
+    concept: disclosed_ownership_paths
+    evaluator: ownership_graph
+    effective_from: '2026-01-01'
+    source_label: Synthetic disclosed-shareholding path completeness; no legal ownership threshold
+  - id: DEMO-CORPUS-SG-ACTIVITY
+    jurisdiction: SG
+    product: KYC_CORPUS
+    concept: account_external_outflow_30d
+    evaluator: activity_deviation
+    effective_from: '2026-01-01'
+    source_label: Synthetic 30-day external outflow comparison, FX and completeness checks
+  - id: DEMO-CORPUS-HK-ACTIVITY
+    jurisdiction: HK
+    product: KYC_CORPUS
+    concept: account_external_outflow_30d
+    evaluator: activity_deviation
+    effective_from: '2026-01-01'
+    source_label: Synthetic 30-day external outflow comparison, FX and completeness checks

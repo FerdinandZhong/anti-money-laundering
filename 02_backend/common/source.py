@@ -298,8 +298,6 @@ def customer_kyc_documents(customer_id: str) -> list[dict]:
     if safe_id != customer_id:
         return []
     directory = _KYC_DOCUMENT_ROOT / safe_id
-    if not directory.is_dir():
-        return []
     documents = []
     for path in sorted(directory.glob("*.md")):
         try:
@@ -310,6 +308,24 @@ def customer_kyc_documents(customer_id: str) -> list[dict]:
             })
         except OSError:
             continue
+    if not documents:
+        customer = get_customer(customer_id)
+        if customer:
+            fields = [
+                ("Customer ID", "customer_id"), ("Name", "name"),
+                ("Industry", "industry"), ("Beneficial owner", "beneficial_owner"),
+                ("KYC risk rating", "risk_rating"),
+                ("Expected monthly turnover", "expected_monthly_turnover"),
+                ("KYC last updated", "kyc_last_updated"),
+            ]
+            lines = ["# Recorded onboarding profile", "",
+                     "Source: customer profile records. Supporting document verification is not recorded here.", ""]
+            for label, key in fields:
+                value = customer.get(key)
+                lines.append(f"- {label}: {value if value is not None and str(value).strip() else 'Not recorded'}")
+            documents.append({"name": "Recorded onboarding profile",
+                              "source": "Customer profile · Markdown view",
+                              "content": "\n".join(lines)})
     return documents
 
 

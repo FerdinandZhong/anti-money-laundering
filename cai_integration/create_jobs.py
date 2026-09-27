@@ -20,6 +20,11 @@ import requests
 from pathlib import Path
 from typing import Dict, Optional, Any
 
+try:
+    PROJECT_ROOT = Path(__file__).resolve().parents[1]
+except NameError:
+    PROJECT_ROOT = Path.cwd()
+
 
 class JobManager:
 
@@ -55,7 +60,7 @@ class JobManager:
             return None
 
     def load_jobs_config(self) -> Dict[str, Any]:
-        config_path = Path(__file__).parent / "jobs_config.yaml"
+        config_path = PROJECT_ROOT / "cai_integration/jobs_config.yaml"
         try:
             with open(config_path) as f:
                 config = yaml.safe_load(f)
@@ -108,6 +113,9 @@ class JobManager:
         passthrough = [
             "APP_SUBDOMAIN", "APP_NAME", "APP_PUBLIC", "APP_WAIT_TIMEOUT",
             "LLM_PROVIDER", "BACKEND_PORT", "IMPALA_PASSWORD",
+            "AML_ENABLE_KYC_DEMO_CONTROLS", "AML_KNOWLEDGE_DIR", "AML_EMBEDDING_MODEL_DIR",
+            "AML_KYC_SEMANTIC_DIR", "AML_KYC_SOURCE_BACKEND", "AML_KYC_IMPALA_DATABASE",
+            "AML_KYC_AUDIT_HMAC_KEY_FILE",
         ]
         for k in passthrough:
             v = os.environ.get(k)
@@ -193,6 +201,17 @@ class JobManager:
                 self.delete_job(project_id, existing_jobs[name])
 
         for job_key, job_config in keys:
+            if job_key == 'git_sync' and os.environ.get('GIT_SYNC_BRANCH'):
+                job_config = {**job_config, 'environment': {
+                    **job_config.get('environment', {}),
+                    'GIT_SYNC_BRANCH': os.environ['GIT_SYNC_BRANCH']}}
+            if job_key in ('install', 'generate'):
+                kyc_env = {key: os.environ[key] for key in (
+                    'AML_PREPARE_KYC', 'AML_KYC_DOCUMENT_MODE', 'AML_KYC_EXPANDED_CORPUS',
+                    'AML_KYC_MANIFEST', 'AML_KNOWLEDGE_DIR', 'AML_EMBEDDING_MODEL_DIR',
+                    'AML_KYC_SEMANTIC_DIR', 'AML_KYC_AUDIT_HMAC_KEY_FILE') if os.environ.get(key)}
+                job_config = {**job_config, 'environment': {
+                    **job_config.get('environment', {}), **kyc_env}}
             # The Launch Application job creates the CML Application, so it needs the app
             # config in its own environment (baked from the create-time env). This is what
             # lets an end user run the chain from the CML UI and get a live app.

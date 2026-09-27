@@ -341,3 +341,91 @@ Note: `start_app.py` launches its own backend on :7078 — kill any stray
 | `03_frontend/src/components/{AlertQueue,CaseWorkbench,AgentPanel,ModelDashboard,Badge}.tsx` | UI |
 | `config/config.yaml` | `source:` (Impala/CSV) + ops db + model + llm |
 | `.omc/plans/aml-blueprint-hardening.md` | Full plan + changelog |
+
+## KYC continuation — 2026-09-26
+
+Latest update: AMP `.project-metadata.yaml` now defaults to `AML_PREPARE_KYC=1`,
+`AML_ENABLE_KYC_DEMO_CONTROLS=1` and `AML_KYC_DOCUMENT_MODE=pdf`. Installer adds
+`requirements-kyc-runtime.txt` and initializes the packaged OCR models as a preflight.
+Without a supplied manifest, pipeline generates five control PDFs (two scanned)
+plus 120 linked corpus PDFs, runs real OCR and builds LanceDB; local output is
+`artifacts/kyc_poc/amp_documents/` and `artifacts/kyc_poc/amp_corpus/`.
+It excludes unrelated extraction POC artifacts. Explicit markdown mode remains
+available, and embeddings remain optional. Preparation variables now reach the
+separate CML install job as well as generation. Fresh-project generation,
+OCR, index and control evaluation passed in the OCR environment; the current
+full backend suite is 142 passed, one skipped.
+No actual CML deployment or Linux runtime validation was performed.
+
+Further continuation: linked corpus customer IDs `CUST-000296`–`CUST-000307`
+and 30 deterministic account IDs now appear in generation, the 120-document PDF
+corpus, and generated eight-table semantic source. Default AMP expanded-corpus
+flag is `AML_KYC_EXPANDED_CORPUS=1`. Local combined release with 127 documents
+is `kyc-ba41967fd7d110b8c7ff`; hybrid release is
+`kyc-3bcfd88a84784154f434`. Semantic runtime source has 32 accounts and
+234 assertion metadata rows. Local publication validates typed Parquet and
+generates retry-safe `INSERT OVERWRITE`/`validate.sql`/activation settings for
+eight Iceberg tables. Five document-evidence DEMO control families per SG/HK
+context execute through exact bilingual term mappings. Analyst review events
+are scoped, idempotent, hash-linked and separate from computed results; actor IDs
+remain self-declared. Regulatory source candidates are recorded in
+`semantic/regulatory_source_register.yaml` and are non-executable. Frozen linked
+benchmark v2: 144/144 positives and 24/24 exclusions; frozen paraphrase
+challenge: keyword 36/60, hybrid 60/60. See
+`docs/kyc_audit_and_multimodal_demo.md` and `docs/kyc_audit_concept_linkage.md`.
+
+Final linked-data extension: the 30 accounts also receive ownership roots/edges,
+natural/legal parties and complete demo activity profiles/transactions. Local
+eight-table publication now has row counts 32/234/54/94/32/32/34/1 in the
+order accounts/assertions/parties/edges/roots/profiles/transactions/FX.
+`KYC_CORPUS` evaluates seven controls per jurisdiction; a full main account
+can pass seven, a synthetic outflow anomaly reports GAP, and a secondary
+account correctly reports missing mandate/funding evidence. The browser smoke
+check passed retention, replay, analyst review and JSON export on a temporary
+ops DB copy. Reviewer identity remains self-declared; official clauses remain
+candidate-only; remote Impala and CML Linux execution were not performed.
+
+Security/regulatory continuation: private CML Applications are now the default.
+Review writes derive Workbench `RW` identity from `REMOTE-USER` and a signed
+loopback proxy assertion; public CML deployments disable review writes.
+Assessment/review rows and a review head use HMAC seals when a separately
+provisioned key is present; private mode requires a 32+ character key via
+`AML_KYC_AUDIT_HMAC_KEY_FILE`. MAS Notice 626's 30 June 2025 edition and
+selected clauses were verified from MAS; HKMA AML-2 clause 4.4.1 was checked.
+Both remain non-executable `SOURCE_REVIEW_ONLY` links. Full backend suite:
+142 passed, one skipped; frontend build, deploy selfcheck and local browser
+retention/replay/review/export pass. Institution approval and external
+WORM/retention policy are still outstanding. See
+`docs/kyc_regulatory_review_packet.md`.
+
+- Profile worker now evaluates and retains deterministic demo controls using alert-derived scope/cutoff. Results become investigation evidence; the same summary is appended outside the LLM to findings and the final streamed narrative. Missing inputs/disabled controls/retention failure are explicit unavailable results.
+- `prepare_kyc_pipeline.py` is enabled by the AMP template via `AML_PREPARE_KYC=1`. It consumes `AML_KYC_MANIFEST` or generates PDF/OCR evidence and optional hybrid embeddings. CML registration and launch forward relevant environment values. Local preparation tested; no CML API calls made.
+- `prepare_kyc_corpus.py` builds 12 linked groups/30 operational accounts with 120 PDF versions (108 native, 12 real OCR scans). The eight-table semantic source includes these identities, ownership paths and activity.
+- Current frozen benchmarks are `data/kyc_benchmark/queries_v2.json` and `queries_challenge_v1.json`; runner `benchmark_kyc_retrieval.py`. The linked suite passes 144/144 positives and 24/24 exclusions. On the paraphrase challenge, keyword passes 36/60 and hybrid 60/60 Recall@5.
+- Active audit release remains `kyc-6aa2ce87ede353d2bd0f`; expanded hybrid release `kyc-b466ad7410c80cbd6aef` is isolated under the corpus directory. Local pipeline proof uses another isolated index.
+- Validation: 139 backend tests pass, one skipped; frontend production build and browser review/export smoke pass; `git diff --check` clean. Remote Impala execution remains user-deferred.
+- Next: verify actual CML/Linux execution and remote Impala parity when available; institutionally approve regulatory applicability/interpretations and provision protected audit-key/retention infrastructure. See `docs/kyc_audit_and_multimodal_demo.md`.
+
+
+## Local acceptance and origin release — 2026-09-27
+
+User verified the new features locally and authorized a push with AMP updates.
+Release branch: `feature/semantic-demo-explorer` (no merge to main requested).
+Semantic context now uses Context / Lineage / Query / Original Ossie files,
+neutral interactive concept cards, separate regulatory meaning and applicability
+conditions, and accurate onboarding-profile provenance. Review/retention actions
+remain backend APIs, not controls in the semantic UI. Missing indexed documents
+fall back to existing Markdown or a clearly labeled customer-profile view.
+
+The AMP template and `cai_integration/jobs_config.yaml` both default to PDF/OCR,
+expanded corpus preparation and the matching runtime semantic paths. Job
+registration forwards `GIT_SYNC_BRANCH` and the audit-key file setting; set the
+sync branch to this release and re-register existing jobs before running them.
+Generated indexes, publication outputs, credentials and unrelated decks are not
+part of the feature commit. Remote CML/AMP and Impala runs remain user-deferred.
+
+Release validation: an isolated export of the staged files passes 144 backend
+tests (one OCR dependency skip) after the normal source-data generation step.
+The skipped real PDF/OCR bootstrap passes separately in the OCR environment;
+all 10 MCP tests pass with the locked dependencies. Frontend production build,
+deployment self-check and staged whitespace checks pass.

@@ -37,6 +37,10 @@ jobs:
     cpu: 2
     memory: 4
     description: "Install Python packages, Node.js, and build the React frontend"
+    environment:
+      AML_PREPARE_KYC: "1"
+      AML_KYC_DOCUMENT_MODE: "pdf"
+      AML_KYC_AUDIT_HMAC_KEY_FILE: "data/kyc_audit_demo.key"
 
   generate:
     name: "Generate Synthetic Data"
@@ -46,6 +50,12 @@ jobs:
     cpu: 2
     memory: 4
     description: "Generate synthetic customers, accounts, and transactions with AML patterns"
+    environment:
+      AML_PREPARE_KYC: "1"
+      AML_KYC_DOCUMENT_MODE: "pdf"
+      AML_KYC_EXPANDED_CORPUS: "1"
+      AML_KNOWLEDGE_DIR: "data/knowledge"
+      AML_KYC_SEMANTIC_DIR: "data/kyc_semantic_runtime"
 
   features:
     name: "Feature Engineering"
@@ -83,6 +93,11 @@ jobs:
     cpu: 1
     memory: 4
     description: "Create (or replace) the CML Application; hold the job open while the app is live"
+    environment:
+      AML_ENABLE_KYC_DEMO_CONTROLS: "1"
+      AML_KNOWLEDGE_DIR: "data/knowledge"
+      AML_KYC_SEMANTIC_DIR: "data/kyc_semantic_runtime"
+      AML_KYC_AUDIT_HMAC_KEY_FILE: "data/kyc_audit_demo.key"
     # `environment` (RUNTIME_IDENTIFIER, APP_SUBDOMAIN, LLM_PROVIDER, BACKEND_PORT, ...)
     # is injected by create_jobs.py from the create-time env so the app config travels
     # with the job — this is what lets a UI user run the chain and get a live app.

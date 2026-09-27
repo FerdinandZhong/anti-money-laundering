@@ -36,6 +36,15 @@ CAI Application
 
 ## Quick Start
 
+New AMP projects enable bilingual KYC document evidence by default. The installer
+adds CPU PDF/OCR dependencies; generation creates native and scanned PDFs, extracts
+their content and builds a persistent LanceDB index. Synthetic SG/HK controls and
+retained assessments are enabled in the investigation workbench. Default retrieval
+uses bilingual keywords; hybrid retrieval accepts a provisioned embedding model.
+No pre-generated document artifacts or remote Impala publication are required.
+See [KYC setup and opt-out settings](docs/kyc_audit_and_multimodal_demo.md#cml-preparation).
+The local commands below retain baseline behavior unless `AML_PREPARE_KYC=1` is set.
+
 ```bash
 # 1. Install
 python 01_installer/install.py

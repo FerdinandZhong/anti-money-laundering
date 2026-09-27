@@ -50,6 +50,11 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+from knowledge.api import router as knowledge_router
+from compliance.api import router as compliance_router
+app.include_router(knowledge_router)
+app.include_router(compliance_router)
+
 
 def get_db():
     conn = get_connection()
@@ -686,6 +691,13 @@ class SemanticContextBody(BaseModel):
 
 class SemanticQueryBody(SemanticContextBody):
     concepts: list[str]
+
+
+@app.get("/api/semantic/regulations")
+def get_regulatory_meaning():
+    """Regulatory meanings and conditions, independent of document coverage."""
+    from semantic.regulation import regulation_catalog
+    return regulation_catalog()
 
 
 @app.get("/api/semantic/contracts")

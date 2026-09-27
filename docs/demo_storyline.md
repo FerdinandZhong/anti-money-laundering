@@ -1,6 +1,6 @@
 # AML Investigation Platform — Demo Storyline (EN)
 
-Scripted presenter narrative for the AML Investigation Platform. Full flow: 8–10 minutes. Accelerated flow: 4–5 minutes (skip the optional agent-detail and ModelOps sections).
+Scripted presenter narrative for the AML Investigation Platform. Full flow: 9–11 minutes. Accelerated flow: 5–6 minutes (skip the optional agent-detail and ModelOps sections).
 
 **Demo customer:** `Corp_0294 Pte. Ltd.` / `CUST-000294` / account `ACC-0000294`
 **Demo alert:** `ALERT-ML-0466899666`
@@ -40,6 +40,7 @@ The reference is OCBC’s 2026 paper, [*Detection, Attribution, Narration*](http
 2. Confirm the backend indicator is green and that the Alert Queue has open alerts. If it is empty, run **Score Transactions** or **Run retraining** in ModelOps and wait for the queue to refresh.
 3. Sort the queue by **Risk score** and select its first row: `Corp_0294 Pte. Ltd.`.
 4. For a clean full demonstration, do not dispose the alert until the human-decision section. The hosted environment may already contain an investigation; that is safe to show as existing audit history.
+5. Open **AI Findings** once and confirm that **Analysis basis** loads. For an Agent Studio demonstration, confirm the `aml-mcp` server exposes the semantic discovery and context tools.
 
 ---
 
@@ -108,7 +109,27 @@ For this case, tie the formula back to the UI:
 
 ---
 
-## 4. Investigate with the agent team (2 min)
+## 4. Use the shared semantic layer (1 min)
+
+Open **AI Findings** and point to **Analysis basis**. If Agent Studio is available, ask: “Why is Corp_0294 high priority when its KYC rating is LOW?”
+
+> “We have explained how the score is calculated. Now we need to make sure every agent interprets it consistently. The lightweight semantic layer defines AML concepts, their relationships, and the facts available for each investigation task.”
+
+> “For Corp_0294, expected turnover is a KYC declaration. Observed outflow is measured transaction activity over a recorded period. Account priority determines review order. These concepts answer different questions, so the agent receives their definitions, account scope, data cutoff, source references, and claim limitations together.”
+
+Point to the semantic and ontology versions, data cutoff, fact sources, and visible limitation.
+
+> “The internal workers receive this governed context, and an external Agent Studio agent can discover the same definitions through AML MCP. Analysis basis lets the analyst inspect what grounded the current analysis. It is a current context view; it is not a complete replay of every historical worker prompt.”
+
+Optional Agent Studio sequence:
+
+1. `resolve_aml_concept("risk score")` — returns “daily review priority,” not a probability or proof of crime.
+2. `get_case_semantic_context("CUST-000294", "score_explanation")` — returns the account scope, cutoff, KYC expectation, observed activity, score signals, evidence references, and limitations.
+3. Ask the agent to explain the apparent contradiction — it should distinguish customer profile from monitored behaviour and recommend review without asserting guilt.
+
+---
+
+## 5. Investigate with the agent team (2 min)
 
 Click **Investigate** (or show the stored analysis if the case has already been run).
 
@@ -128,7 +149,7 @@ As the cards complete, narrate:
 
 ---
 
-## 5. Analyst decision and learning loop (1 min)
+## 6. Analyst decision and learning loop (1 min)
 
 Point to the disposition control.
 
@@ -142,7 +163,7 @@ Use a non-final phrasing for the live case:
 
 ---
 
-## 6. ModelOps — governed change, not black-box retraining (1 min, optional)
+## 7. ModelOps — governed change, not black-box retraining (1 min, optional)
 
 Open **ModelOps**.
 
@@ -154,9 +175,9 @@ Open **ModelOps**.
 
 ---
 
-## 7. Close (30 sec)
+## 8. Close (30 sec)
 
-> “The platform turns transaction data into a focused daily queue, explains why an account was prioritised, equips an analyst with transaction and network evidence, and closes the loop with governed human feedback and model operations. AI accelerates the investigation; accountable people make the compliance decision.”
+> “The platform turns transaction data into a focused daily queue, uses shared semantics to keep facts and definitions consistent, equips an analyst with transaction and network evidence, and closes the loop with governed human feedback and model operations. AI accelerates the investigation; accountable people make the compliance decision.”
 
 > “The next pilot step is not simply ‘more AI’: it is calibrated customer-level risk, case-specific attribution, governed KYC and external-source evidence, and measurement of analyst yield and capacity—the operating disciplines reflected in the OCBC-inspired design.”
 
@@ -175,6 +196,12 @@ The daily review capacity is stable even if a newly trained model’s raw probab
 
 **What happens if the LLM is unavailable?**
 The score, queue, data views, and deterministic workflow still operate. The agent narrative uses a fail-soft fallback; it does not determine the risk score or disposition.
+
+**Is the semantic layer a graph database or a second data store?**
+No. It is a versioned AML contract and resolver over the existing source and operational data. It defines concepts, relationships, metrics, supported intents, and claim limits; the current prototype resolves those definitions in memory and exposes them through governed APIs and MCP tools.
+
+**Does Apache Ossie execute the AML queries?**
+No. The model is Ossie-aligned so datasets, fields, metrics, relationships, and AI context are portable. The AML resolver validates the intent and retrieves facts through the platform’s existing APIs and source layer.
 
 **Is this production customer data?**
 No. This blueprint runs on synthetic data locally and can use governed Impala/Iceberg data in production without changing the application code.

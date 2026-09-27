@@ -98,7 +98,25 @@ def test_token_becomes_bearer_header(monkeypatch):
     assert _FakeClient.last["headers"]["Authorization"] == "Bearer secret"
 
 
+def test_kyc_search_pins_release_and_preserves_bilingual_query():
+    server.list_kyc_evidence("ALERT-1")
+    assert _FakeClient.last["url"].endswith("/alerts/ALERT-1/knowledge")
+    server.search_kyc_evidence("ALERT-1", "受益所有人 ultimate owner", "kyc-demo", limit=3)
+    assert _FakeClient.last["url"].endswith("/alerts/ALERT-1/knowledge/search")
+    assert _FakeClient.last["params"] == {
+        "q": "受益所有人 ultimate owner", "release": "kyc-demo", "limit": 3,
+    }
+
+
 def test_missing_base_url_raises(monkeypatch):
     monkeypatch.delenv("AML_API_BASE_URL", raising=False)
     with pytest.raises(RuntimeError):
         server.is_customer_suspicious("CUST-1")
+
+
+def test_kyc_controls_and_replay_are_scoped_reads():
+    server.get_kyc_controls('ALERT-1')
+    assert _FakeClient.last['url'].endswith('/alerts/ALERT-1/controls')
+    server.replay_kyc_assessment('ALERT-1','assessment-123')
+    assert _FakeClient.last['url'].endswith('/alerts/ALERT-1/controls/assessments/assessment-123/replay')
+    assert _FakeClient.last['method']=='GET'

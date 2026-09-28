@@ -1,19 +1,21 @@
 # Semantic investigation — stages A and B
 
 The investigation now prepares one alert-scoped input bundle before dispatching
-workers. The Semantic context tab remains unchanged. AI Findings shows source
-observations, separately labelled AI interpretations, evidence and next steps.
+workers. The Semantic context tab remains unchanged. AI Findings leads with a plain-language
+investigation report. Source observations, AI interpretations and evidence remain
+available in the expandable detailed findings.
 
 ```text
 Alert account + recorded cutoff
   → retained input bundle + semantic contracts + pinned KYC release
   → parallel profile / pattern / network / screening workers
       profile: regulatory questions → bilingual evidence searches + configured controls
-      pattern: full available 30-day window → currency-separated totals + recorded model signals
+      pattern: full available 30-day window → currency-separated totals + timing/concentration measures + recorded model signals
       network: currency-separated fund flows + dated shared-device observations
       screening: explicit availability of dated screening results
   → optional existing MCP verification
-  → deterministic summary + retained structured report
+  → evidence-linked disposition suggestion
+  → business narrator → readable report + expandable supporting findings
 ```
 
 ## Scope and calculations
@@ -40,6 +42,16 @@ context; the agent does not divide an account total by it. The configured contro
 ledger has separate definitions and is not silently substituted for operational
 transactions. The alert's saved model version/features replace the current
 champion's global feature importances as the investigation's model evidence.
+
+`account_activity_patterns` adds currency-separated incoming/outgoing counts,
+peak rolling 24-hour counts and amounts (which may peak at different times),
+recipient concentration, and payments within 60 minutes after a strictly earlier
+same-currency receipt. It excludes self-transfers but includes other internal
+transfers. Rolling windows use `(end - 24 hours, end]` within the retained source
+window. Recorded recipient names do not establish identity; unknown recipients
+are not grouped into a common recipient. Timing does not prove that the same funds
+moved. Invalid timestamps or incomplete transaction inputs withhold these measures.
+Neither these measures nor model signals alone assert criminal activity.
 
 Dated shared-device observations are restricted to the cutoff. They establish
 observed fingerprint sharing, not common ownership; ingestion-time provenance
@@ -75,12 +87,42 @@ interpretations are labelled AI suggestions: key validation is not a guarantee
 that their prose is factually correct. Evaluation against the configured live
 model is still required.
 
-The final summary counts findings, conflicts, gaps and worker failures. A final
-LLM call can suggest a disposition with one to three valid finding IDs; displayed
-supporting observations come from those retained findings, not new prose. Invalid
-citations and clearance suggestions with unresolved checks are withheld. An
-unavailable model leaves the source summary available. Existing MCP verification remains
-optional and fail-soft; its verdicts are not regulatory compliance decisions.
+The disposition call uses the versioned `activity-and-evidence-v1` rubric. It assesses
+activity as concerning (escalate), inconclusive (gather information), or explained
+(consider closure), with a business-language reason and one to five valid finding
+IDs. Evidence completeness is calculated separately: insufficient activity evidence,
+additional information required, or available for analyst review. Missing KYC or
+screening does not block escalation on concerning observed activity. Escalation
+requires a citation to recorded operational activity; a score or missing documents
+alone cannot support it. Unestablished regulatory search questions are not treated
+as failed controls. Clearance suggestions with unresolved material checks are withheld.
+One bounded revision handles invalid decisions; model failure leaves the recommendation
+unavailable. The rubric is qualitative, with no universal amount/count threshold;
+citation and consistency validation is not independent validation of the model's judgement.
+A separate final narrator then explains the fixed recommendation in ordinary
+language: overall assessment, what was found, why it matters, and practical next
+steps. Its target length is 250–350 words, with a 400-word maximum for narrated sections. It receives recorded observations and
+calculations, not previous model interpretations as factual evidence. Every
+paragraph references existing finding IDs; the UI resolves those references to
+the detailed evidence on demand.
+
+Narration cannot alter the recommendation code, source findings or control
+outcomes. Material unresolved checks are also rendered directly from the source
+statuses in a “Still to resolve” section, so a model omission cannot hide them.
+Invalid narration receives at most one bounded revision for length, language or
+format. If it is still invalid, or the model is unavailable, the report falls back
+to a readable source summary. The fixed open questions remain visible in either mode.
+Reference/format validation does not prove that all generated prose is correct;
+the report remains for analyst review. Existing MCP verification is optional;
+its verdicts qualify the narrator's inputs without becoming compliance decisions.
+
+The structured `business_report`, original recommendation and internal
+`technical_summary` are retained with each investigation report. The SSE flow
+adds `narrator_status` and `report` events; the ordinary `token` text contains the
+same readable report. Both investigation endpoints save that readable text as
+case analysis and retain worker details separately. Older saved structured
+reports receive a read-only source-summary projection without rewriting the
+original evidence or calling an LLM during a GET request.
 
 New `evidence_payloads` rows retain JSON alongside the existing hash/metadata.
 The table is created idempotently on connection for existing and fresh ops DBs.
@@ -113,9 +155,18 @@ python 02_backend/scripts/investigation_browser_smoke.py
 ```
 
 The browser script copies the ops DB, uses the real API and source records, and
-stubs the LLM and external verification. It checks conflict display, original
-source links, retained inputs, saved report reload and browser errors. It does
-not mutate the live ops DB or claim to evaluate model quality.
+stubs the LLM and external verification by default. It checks the report-first
+layout, collapsed details, paragraph-to-finding navigation, conflict display,
+source links, retained inputs, saved report reload and browser errors. Pass
+`--live-narrator` to use the configured model for the final narrator only; other
+model calls remain stubbed. Add `--live-decision` to exercise the recommendation
+call as well; the browser asserts escalation alongside incomplete evidence. This captures the response under
+`artifacts/investigation/` for inspection. Neither mode mutates the live ops DB.
+`python 02_backend/scripts/investigation_decision_smoke.py` evaluates the configured
+model on retained inputs for the two reference accounts plus explained activity,
+missing documents alone, and a large total alone. It recalculates pattern measures
+without rewriting investigations, and saves results under `artifacts/investigation/`.
+A successful set of live examples is not a comprehensive model-quality evaluation.
 
 ## Remaining stage C
 

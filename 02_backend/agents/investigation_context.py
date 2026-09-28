@@ -18,6 +18,7 @@ from compliance.investigation import collect
 from knowledge.kb import Store
 from semantic.model_loader import contract_sources, _load_yaml
 from semantic.regulation import regulation_catalog
+from agents.activity_patterns import transaction_patterns, pattern_observation
 
 logger = logging.getLogger(__name__)
 
@@ -188,6 +189,7 @@ def prepare_context(case_id, alert_id, customer_id, account_id):
                          'recorded_features': _json(alert.get('top_features')),
                          'meaning': 'Recorded alert signals, not current champion global feature importance or a crime probability'},
         'transaction_window': window, 'activity': activity,
+        'activity_patterns': transaction_patterns(window, selected, activity),
         'network': {'flows': scoped_flows(window, selected, activity['query_complete']),
                     'meaning': 'Recorded fund flows in the same account window; no inference of common ownership',
                     'devices': devices},
@@ -250,7 +252,11 @@ def worker_findings(worker, context):
                 finding('model_signal', 'Recorded alert model: ' + str(context['model_signal']['model_version']) +
                         '; reasons: ' + json.dumps(context['model_signal']['reason_codes']),
                         'recorded' if context['model_signal']['recorded_features'] else 'incomplete',
-                        model_signal=context['model_signal'])]
+                        model_signal=context['model_signal']),
+                finding('account_activity_patterns', pattern_observation(context['activity_patterns']),
+                        'recorded' if context['activity_patterns']['available'] else 'incomplete',
+                        'Assess timing and concentration alongside the business explanation and supporting records.',
+                        patterns=context['activity_patterns'])]
     if worker == 'network':
         return [finding('account_relationship', f"{len(context['network']['flows'])} fund-flow relationships in the account window. "
                         + context['network']['meaning'] + '. Device observations: ' + str(len(context['network']['devices']['observations']))

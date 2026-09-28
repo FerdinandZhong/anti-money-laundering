@@ -454,3 +454,61 @@ on port 8100 with the existing full_integration knowledge/semantic directories;
 health and the new latest-report endpoint return 200. Current launcher session:
 71813. On 2026-09-28, the user authorized committing and pushing these changes
 to `origin/feature/semantic-demo-explorer`.
+
+## Business investigation report — 2026-09-28
+
+Added a final narrator over recorded findings and the existing recommendation.
+The AI Findings tab now leads with a plain-language report: overall assessment,
+findings, significance and next steps. Detailed findings are collapsed; paragraph
+links open their supporting findings. Material unresolved questions remain visible
+independently of generated prose. Narration validates recommendation, references,
+length and selected technical wording, with one bounded revision and a readable
+source-summary fallback. This validation does not establish factual accuracy of
+every generated sentence. Older retained reports receive a read-only readable
+projection without changing their evidence payloads.
+
+Validation: 170 backend tests passed, one optional test skipped; frontend build
+passed. Browser checks cover report-first display, source navigation, retained
+payload integrity and saved reload. A configured live-model narrator example also
+passed; other model calls were stubbed and the browser used an isolated database.
+This is a live example, not a comprehensive model-quality evaluation. No new AMP
+jobs or dependencies; remote AMP/Impala verification remains user-deferred.
+Stage C adaptive follow-up/model evaluation is still pending. Changes are local
+and uncommitted at this handoff.
+
+## Activity assessment versus evidence completeness — 2026-09-28
+
+Added the versioned activity-and-evidence decision rubric. Concerning activity
+maps to escalation even when KYC/screening remains incomplete; inconclusive
+activity maps to gathering information, and explained activity can suggest
+closure only with no unresolved material checks. Recommendation validation
+requires operational evidence for escalation and preserves source conflicts.
+The report displays supporting-information status separately from its headline.
+Historical reports are not relabelled; rerunning creates a new retained report.
+
+Added deterministic, currency-separated direction counts, rolling 24-hour count
+and amount peaks, recipient concentration and payments within 60 minutes after
+receipts. The semantic model documents their definitions and limitations. These
+are descriptive measures, not hard-coded suspiciousness thresholds. No account
+IDs or priority-score cutoffs decide the recommendation.
+
+Validation: 183 backend tests passed, one optional skip; production frontend build
+passed. Five live-model decision examples passed (both reference accounts escalate,
+explained activity suggests closure review, missing documents alone and a large
+total alone remain inconclusive). Isolated browser acceptance passed with live
+decision and narrator calls; worker interpretations were stubbed in that check.
+See `02_backend/scripts/investigation_decision_smoke.py` and
+`artifacts/investigation/decision-evaluation.json`. These examples do not establish
+general model accuracy. Local app restarted on port 8100; remote AMP/Impala remain
+deferred. No new dependencies or jobs. Changes remain uncommitted.
+
+Both local reference cases were then rerun through the real streaming API with
+live worker, recommendation and narrator calls. Their newly saved reports both
+recommend escalation and separately retain incomplete supporting information.
+The prior evidence remains intact. Latest-report reload was checked for both;
+local launcher session is 21242.
+
+The user authorized committing and pushing the business narrator and activity/
+evidence assessment changes to `origin/feature/semantic-demo-explorer` on
+2026-09-28. Validation above applies to this release; unrelated presentation
+files, local generated reports and runtime data are excluded.

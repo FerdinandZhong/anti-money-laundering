@@ -179,7 +179,7 @@ export const CaseWorkbench: React.FC<Props> = ({ alertId, onDisposed }) => {
           <div className="space-y-4">
             <section className="rounded-lg border border-surface-3 bg-white p-4 text-xs">
               <h3 className="font-bold text-ink">Analysis basis</h3>
-              <p className="mt-2 text-ink-muted">Workers receive intent-specific facts, definitions and claim limitations. Explore the current contract separately from saved findings.</p>
+              <p className="mt-2 text-ink-muted">Explore what the account data means and where it comes from. Saved reports reflect the information available when the investigation ran.</p>
               <button onClick={() => setActiveTab('semantic')} className="mt-3 text-accent font-semibold">Explore semantic context →</button>
             </section>
             <AgentPanel

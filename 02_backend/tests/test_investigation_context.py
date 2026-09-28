@@ -176,6 +176,8 @@ def test_full_workflow_retains_report_with_llm_offline(case, monkeypatch):
     monkeypatch.setattr(workers, 'chat', lambda *a, **k: (_ for _ in ()).throw(RuntimeError('LLM offline')))
     monkeypatch.setattr(supervisor, 'run_verification_worker', lambda *a: None)
     monkeypatch.setattr(supervisor, 'chat', lambda *a, **k: (_ for _ in ()).throw(RuntimeError('LLM offline')))
+    from agents import narrator
+    monkeypatch.setattr(narrator, 'chat', lambda *a, **k: (_ for _ in ()).throw(RuntimeError('LLM offline')))
     events = list(supervisor.run_investigation(case, 'A', CUSTOMER, 'WRONG-FIRST-ACCOUNT'))
     assert events[-1]['type'] == 'done'
     assert len([e for e in events if e['type'] == 'worker_done']) == 4
@@ -185,6 +187,8 @@ def test_full_workflow_retains_report_with_llm_offline(case, monkeypatch):
     report = client.get(f'/api/cases/{case}/investigation/latest').json()
     assert report['available']
     assert report['account_id'] == ACCOUNT
+    assert report['business_report']['mode'] == 'source_summary'
+    assert any(e['type'] == 'report' for e in events)
     assert len(report['workers']) == 4
     assert all(w['ai_status'] == 'unavailable' for w in report['workers'])
 
@@ -234,9 +238,9 @@ def test_context_failure_is_not_a_successful_report(case, monkeypatch):
 
 def test_disposition_rejects_unknown_citations_and_clearance_with_gaps(monkeypatch):
     results = [{'structured_findings': [{'id': 'known', 'status': 'conflicting_evidence', 'observation': 'Sources disagree'}]}]
-    for proposal in ({'disposition': 'SUSPICIOUS', 'finding_ids': ['invented']},
-                     {'disposition': 'FALSE_POSITIVE', 'finding_ids': ['known']}):
+    for proposal in ({'activity_assessment': 'concerning', 'disposition': 'SUSPICIOUS', 'finding_ids': ['invented'], 'reason': 'Activity needs review.'},
+                     {'activity_assessment': 'explained', 'disposition': 'FALSE_POSITIVE', 'finding_ids': ['known'], 'reason': 'Activity is explained.'}):
         monkeypatch.setattr(supervisor, 'chat', lambda *a, **kw: json.dumps(proposal))
         assert not supervisor.recommend_disposition(results)['available']
-    monkeypatch.setattr(supervisor, 'chat', lambda *a, **kw: json.dumps({'disposition': 'NEEDS_MORE_INFO', 'finding_ids': ['known']}))
+    monkeypatch.setattr(supervisor, 'chat', lambda *a, **kw: json.dumps({'activity_assessment': 'inconclusive', 'disposition': 'NEEDS_MORE_INFO', 'finding_ids': ['known'], 'reason': 'Only conflicting ownership records are available.'}))
     assert supervisor.recommend_disposition(results)['finding_ids'] == ['known']

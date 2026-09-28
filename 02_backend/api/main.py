@@ -410,13 +410,17 @@ def investigate_case(case_id: str, body: InvestigateBody, conn=Depends(get_db)):
     def event_stream():
         narrative_parts: list[str] = []
         findings_parts: list[str] = []
+        has_business_report = False
         for evt in run_investigation(case_id, alert_id, customer_id, account_id):
             if evt.get("type") == "token":
                 narrative_parts.append(evt.get("text", ""))
+            elif evt.get("type") == "report":
+                has_business_report = True
             elif evt.get("type") == "worker_done":
                 findings_parts.append(f"[{evt.get('worker', '').upper()}]\n{evt.get('findings', '')}")
             elif evt.get("type") == "done":
-                analysis = ("\n\n".join(findings_parts) + "\n\n" + "".join(narrative_parts)).strip()
+                analysis = ("".join(narrative_parts) if has_business_report else
+                            "\n\n".join(findings_parts) + "\n\n" + "".join(narrative_parts)).strip()
                 write_conn = get_connection()
                 try:
                     write_conn.execute(
@@ -529,7 +533,15 @@ def latest_investigation(case_id: str, conn=Depends(get_db)):
     evidence = read_evidence(row['evidence_id'])
     if not evidence['integrity_valid']:
         raise HTTPException(409, 'Investigation report integrity check failed')
-    return {'available': True, **evidence['payload']}
+    payload = evidence['payload']
+    if not payload.get('business_report'):
+        # Read-only presentation of older structured reports; retain original bytes.
+        from agents.narrator import fallback_report, render_report
+        report = fallback_report({'cutoff': payload.get('cutoff')}, payload.get('workers', []),
+                                 payload.get('recommendation', {}))
+        payload = {**payload, 'business_report': report, 'technical_summary': payload.get('summary'),
+                   'summary': render_report(report)}
+    return {'available': True, **payload}
 
 
 @app.get("/api/cases/{case_id}/evidence/{evidence_id}")
@@ -687,12 +699,15 @@ def customer_investigate(customer_id: str, conn=Depends(get_db)):
         raise HTTPException(422, 'Alert has no recorded account')
 
     narrative_parts, worker_findings, verdicts = [], [], []
+    business_report = None
     for evt in run_investigation(case_id, alert["alert_id"], customer_id, account_id):
         t = evt.get("type")
         if t == "error":
             raise HTTPException(503, evt.get('message', 'Investigation unavailable'))
         if t == "token":
             narrative_parts.append(evt.get("text", ""))
+        elif t == "report":
+            business_report = evt['report']
         elif t == "worker_done":
             worker_findings.append({"worker": evt.get("worker"), "findings": evt.get("findings", ""),
                                     "structured_findings": evt.get("structured_findings", []),
@@ -701,13 +716,14 @@ def customer_investigate(customer_id: str, conn=Depends(get_db)):
             verdicts.append({"claim": evt.get("claim"), "verdict": evt.get("verdict"),
                              "sources": evt.get("sources", [])})
     findings_block = "\n\n".join(f"[{w['worker'].upper()}]\n{w['findings']}" for w in worker_findings)
-    analysis = (findings_block + "\n\n" + "".join(narrative_parts)).strip()
+    analysis = ("".join(narrative_parts) if business_report else
+                findings_block + "\n\n" + "".join(narrative_parts)).strip()
 
     conn.execute("UPDATE cases SET analysis = ?, analyzed_at = ? WHERE case_id = ?",
                  (analysis, datetime.now(timezone.utc).isoformat(), case_id))
     conn.commit()
     return {"case_id": case_id, "analysis": analysis, "verdicts": verdicts,
-            "worker_findings": worker_findings}
+            "worker_findings": worker_findings, "business_report": business_report}
 
 
 # ── Governed AML semantic layer ────────────────────────────────────────────

@@ -22,7 +22,7 @@ def main():
     from fastapi.testclient import TestClient
     from playwright.sync_api import sync_playwright
     from common import db, source
-    from agents import workers, supervisor
+    from agents import workers, supervisor, narrator
     original = db.get_db_path()
     output = ROOT / 'artifacts/investigation'
     output.mkdir(parents=True, exist_ok=True)
@@ -34,9 +34,30 @@ def main():
         return json.dumps({'interpretations': [{'finding_id': item['id'],
             'text': 'Use the retained sources and the stated scope when reviewing this observation.'}
             for item in inputs['findings']]})
-    supervisor.chat = lambda messages, **kwargs: json.dumps({
-        'disposition': 'NEEDS_MORE_INFO',
-        'finding_ids': [json.loads(messages[-1]['content'])['findings'][0]['id']]})
+    if '--live-decision' not in sys.argv:
+        supervisor.chat = lambda messages, **kwargs: json.dumps({
+            'activity_assessment': 'concerning', 'disposition': 'SUSPICIOUS',
+            'reason': 'Concentrated outgoing activity and conflicting ownership records warrant escalation.',
+            'finding_ids': [next(f['id'] for f in json.loads(messages[1]['content'])['findings']
+                                 if f['concept'] == 'account_activity_patterns')]})
+    def write_report(messages, **kwargs):
+        inputs = json.loads(messages[-1]['content'])
+        owner = next(f['id'] for f in inputs['findings'] if f['concept'] == 'beneficial_owner' and f['status'] == 'conflicting_evidence')
+        screen = next(f['id'] for f in inputs['findings'] if f['concept'] == 'screening')
+        return json.dumps({'decision': inputs['decision'],
+            'overview': [{'text': 'Escalate the account for further investigation and resolve the outstanding ownership questions during that review.', 'finding_ids': [owner]}],
+            'findings': [{'text': 'The ownership records identify different people as the person who ultimately owns or controls the company.', 'finding_ids': [owner]}],
+            'significance': [{'text': 'The conflicting ownership information leaves an important question unanswered. Missing screening results also mean that those checks cannot yet inform the review.', 'finding_ids': [owner, screen]}],
+            'actions': [{'text': 'Reconcile the ownership records and obtain dated screening results before deciding how to proceed.', 'finding_ids': [owner, screen]}]})
+    if '--live-narrator' not in sys.argv:
+        narrator.chat = write_report
+    else:
+        live_chat = narrator.chat
+        def capture_narration(*args, **kwargs):
+            response = live_chat(*args, **kwargs)
+            (output / 'narrator-response.json').write_text(response)
+            return response
+        narrator.chat = capture_narration
     workers.chat = interpret
     supervisor.run_verification_worker = lambda *args: None
     with tempfile.TemporaryDirectory() as directory:
@@ -72,7 +93,23 @@ def main():
             page.get_by_text('CUST-000294', exact=True).first.click(timeout=30000)
             page.get_by_role('tab', name='AI Findings', exact=True).click()
             page.get_by_role('button', name='Run inference', exact=True).click()
-            page.get_by_text('Investigation summary', exact=True).wait_for(timeout=60000)
+            report = page.get_by_role('article', name='Investigation report')
+            report.wait_for(timeout=90000)
+            assert 'source contract' not in report.inner_text()
+            assert 'failed workers' not in report.inner_text()
+            assert 'Escalate for further investigation' in report.inner_text()
+            assert 'Supporting information: Additional information required' in report.inner_text()
+            assert page.locator('#investigation-details').get_attribute('open') is None
+            (output / 'business-report.txt').write_text(report.inner_text())
+            from common.evidence import get_evidence
+            with sqlite3.connect(database) as check:
+                eid = check.execute("SELECT evidence_id FROM evidence WHERE tool='investigation_report' ORDER BY rowid DESC LIMIT 1").fetchone()[0]
+            retained = get_evidence(eid)['payload']
+            assert retained['business_report']['mode'] == 'narrated', 'Narrator fell back; inspect model response'
+            (output / 'business-report.json').write_text(json.dumps(retained['business_report'], indent=2))
+            page.screenshot(path=str(output / 'business-report.png'), full_page=True)
+            report.get_by_role('button', name='View supporting findings').first.click()
+            page.get_by_role('button', name='Show all findings', exact=True).click()
             page.get_by_text('Account Recorded Outflow By Currency', exact=True).wait_for()
             page.get_by_text('Conflicting Evidence', exact=True).first.wait_for()
             page.get_by_text('Meaning and source evidence', exact=True).first.click()
@@ -85,13 +122,18 @@ def main():
             page.reload()
             page.get_by_text('CUST-000294', exact=True).first.click(timeout=30000)
             page.get_by_role('tab', name='AI Findings', exact=True).click()
+            page.get_by_role('article', name='Investigation report').wait_for()
+            assert page.locator('#investigation-details').get_attribute('open') is None
+            page.get_by_text('Detailed findings and evidence', exact=True).click()
             page.get_by_text('Account Recorded Outflow By Currency', exact=True).wait_for()
             assert page.get_by_role('button', name='Inspect retained inputs', exact=True).count() > 0
             assert not errors, errors
             browser.close()
-        print(json.dumps({'status': 'passed', 'checks': ['live findings', 'owner conflict', 'document links',
+        print(json.dumps({'status': 'passed', 'checks': ['business report first', 'details collapsed', 'paragraph source navigation', 'live findings', 'owner conflict', 'document links',
             'retained payload integrity', 'saved report reload', 'no browser errors'],
-            'llm': 'stubbed', 'ops_db': 'temporary copy', 'screenshot': str(output / 'findings.png')}))
+            'llm': {'narrator': 'live' if '--live-narrator' in sys.argv else 'stubbed',
+                    'decision': 'live' if '--live-decision' in sys.argv else 'stubbed',
+                    'workers': 'stubbed'}, 'ops_db': 'temporary copy', 'screenshot': str(output / 'findings.png')}))
 
 
 if __name__ == '__main__':

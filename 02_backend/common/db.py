@@ -12,6 +12,13 @@ CREATE TABLE IF NOT EXISTS transaction_scores (
 );
 """
 
+_EVIDENCE_PAYLOADS_SQL = """
+CREATE TABLE IF NOT EXISTS evidence_payloads (
+    evidence_id TEXT PRIMARY KEY REFERENCES evidence(evidence_id),
+    payload_json TEXT NOT NULL
+);
+"""
+
 _TRANSACTION_LABELS_SQL = """
 CREATE TABLE IF NOT EXISTS transaction_labels (
     transaction_id TEXT PRIMARY KEY,
@@ -74,6 +81,7 @@ def get_connection() -> sqlite3.Connection:
     # ponytail: heals pre-existing local DBs created before these tables existed;
     # drop once every dev DB has been regenerated via init_db().
     conn.execute(_TRANSACTION_SCORES_SQL)
+    conn.execute(_EVIDENCE_PAYLOADS_SQL)
     conn.execute(_TRANSACTION_LABELS_SQL)
     conn.execute(_LLM_MODELS_SQL)
     conn.execute(_TOOL_CONFIG_SQL)

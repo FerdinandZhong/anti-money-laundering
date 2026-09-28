@@ -402,9 +402,10 @@ def investigate_case(case_id: str, body: InvestigateBody, conn=Depends(get_db)):
     alert_id    = case["alert_id"]
     customer_id = case["customer_id"]
 
-    # first account for this customer (needed by tx/network tools)
-    accounts   = source.get_accounts(customer_id)
-    account_id = accounts[0]["account_id"] if accounts else customer_id
+    alert_row = conn.execute('SELECT account_id FROM alerts WHERE alert_id=?', (alert_id,)).fetchone()
+    account_id = alert_row['account_id'] if alert_row else None
+    if not account_id:
+        raise HTTPException(422, 'Alert has no recorded account')
 
     def event_stream():
         narrative_parts: list[str] = []
@@ -514,6 +515,32 @@ def set_transaction_labels(case_id: str, body: TxLabelsBody, conn=Depends(get_db
             upserts += 1
     conn.commit()
     return {"ok": True, "labeled": upserts, "cleared": deletes}
+
+
+@app.get("/api/cases/{case_id}/investigation/latest")
+def latest_investigation(case_id: str, conn=Depends(get_db)):
+    if not conn.execute('SELECT 1 FROM cases WHERE case_id=?', (case_id,)).fetchone():
+        raise HTTPException(404, 'Case not found')
+    row = conn.execute("SELECT evidence_id FROM evidence WHERE case_id=? AND tool='investigation_report' "
+                       "ORDER BY created_at DESC, rowid DESC LIMIT 1", (case_id,)).fetchone()
+    if not row:
+        return {'available': False}
+    from common.evidence import get_evidence as read_evidence
+    evidence = read_evidence(row['evidence_id'])
+    if not evidence['integrity_valid']:
+        raise HTTPException(409, 'Investigation report integrity check failed')
+    return {'available': True, **evidence['payload']}
+
+
+@app.get("/api/cases/{case_id}/evidence/{evidence_id}")
+def retained_evidence(case_id: str, evidence_id: str):
+    from common.evidence import get_evidence as read_evidence
+    evidence = read_evidence(evidence_id)
+    if not evidence or evidence['case_id'] != case_id:
+        raise HTTPException(404, 'Evidence not found in this case')
+    if evidence['integrity_valid'] is False:
+        raise HTTPException(409, 'Evidence integrity check failed')
+    return evidence
 
 
 @app.get("/api/cases/{case_id}/evidence")
@@ -655,16 +682,21 @@ def customer_investigate(customer_id: str, conn=Depends(get_db)):
     if alert is None:
         raise HTTPException(404, f"No alert for customer {customer_id}; nothing to investigate")
     case_id = case["case_id"]
-    accounts = source.get_accounts(customer_id)
-    account_id = accounts[0]["account_id"] if accounts else customer_id
+    account_id = alert.get('account_id')
+    if not account_id:
+        raise HTTPException(422, 'Alert has no recorded account')
 
     narrative_parts, worker_findings, verdicts = [], [], []
     for evt in run_investigation(case_id, alert["alert_id"], customer_id, account_id):
         t = evt.get("type")
+        if t == "error":
+            raise HTTPException(503, evt.get('message', 'Investigation unavailable'))
         if t == "token":
             narrative_parts.append(evt.get("text", ""))
         elif t == "worker_done":
-            worker_findings.append({"worker": evt.get("worker"), "findings": evt.get("findings", "")})
+            worker_findings.append({"worker": evt.get("worker"), "findings": evt.get("findings", ""),
+                                    "structured_findings": evt.get("structured_findings", []),
+                                    "evidence_ids": evt.get("evidence_ids", [])})
         elif t == "verdict":
             verdicts.append({"claim": evt.get("claim"), "verdict": evt.get("verdict"),
                              "sources": evt.get("sources", [])})

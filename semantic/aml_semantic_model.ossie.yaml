@@ -1,4 +1,4 @@
-version: "0.1"
+version: "0.2"
 semantic_model:
   - name: aml_investigation
     description: >-
@@ -121,6 +121,11 @@ semantic_model:
         to: case.case_id
         description: Evidence supports review of a case.
     metrics:
+      - name: account_recorded_outflow_by_currency
+        description: Recorded outgoing amounts grouped by currency for the alert account in (data_cutoff_at minus 30 days, data_cutoff_at]. Includes internal transfers; no FX conversion.
+        ai_context:
+          synonyms: ["account outflow by currency"]
+          instructions: Use the full available event-time query, exclude known later receipts, deduplicate transaction IDs and withhold totals on conflicting rows or incomplete queries. Source coverage is not certified. Do not divide by customer-level expected turnover or substitute the separate control ledger.
       - name: observed_outbound_flow_30d
         description: Sum of outbound transaction amounts for the selected account(s) in the 30 days ending at data_cutoff_at.
         ai_context:

@@ -142,3 +142,10 @@ Details: [current KYC guide](docs/kyc_audit_and_multimodal_demo.md).
 - [x] Executive deck on the v5 Cloudera template (`docs/aml-overview.pptx`).
 - [x] Project docs organized per the Vibe-Coding guideline (AGENTS.md + docs/).
 - [x] Smoke test `02_backend/scripts/smoke_test.py` — ALL GREEN.
+
+## Semantic investigation
+- [x] Stages A/B: shared alert scope, retained inputs, structured findings,
+  regulatory questions, bilingual evidence retrieval and finding-card UI.
+- [x] Fix both API entry points to investigate the alert's account.
+- [ ] Stage C: bounded follow-up from unresolved findings; configured-model
+  quality/latency comparison. See `docs/semantic_investigation.md`.

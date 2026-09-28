@@ -3,6 +3,7 @@ import { Play, Loader2, CheckCircle2, Settings } from 'lucide-react'
 import { disposeCase, investigateCase, streamSSE, api, getCaiiEndpoints, setLlmProvider } from '../api'
 import type { CaiiEndpoint } from '../api'
 import { PipelineStream, Md, type PipelineItem, type Verdict } from './PipelineStream'
+import type { InvestigationFinding } from './InvestigationFindings'
 import type { WorkflowNode } from './WorkflowGraph'
 
 interface Props {
@@ -25,10 +26,10 @@ const PHASES = ['COLLECTING', 'VERIFYING', 'ANALYZING', 'REVIEWED']
 
 // Mirrors WORKER_TOOLS in 02_backend/agents/workers.py — tool chips per worker node.
 const WORKER_TOOLS: Record<string, string[]> = {
-  profile:   ['get_alert_detail', 'get_customer_profile'],
-  pattern:   ['get_transaction_history', 'get_model_explanation'],
-  network:   ['get_network_graph', 'get_device_overlap'],
-  screening: ['get_customer_profile'],
+  profile:   ['shared_context', 'regulatory_questions', 'kyc_evidence'],
+  pattern:   ['account_window_metrics', 'recorded_alert_signals'],
+  network:   ['scoped_fund_flows', 'dated_device_observations'],
+  screening: ['screening_availability'],
 }
 
 interface LlmCfg { provider: string; model: string; available_providers: Record<string, { model: string }> }
@@ -37,6 +38,7 @@ export const AgentPanel: React.FC<Props> = ({ caseId, savedAnalysis, onDisposed,
   const [phase, setPhase] = useState<string | null>(null)
   const [workers, setWorkers] = useState<Record<string, PipelineItem>>({})
   const [narrative, setNarrative] = useState('')
+  const [savedReport, setSavedReport] = useState<{ summary: string; workers: { worker: string; findings: string; structured_findings?: InvestigationFinding[] }[] } | null>(null)
   const [running, setRunning] = useState(false)
   const [err, setErr] = useState('')
   const [verdicts, setVerdicts] = useState<Verdict[]>([])
@@ -61,6 +63,15 @@ export const AgentPanel: React.FC<Props> = ({ caseId, savedAnalysis, onDisposed,
     }
   }, [showLlm, caiiEndpoints.length])
 
+  useEffect(() => {
+    let active = true
+    setSavedReport(null); setWorkers({}); setNarrative(''); setPhase(null)
+    api.get(`/cases/${encodeURIComponent(caseId)}/investigation/latest`).then(r => {
+      if (active && r.data.available) setSavedReport(r.data)
+    }).catch(() => null)
+    return () => { active = false }
+  }, [caseId])
+
   const switchProvider = async (provider: string) => {
     await setLlmProvider({ provider })
     setPicked(null)
@@ -77,6 +88,9 @@ export const AgentPanel: React.FC<Props> = ({ caseId, savedAnalysis, onDisposed,
 
   const handleEvent = (e: Record<string, unknown>) => {
     switch (e.type) {
+      case 'error':
+        setErr(String(e.message ?? 'Investigation unavailable'))
+        break
       case 'phase':
         setPhase(String(e.phase))
         break
@@ -90,8 +104,9 @@ export const AgentPanel: React.FC<Props> = ({ caseId, savedAnalysis, onDisposed,
         setWorkers(prev => ({
           ...prev,
           [w]: {
-            key: w, label: w, status: 'ok', mono: true,
+            key: w, label: w, status: String(e.findings ?? '').startsWith('Error:') ? 'error' : 'ok', mono: true,
             detail: String(e.findings ?? ''),
+            structuredFindings: e.structured_findings as InvestigationFinding[] | undefined,
             chips: (e.evidence_ids as string[]) ?? [],
           },
         }))
@@ -148,7 +163,7 @@ export const AgentPanel: React.FC<Props> = ({ caseId, savedAnalysis, onDisposed,
         if (id === 'narrate') {
           const status: WorkflowNode['status'] =
             narrative ? (running ? 'running' : 'completed') : running && items.length === itemOrder.length ? 'running' : 'pending'
-          return { id, label: 'narrate', status, llmCalls: 1 }
+          return { id, label: 'summarize', status, llmCalls: 1 }
         }
         const w = workers[id]
         const status: WorkflowNode['status'] = !w
@@ -175,7 +190,7 @@ export const AgentPanel: React.FC<Props> = ({ caseId, savedAnalysis, onDisposed,
           <div className="w-8 h-0.5 bg-accent mb-2" />
           <h3 className="text-sm font-bold text-ink tracking-tight">AI Investigation</h3>
           <p className="text-xs text-ink-muted mt-0.5">
-            4 specialist workers investigate in parallel, then compose a narrative
+            Shared account context, evidence-linked findings, and suggested next steps
           </p>
         </div>
         {llmCfg && (
@@ -241,7 +256,11 @@ export const AgentPanel: React.FC<Props> = ({ caseId, savedAnalysis, onDisposed,
       </button>
 
       {/* Structured stream — saved analysis takes the idle slot until a fresh run starts */}
-      {!running && !narrative && savedAnalysis ? (
+      {!running && !narrative && savedReport ? (
+        <PipelineStream phases={[]} activePhase={null}
+          items={savedReport.workers.map(w => ({key: w.worker, label: w.worker, status: w.findings.startsWith('Error:') ? 'error' : 'ok', detail: w.findings, structuredFindings: w.structured_findings}))}
+          narrative={savedReport.summary} narrativeTitle="Investigation summary" />
+      ) : !running && !narrative && savedAnalysis ? (
         <div className="border-l-2 border-accent/60 pl-4">
           <div className="bg-surface-1 rounded-lg shadow-soft p-4">
             <p className="text-2xs uppercase tracking-wider text-ink-faint mb-1.5">
@@ -256,7 +275,7 @@ export const AgentPanel: React.FC<Props> = ({ caseId, savedAnalysis, onDisposed,
           activePhase={phase}
           items={items}
           narrative={narrative}
-          narrativeTitle="Analyst narrative"
+          narrativeTitle="Investigation summary"
           running={running}
           idle={'// Run inference to stream the agent analysis…'}
           graphNodes={graphNodes}

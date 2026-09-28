@@ -13,6 +13,7 @@ def _stub_chat(monkeypatch):
         return iter(["Hello", " world"])
 
     monkeypatch.setattr(supervisor, "chat", _fake_chat)
+    monkeypatch.setattr(supervisor, "prepare_context", lambda *a: None)
 
 
 def _fake_worker(name):

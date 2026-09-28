@@ -429,3 +429,28 @@ tests (one OCR dependency skip) after the normal source-data generation step.
 The skipped real PDF/OCR bootstrap passes separately in the OCR environment;
 all 10 MCP tests pass with the locked dependencies. Frontend production build,
 deployment self-check and staged whitespace checks pass.
+
+## Semantic investigation stages A/B — 2026-09-27
+
+Added a retained alert-scoped investigation context, uncapped event-time source
+retrieval, currency-separated Decimal metrics, dated device observations and
+recorded alert model signals. Regulatory Ossie concepts now drive bilingual KYC
+searches against one pinned release; configured controls preserve conflicts and
+missing evidence. Workers return deterministic observations with separately
+labelled, ID-bound AI interpretations. Retained JSON evidence and structured
+reports support clickable inputs and saved finding cards. Both investigation
+entry points now select the actual alert account.
+
+No AMP variables/jobs/dependencies added. Frontend rebuild + application restart
+required. Browser acceptance uses a temporary DB and stubbed LLM; it does not
+establish live-model quality. See `docs/semantic_investigation.md` for contracts,
+limitations and remaining stage C (bounded adaptive follow-up/model evaluation).
+
+Validation: 161 backend tests passed, one existing optional OCR test skipped;
+production frontend build passed. Isolated real-API browser acceptance passed
+live findings, owner-conflict evidence links, retained-payload integrity, saved
+report reload and browser-error checks (LLM stubbed). The local app was restarted
+on port 8100 with the existing full_integration knowledge/semantic directories;
+health and the new latest-report endpoint return 200. Current launcher session:
+71813. On 2026-09-28, the user authorized committing and pushing these changes
+to `origin/feature/semantic-demo-explorer`.

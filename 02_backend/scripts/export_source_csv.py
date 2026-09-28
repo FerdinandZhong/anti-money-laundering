@@ -18,7 +18,8 @@ except NameError:
 sys.path.insert(0, os.path.join(PROJECT_ROOT, "02_backend"))
 
 import sqlite3
-import pandas as pd
+import csv
+import tempfile
 from common.config import get_config, get_db_path
 
 SOURCE_TABLES = ["customers", "accounts", "transactions", "devices"]
@@ -30,10 +31,24 @@ def main() -> int:
     conn = sqlite3.connect(get_db_path())
     try:
         for t in SOURCE_TABLES:
-            df = pd.read_sql_query(f"SELECT * FROM {t}", conn)
+            cursor = conn.execute(f"SELECT * FROM {t}")
             out = os.path.join(csv_dir, f"{t}.csv")
-            df.to_csv(out, index=False)
-            print(f"[export] {t}: {len(df)} rows -> {out}")
+            temporary = None
+            try:
+                with tempfile.NamedTemporaryFile(mode='w', encoding='utf-8', newline='',
+                                                 dir=csv_dir, suffix='.tmp', delete=False) as handle:
+                    temporary = handle.name
+                    writer = csv.writer(handle)
+                    writer.writerow([column[0] for column in cursor.description])
+                    count = 0
+                    for row in cursor:
+                        writer.writerow(row)
+                        count += 1
+                os.replace(temporary, out)
+            finally:
+                if temporary and os.path.exists(temporary):
+                    os.unlink(temporary)
+            print(f"[export] {t}: {count} rows -> {out}")
     finally:
         conn.close()
     return 0

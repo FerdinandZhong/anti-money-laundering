@@ -512,3 +512,34 @@ The user authorized committing and pushing the business narrator and activity/
 evidence assessment changes to `origin/feature/semantic-demo-explorer` on
 2026-09-28. Validation above applies to this release; unrelated presentation
 files, local generated reports and runtime data are excluded.
+
+## AMP generation pandas/NumPy ABI repair — 2026-09-28
+
+User reported AMP step 2 completing SQLite generation then failing in pandas
+import during CSV export (dtype size expected 96, got 88). Reproduced exactly in
+an isolated Python 3.11 environment using pandas 2.1.1 with NumPy 2.2.6. The
+previous installer could retain an old pandas binary before a separate OCR pip
+install upgraded NumPy. Base and enabled KYC requirements are now resolved in a
+single pip invocation. NumPy matches the OCR pin; pandas is >=2.2.3,<3 and the
+sklearn/XGBoost minimums require NumPy 2 support. Declared requests explicitly
+after fresh-install tests exposed the CML automation's implicit dependency.
+
+The installer runs check_python_runtime.py in a fresh interpreter: data/ML
+imports, Arrow round-trip, small sklearn/XGBoost fits and optional real OCR
+initialization. CSV export now streams through the standard library and replaces
+each file atomically, avoiding pandas entirely. Regression tests cover a broken
+scientific import, Unicode/CSV quoting, nulls, empty tables, repeatability and
+preservation of existing CSVs on failed replacement.
+
+Validation: repaired isolated Python 3.11 environment passes all 187 backend
+tests including real PDF/OCR bootstrap, runtime validation and pip check. The
+macOS test environment uses the existing local libomp via a test-only search
+directory; no Linux-specific loader setting was added. Linux x86_64/Python 3.11
+binary dependency resolution also passes; actual remote AMP execution has not
+been repeated. Existing Python 3.13 environment passes 186 tests, one OCR skip.
+
+Recovery instructions are in docs/development.md: sync this fix, rerun AMP step 1,
+start a fresh session, run CSV export and KYC preparation against the already
+generated database, then continue at step 3. Do not generate another transaction
+batch to recover this export-only failure. Zero alerts/cases before scoring is
+expected. No jobs added or renamed.

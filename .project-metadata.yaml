@@ -70,7 +70,9 @@ tasks:
       Validates system resources, creates data and model directories, installs
       Python dependencies from requirements.txt, ensures Node.js is available
       via nvm, and builds the production React frontend bundle.
-      Installs CPU PDF/OCR dependencies when KYC preparation is enabled.
+      Resolves CPU PDF/OCR dependencies together with the ML packages when KYC
+      preparation is enabled, then validates their binary compatibility in a fresh
+      Python process before continuing.
     cpu: 2
     memory: 4
     gpu: 0

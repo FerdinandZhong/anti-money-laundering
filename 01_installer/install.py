@@ -16,35 +16,37 @@ except NameError:
 
 
 def install_python_deps():
-    """Install Python dependencies from requirements.txt."""
+    """Resolve base and enabled KYC packages together, including preinstalled CML packages."""
     req_file = os.path.join(PROJECT_ROOT, "requirements.txt")
 
     print("=" * 50)
     print("Installing Python dependencies...")
     print("=" * 50)
-    subprocess.check_call(
-        [sys.executable, "-m", "pip", "install", "-r", req_file],
-    )
+    command = [sys.executable, "-m", "pip", "install", "-r", req_file]
+    for name in kyc_requirements():
+        command.extend(['-r', os.path.join(PROJECT_ROOT, '02_backend', 'scripts', name)])
+    subprocess.check_call(command)
     print("Python dependencies installed.\n")
 
 
-def install_kyc_deps():
+def kyc_requirements():
     """AMP defaults enable real CPU PDF/OCR; local baseline installs stay optional."""
     if os.environ.get('AML_PREPARE_KYC') != '1':
-        return
+        return []
     manifests = []
     if os.environ.get('AML_KYC_DOCUMENT_MODE', 'pdf') == 'pdf' and not os.environ.get('AML_KYC_MANIFEST'):
         manifests.append('requirements-kyc-runtime.txt')
     if os.environ.get('AML_EMBEDDING_MODEL_DIR'):
         manifests.append('requirements-kyc-embeddings.txt')
-    for name in manifests:
-        subprocess.check_call([sys.executable, '-m', 'pip', 'install', '-r',
-                               os.path.join(PROJECT_ROOT, '02_backend', 'scripts', name)])
-    if 'requirements-kyc-runtime.txt' in manifests:
-        subprocess.check_call([sys.executable, '-c',
-            'import fitz; from rapidocr_onnxruntime import RapidOCR; '
-            'RapidOCR(intra_op_num_threads=2, inter_op_num_threads=2); '
-            'print("CPU PDF/OCR runtime ready")'])
+    return manifests
+
+
+def validate_python_deps():
+    """Check ABI compatibility in a fresh interpreter, not a cached Jupyter kernel."""
+    command = [sys.executable, os.path.join(PROJECT_ROOT, '02_backend', 'scripts', 'check_python_runtime.py')]
+    if 'requirements-kyc-runtime.txt' in kyc_requirements():
+        command.append('--ocr')
+    subprocess.check_call(command)
 
 
 def get_latest_node_lts_major():
@@ -220,7 +222,7 @@ def main():
     print()
 
     install_python_deps()
-    install_kyc_deps()
+    validate_python_deps()
     install_nodejs()
     install_frontend()
 

@@ -68,20 +68,24 @@ def test_amp_defaults_install_ocr_and_allow_opt_out(monkeypatch):
     installer = module('installer', '01_installer/install.py')
     calls = []
     monkeypatch.setattr(installer.subprocess, 'check_call', lambda args: calls.append(args))
-    installer.install_kyc_deps()
-    assert any(args[-1].endswith('requirements-kyc-runtime.txt') for args in calls)
-    assert any('RapidOCR(' in args[-1] for args in calls)
-    calls.clear()
+    installer.install_python_deps()
+    installer.validate_python_deps()
+    installs = [args for args in calls if 'pip' in args]
+    assert len(installs) == 1
+    assert any(arg.endswith('requirements.txt') for arg in installs[0])
+    assert any(arg.endswith('requirements-kyc-runtime.txt') for arg in installs[0])
+    assert calls[-1][-1] == '--ocr'
+    assert calls[-1][-2].endswith('check_python_runtime.py')
     monkeypatch.setenv('AML_PREPARE_KYC', '0')
-    installer.install_kyc_deps()
-    assert not calls
+    assert installer.kyc_requirements() == []
+    calls.clear()
+    installer.validate_python_deps()
+    assert calls[0][-1].endswith('check_python_runtime.py')
     monkeypatch.setenv('AML_PREPARE_KYC', '1')
     monkeypatch.setenv('AML_KYC_DOCUMENT_MODE', 'markdown')
-    installer.install_kyc_deps()
-    assert not calls
+    assert installer.kyc_requirements() == []
     monkeypatch.setenv('AML_EMBEDDING_MODEL_DIR', '/model')
-    installer.install_kyc_deps()
-    assert calls[0][-1].endswith('requirements-kyc-embeddings.txt')
+    assert installer.kyc_requirements() == ['requirements-kyc-embeddings.txt']
 
 
 def test_amp_pdf_bootstrap_real_extraction(tmp_path, monkeypatch):

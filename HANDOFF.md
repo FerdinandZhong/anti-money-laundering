@@ -543,3 +543,33 @@ start a fresh session, run CSV export and KYC preparation against the already
 generated database, then continue at step 3. Do not generate another transaction
 batch to recover this export-only failure. Zero alerts/cases before scoring is
 expected. No jobs added or renamed.
+
+## MCP investigation API coverage review — 2026-09-30
+
+Reviewed the supplied hosted API URL. Anonymous OpenAPI requests redirect to
+Cloudera login; the deployed schema could not be verified. Asked for the name/path
+of an existing API credential (not the secret). Local OpenAPI and endpoint source
+were used for implementation; remote parity remains outstanding.
+
+MCP 0.3.0 now exposes 26 tools (15 existing, 11 added): alert discovery, saved
+business reports, retained evidence, semantic model/contracts/regulations,
+document page text plus original asset links, and saved control assessments.
+Preserves existing tool names and the customer investigation POST as the sole
+business mutation. The case-creating alert detail GET is deliberately excluded.
+Tool descriptions distinguish active-alert presence from an investigation
+conclusion, bounded customer samples from historical metrics, and primary-account
+graphs from alert-specific evidence. The customer investigation API still selects
+the highest-risk active alert; MCP does not pretend it accepts an arbitrary alert.
+
+Added read/write/idempotency annotations, bounded list/search arguments, consistent
+URL encoding, optional pinned releases for library/control reads, and actionable
+MCP errors for authentication redirects, HTML login pages, API errors and timeouts.
+No automatic retries of investigation writes. New aml-mcp-check compares registered
+method/path and required input coverage against hosted or exported OpenAPI.
+
+Validation: all 42 MCP tests pass using locked SDK dependencies; all 26 tool
+contracts match locally generated OpenAPI. Read-only smoke against the running
+local API passed semantic/regulatory discovery, alert context, both saved reports,
+retained evidence and pinned KYC page retrieval. No investigation/write invoked.
+Updated the package lock, MCP README and component API reference. Hosted SSO
+access is still needed for deployed validation.

@@ -1,6 +1,6 @@
 [project]
 name = "aml-mcp"
-version = "0.2.0"
+version = "0.3.0"
 description = "MCP server exposing the AML Investigation Platform's investigation tools over its HTTP API"
 requires-python = ">=3.10"
 dependencies = [
@@ -9,10 +9,15 @@ dependencies = [
     # silently change the server contract again.
     "mcp>=2.0.0,<3.0.0",
     "httpx>=0.27",
+    "pydantic>=2,<3",
 ]
 
 [project.scripts]
 aml-mcp = "aml_mcp.server:main"
+aml-mcp-check = "aml_mcp.contract:main"
+
+[dependency-groups]
+dev = ["pytest>=8"]
 
 [build-system]
 requires = ["hatchling"]

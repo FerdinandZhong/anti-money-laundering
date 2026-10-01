@@ -53,6 +53,26 @@ def test_semantic_model_and_concept_discovery(tmp_db_path):
     assert c.get("/api/semantic/concepts/no-such-term").status_code == 404
 
 
+def test_semantic_graph_preserves_declared_field_relationships(tmp_db_path):
+    from semantic.model_loader import ontology, semantic_model
+
+    graph = _client().get("/api/semantic/graph").json()
+    model = semantic_model()["semantic_model"][0]
+    assert graph["version"] == semantic_model()["version"]
+    assert {node["id"] for node in graph["nodes"]} == {
+        dataset["name"] for dataset in model["datasets"]
+    }
+    actual = {(edge["id"], edge["from_field"], edge["to_field"]) for edge in graph["edges"]}
+    declared = {(edge["name"], edge["from"], edge["to"]) for edge in model["relationships"]}
+    assert actual == declared
+    assert all(edge["source"] in {node["id"] for node in graph["nodes"]}
+               and edge["target"] in {node["id"] for node in graph["nodes"]}
+               for edge in graph["edges"])
+    assert {(edge["id"], edge["source"], edge["target"]) for edge in graph["ontology"]["relations"]} == {
+        (edge["id"], edge["from"], edge["to"]) for edge in ontology()["relations"]
+    }
+
+
 def test_semantic_context_is_time_scoped_and_read_only(tmp_db_path, monkeypatch):
     from common.db import get_connection
     conn = get_connection(); _seed(conn)

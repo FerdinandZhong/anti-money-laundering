@@ -33,6 +33,7 @@ from semantic.resolver import (
     relationship_paths,
     resolve_concept,
 )
+from semantic.graph import model_graph
 
 # docs/openapi under /api so they're reachable through the frontend proxy
 # (which only forwards /api/*) — the hosted app's Swagger UI lives at /api/docs.
@@ -759,6 +760,12 @@ def get_semantic_contracts():
 def get_semantic_model():
     """Published AML semantic-model summary, safe for agent discovery."""
     return semantic_model_summary()
+
+
+@app.get("/api/semantic/graph")
+def get_semantic_graph():
+    """Datasets, source fields and declared relationships for the visual explorer."""
+    return model_graph()
 
 
 @app.get("/api/semantic/intents")

@@ -2,14 +2,17 @@
 
 The prototype now connects real PDF/OCR extraction to LanceDB pages, strict semantic mappings, deterministic demo controls and retained control-input snapshots. It uses fictional SG/HK account profiles. All controls and thresholds are `DEMO`; no current regulatory obligation or independent identity verification is asserted.
 
-## Current UI (27 September 2026)
+## Current UI
 
-Semantic context has four sections: Context, Lineage, Query, Original Ossie files.
-Neutral interactive concept cards explain declared profile values, observed metrics,
-entities and model outputs. Regulations have their own non-executable
+Semantic context has three sections: a brief account interpretation, one
+Ossie model and data-lineage graph, and optional original YAML files.
+The account summary distinguishes declared profile values, observed activity
+and review priority. Selecting a graph node shows its business meaning,
+essential attributes, key function, physical source and declared links. The
+separate LanceDB node shows PDF/OCR page indexing, retrieval and the number
+of document versions received by the alert cutoff. Regulations remain in the non-executable
 `aml_regulation.ossie.yaml` model and `/api/semantic/regulations` endpoint;
-meaning and applicability conditions remain visible even without KYC evidence.
-The panel does not infer legal applicability from document availability.
+the simplified end-user tab does not determine legal applicability.
 
 The KYC Documents tab shows indexed originals when available, existing Markdown
 records otherwise, or a clearly labeled Markdown view of the recorded customer
@@ -40,7 +43,10 @@ The generator creates five PDFs: the SG declaration and HK mandate are image-onl
 
 ## Demonstration outcomes
 
-Open `CUST-000294` / `ACC-0000294` in the Semantic context tab. The panel shows mappings, required/missing evidence, PDF version/page links, calculations and outcomes.
+Open `CUST-000294` / `ACC-0000294` in Semantic context for the account
+interpretation and Ossie lineage. Open KYC Documents for indexed pages. The
+controls API retains mappings, required/missing evidence, calculations and
+outcomes for agent and programmatic use.
 
 | Control at 2026-09-12 10:31:21 UTC | SG showcase | HK comparison |
 |---|---|---|

@@ -169,6 +169,21 @@ export interface SemanticIntent {
   concepts: string[]
 }
 
+export interface SemanticGraph {
+  version: string
+  model: string
+  nodes: { id: string; label: string; source: string; description: string;
+    primary_key: string[]; fields: { name: string; description: string }[] }[]
+  edges: { id: string; source: string; target: string; from_field: string;
+    to_field: string; description: string }[]
+  metrics: { id: string; description: string }[]
+  ontology: { version: string; concepts: { id: string; label: string; definition: string; synonyms: string[] }[];
+    relations: { id: string; source: string; target: string; description: string }[] }
+}
+
+export const getSemanticGraph = () =>
+  api.get<SemanticGraph>('/semantic/graph').then(r => r.data)
+
 export interface SemanticContractSource {
   filename: string
   title: string

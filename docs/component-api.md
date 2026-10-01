@@ -23,6 +23,7 @@ it does **not** expose raw SQL or direct database access.
 | `/api/semantic/regulations` | GET | regulatory meanings, applicability conditions and related business concepts |
 | `/api/semantic/contracts` | GET | exact published semantic YAML sources |
 | `/api/semantic/model` | GET | published model/version and discoverable datasets, metrics, relationships |
+| `/api/semantic/graph` | GET | read-only graph projection of published data sets, source fields, field relationships and ontology concept links for the UI |
 | `/api/semantic/intents` | GET | supported investigation intents and allowed concept scope |
 | `/api/semantic/concepts/{term}` | GET | resolve a declared term or synonym, with definition/caveat |
 | `/api/semantic/metrics/{metric}` | GET | governed metric definition and AI-use guidance |

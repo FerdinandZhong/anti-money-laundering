@@ -52,7 +52,7 @@ export function KycKnowledge({ alertId, legacy }: { alertId: string; legacy: Kyc
       <div className="space-y-2 max-h-[700px] overflow-y-auto">
         {documents.length === 0 && <p className="p-4 text-sm text-ink-muted">No matching documents in this alert’s scope and time window.</p>}
         {documents.map((doc, index) => <button key={doc.chunk_id ?? doc.version_id + index} onClick={() => setSelected(doc)}
-          className={`w-full rounded-lg border p-3 text-left ${selected === doc ? 'border-accent bg-orange-50' : 'border-surface-3 bg-white'}`}>
+          className={`w-full rounded-lg border p-3 text-left ${selected === doc ? 'border-accent bg-accent/5' : 'border-surface-3 bg-white'}`}>
           <p className="text-sm font-semibold text-ink">{doc.title}</p>
           <p className="mt-1 text-xs text-ink-muted">{doc.language} · {doc.page ? `Page ${doc.page}` : `${doc.page_count} page(s)`}</p>
           {doc.illustrative && <p className="mt-1 text-xs font-semibold text-amber-800">Illustrative fixture — not customer verification</p>}

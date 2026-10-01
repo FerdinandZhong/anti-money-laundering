@@ -56,30 +56,3 @@ export function LiveContext({ detail, assessment }: { detail: CaseDetail; assess
     </article>)}</div>
   </section>
 }
-
-export function ContextLineage({ assessment, detail }: { assessment: ControlAssessment | null; detail: CaseDetail }) {
-  return <div className="space-y-4">
-    <div className="rounded-xl border border-surface-3 bg-surface-2 p-5">
-      <h3 className="font-bold">The account in context</h3>
-      <div className="mt-4 grid items-center gap-3 md:grid-cols-5">
-        <div className="rounded-lg border border-blue-200 bg-blue-50 p-4"><p className="text-blue-900 font-semibold">Customer</p><p className="mt-2 break-words">{detail.customer_name}</p></div>
-        <p className="text-center text-ink-muted">owns →</p>
-        <div className="rounded-lg border border-violet-200 bg-violet-50 p-4"><p className="text-violet-900 font-semibold">Account</p><p className="mt-2 break-words">{detail.account_id}</p></div>
-        <p className="text-center text-ink-muted">monitored by →</p>
-        <div className="rounded-lg border border-orange-200 bg-orange-50 p-4"><p className="text-orange-900 font-semibold">Alert</p><p className="mt-2">{(detail.risk_score * 100).toFixed(1)}% review priority</p></div>
-      </div>
-      <div className="mt-4 grid gap-3 md:grid-cols-3">
-        <p className="rounded-lg bg-white p-3"><strong>Profile</strong><br /><span className="text-ink-muted">Describes the customer and expected activity.</span></p>
-        <p className="rounded-lg bg-white p-3"><strong>Transactions</strong><br /><span className="text-ink-muted">Record activity used to calculate observed flow.</span></p>
-        <p className="rounded-lg bg-white p-3"><strong>Priority score</strong><br /><span className="text-ink-muted">Ranks this account for investigation.</span></p>
-      </div>
-    </div>
-    <div className="grid gap-3 md:grid-cols-3">{[
-      ['KYC evidence', 'Document fields → business concepts', '#semantic-kyc'],
-      ['Regulation', 'Clause references → related concepts', '#semantic-regulation'],
-      ['Live data & screening', 'Account records → metrics and findings', '#semantic-live'],
-    ].map(([title,description,href]) => <a key={title} href={href} className="rounded-lg border border-surface-3 bg-surface-2 p-4 hover:border-accent"><strong>{title}</strong><p className="mt-2 text-ink-muted">{description}</p></a>)}</div>
-    <div className="rounded-lg bg-surface-2 p-4 text-center"><strong>Connected by account, date and business concept</strong></div>
-    {!!assessment?.controls?.length && <div className="overflow-x-auto"><table className="w-full text-left"><thead className="border-b border-surface-3 text-ink-muted"><tr>{['Source','Business concept','Related clause','Control result'].map(title => <th key={title} className="p-3 font-medium">{title}</th>)}</tr></thead><tbody>{assessment?.controls?.map(control => <tr key={control.control_id} className="border-b border-surface-3 align-top"><td className="p-3">{control.evidence.length ? control.evidence.map(item => `${businessLabel(item.source)} · ${item.field}`).join(' / ') : control.source_tables?.map(businessLabel).join(', ') || 'Evidence pending'}</td><td className="p-3 font-medium">{businessLabel(control.concept)}</td><td className="p-3">{assessment.regulatory_linkage?.candidates?.filter(link => link.concepts.includes(control.concept)).map(link => <a key={link.clause} href={link.source_url} target="_blank" rel="noreferrer" className="block text-accent underline">{link.source_id} §{link.clause}</a>)}</td><td className="p-3">{businessLabel(control.outcome)}</td></tr>)}</tbody></table></div>}
-  </div>
-}

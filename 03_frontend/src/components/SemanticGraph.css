@@ -1,0 +1,20 @@
+.semantic-map-caption { margin: 0 0 12px; color: var(--color-ink-muted); line-height: 1.6; }
+.semantic-graph-scroll { overflow-x: auto; border: 1px solid var(--color-surface-3); border-radius: 10px; background: var(--color-surface-2); }
+.semantic-graph-stage { position: relative; width: 900px; height: 320px; background-image: radial-gradient(#d9d8e1 0.7px, transparent 0.7px); background-size: 20px 20px; }
+.semantic-graph-lines { position: absolute; inset: 0; width: 900px; height: 320px; pointer-events: none; }
+.semantic-graph-node { position: absolute; display: flex; flex-direction: column; justify-content: center; gap: 5px; padding: 12px 14px; border: 1px solid var(--color-surface-4); border-radius: 9px; background: white; text-align: left; line-height: 1.2; box-shadow: var(--shadow-soft); }
+.semantic-graph-node:hover { border-color: var(--color-accent); }
+.semantic-graph-node.is-index { border-style: dashed; }
+.semantic-graph-node.is-selected { border: 2px solid var(--color-accent); box-shadow: 0 0 0 3px rgb(103 80 232 / 0.12); }
+.semantic-graph-node strong { font-size: 0.9rem; overflow-wrap: anywhere; }
+.semantic-graph-kind, .semantic-map-eyebrow { color: var(--color-ink-muted); font-size: 0.68rem; font-weight: 700; letter-spacing: 0.04em; }
+.semantic-map-eyebrow { text-transform: uppercase; }
+.semantic-map-detail { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 20px; padding: 18px; margin-top: 12px; border: 1px solid var(--color-surface-3); border-radius: 10px; background: var(--color-surface-2); }
+.semantic-map-detail h3 { margin: 6px 0; font-size: 1rem; font-weight: 700; }
+.semantic-map-detail p { margin-top: 8px; line-height: 1.6; }
+.semantic-map-detail ul { margin: 8px 0 0; padding-left: 17px; line-height: 1.5; }
+.semantic-map-detail li { margin-bottom: 6px; }
+.semantic-map-current { font-weight: 600; overflow-wrap: anywhere; }
+.semantic-map-attributes { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+.semantic-map-attributes span { padding: 5px 7px; border: 1px solid var(--color-surface-3); border-radius: 5px; background: white; font-family: var(--font-mono); font-size: 0.7rem; overflow-wrap: anywhere; }
+@media (max-width: 720px) { .semantic-map-detail { grid-template-columns: minmax(0, 1fr); padding: 16px; } }

@@ -111,11 +111,11 @@ export const CaseWorkbench: React.FC<Props> = ({ alertId, onDisposed }) => {
 
   return (
     <div className="flex-1 flex flex-col bg-surface-1 rounded-lg overflow-hidden shadow-soft min-w-0 min-h-0">
-      <div className="flex items-start justify-between px-6 py-4 border-b border-surface-3 shrink-0 bg-surface-2">
+      <div className="flex items-start justify-between px-4 sm:px-6 py-4 border-b border-surface-3 shrink-0 bg-surface-2">
         <div className="min-w-0">
           <div className="w-8 h-0.5 bg-accent mb-2.5" />
-          <div className="flex items-center gap-2.5 mb-1">
-            <h2 className="text-base font-bold text-ink truncate">{detail.customer_name}</h2>
+          <div className="flex flex-wrap items-center gap-2 mb-1">
+            <h2 className="text-base font-bold text-ink break-words">{detail.customer_name}</h2>
             <RiskBadge band={detail.risk_band} />
           </div>
           <p className="text-xs text-ink-muted font-mono">
@@ -130,7 +130,7 @@ export const CaseWorkbench: React.FC<Props> = ({ alertId, onDisposed }) => {
         </div>
       </div>
 
-      <div className="grid grid-cols-4 gap-4 px-6 py-3 border-b border-surface-3 shrink-0 bg-surface-1">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 px-4 sm:px-6 py-3 border-b border-surface-3 shrink-0 bg-surface-1">
         <MetaItem label="KYC Risk Rating"><Badge label={detail.customer_kyc_rating} small neutral /></MetaItem>
         <MetaItem label="Account Age">{detail.account_age_days} days</MetaItem>
         <MetaItem label="Expected Monthly Turnover">{fmt(detail.expected_monthly_turnover)}</MetaItem>

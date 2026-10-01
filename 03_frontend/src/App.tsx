@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Activity, FlaskConical, Circle, Boxes, Wrench, Inbox } from 'lucide-react'
+import { Activity, Boxes, FlaskConical, Inbox, LayoutGrid, Wrench } from 'lucide-react'
 import type { Alert, EnvironmentHealth } from './api'
 import { getAlerts, getEnvironmentHealth } from './api'
 import { AlertQueue } from './components/AlertQueue'
@@ -7,160 +7,65 @@ import { CaseWorkbench } from './components/CaseWorkbench'
 import { ModelDashboard } from './components/ModelDashboard'
 import { ModelsView } from './components/ModelsView'
 import { ToolsView } from './components/ToolsView'
+import './App.css'
 
 type Tab = 'investigation' | 'model' | 'models' | 'tools'
+
+const pages: { key: Tab; label: string; icon: React.ReactNode }[] = [
+  { key: 'investigation', label: 'Investigation', icon: <Activity /> },
+  { key: 'model', label: 'ModelOps', icon: <FlaskConical /> },
+  { key: 'models', label: 'Models', icon: <Boxes /> },
+  { key: 'tools', label: 'Tools', icon: <Wrench /> },
+]
 
 export default function App() {
   const [tab, setTab] = useState<Tab>('investigation')
   const [selected, setSelected] = useState<Alert | null>(null)
   const [hasLoaded, setHasLoaded] = useState(false)
+  const [queueError, setQueueError] = useState(false)
   const [env, setEnv] = useState<EnvironmentHealth | null>(null)
+  const [envLoaded, setEnvLoaded] = useState(false)
   const [queueReload, setQueueReload] = useState(0)
 
   useEffect(() => {
-    getAlerts().then(r => setSelected(r.alerts[0] ?? null)).finally(() => setHasLoaded(true))
-    getEnvironmentHealth().then(setEnv).catch(() => setEnv(null))
+    getAlerts().then(r => setSelected(r.alerts[0] ?? null)).catch(() => { setSelected(null); setQueueError(true) }).finally(() => setHasLoaded(true))
+    getEnvironmentHealth().then(setEnv).catch(() => setEnv(null)).finally(() => setEnvLoaded(true))
   }, [])
 
-  return (
-    <div className="h-screen overflow-hidden flex flex-col bg-surface-0 font-sans">
+  return <div className="app-shell font-sans">
+    <aside className="app-sidebar">
+      <div className="app-brand" aria-label="Cloudera AML Investigation">CLOUDERA<span>AML INVESTIGATION</span></div>
+      <div className="app-workspace-card"><span className="app-workspace-icon"><LayoutGrid size={17} /></span><div><strong>Investigation workspace</strong><small>Account review</small></div></div>
+      <div className="app-nav-heading">WORKSPACE</div>
+      <nav className="app-nav" aria-label="Main navigation">
+        {pages.map(page => <button key={page.key} type="button" aria-current={tab === page.key ? 'page' : undefined} onClick={() => setTab(page.key)}>{page.icon}{page.label}</button>)}
+      </nav>
+      <div className="app-sidebar-bottom"><strong>Connected data</strong><p>{env ? `${env.source_backend.toUpperCase()} source · ${env.active_model.reachable ? 'model available' : 'model unavailable'}` : envLoaded ? 'Environment status unavailable' : 'Checking backend and source status…'}</p></div>
+      <div className="app-sidebar-persona"><span>AML</span><div>Analyst workspace<small>Customer review</small></div></div>
+    </aside>
 
-      {/* ── Cloudera header ── */}
-      <header className="bg-header border-b-[3px] border-accent flex items-center px-6 py-0 shrink-0 h-14">
-        {/* Logo */}
-        <div className="flex items-center gap-3 pr-8 border-r border-white/10">
-          <span className="text-white font-black text-lg tracking-[0.06em] leading-none select-none">
-            CLOUDERA
-          </span>
-        </div>
-
-        {/* App name */}
-        <div className="px-6">
-          <p className="text-white font-semibold text-sm leading-tight">AML Investigation Platform</p>
-          <p className="text-white/40 text-2xs leading-tight">
-            Intelligent AML investigation · Cloudera AI Applied ML Prototype
-          </p>
-        </div>
-
-        {/* Spacer */}
-        <div className="flex-1" />
-
-        {/* Status indicators — reflect GET /api/health/environment, not hardcoded */}
-        <div className="flex items-center gap-5 mr-5">
-          <StatusDot label="Backend" ok={env !== null} />
-          <StatusDot label="Model" ok={env?.active_model.reachable ?? false} title={env?.active_model.message} />
-          <StatusDot
-            label={env ? `Source (${env.source_backend})` : 'Source'}
-            ok={env?.source_ok ?? false}
-          />
-        </div>
-
-        {/* Tab buttons */}
-        <div className="flex items-center gap-2">
-          <TabBtn
-            active={tab === 'investigation'}
-            icon={<Activity className="w-3.5 h-3.5" />}
-            label="Investigation"
-            onClick={() => setTab('investigation')}
-          />
-          <TabBtn
-            active={tab === 'model'}
-            icon={<FlaskConical className="w-3.5 h-3.5" />}
-            label="ModelOps"
-            onClick={() => setTab('model')}
-            primary
-          />
-          <TabBtn
-            active={tab === 'models'}
-            icon={<Boxes className="w-3.5 h-3.5" />}
-            label="Models"
-            onClick={() => setTab('models')}
-            primary
-          />
-          <TabBtn
-            active={tab === 'tools'}
-            icon={<Wrench className="w-3.5 h-3.5" />}
-            label="Tools"
-            onClick={() => setTab('tools')}
-            primary
-          />
+    <div className="app-main">
+      <header className="app-topbar">
+        <div className="app-breadcrumb">Cloudera AI <span>/</span> AML <span>/</span> <strong>{pages.find(page => page.key === tab)?.label}</strong></div>
+        <div className="app-statuses" aria-label="Environment status">
+          <Status label="Backend" ok={hasLoaded && !queueError} />
+          <Status label="Model" ok={env?.active_model.reachable ?? false} title={env?.active_model.message} />
+          <Status label={env ? `Source (${env.source_backend})` : 'Source'} ok={env?.source_ok ?? false} />
         </div>
       </header>
-
-      {/* ── Body ── */}
-      {tab === 'investigation' ? (
-        hasLoaded && !selected ? (
-          <div className="flex-1 flex items-center justify-center">
-            <div className="text-center">
-              <Inbox className="w-10 h-10 mx-auto mb-3 text-ink-faint" />
-              <p className="text-sm text-ink-muted">No open alerts</p>
-            </div>
-          </div>
-        ) : (
-          <div className="flex flex-1 min-h-0 gap-4 p-5">
-            <AlertQueue selectedAlertId={selected?.alert_id ?? null} onSelect={setSelected} reloadKey={queueReload} />
-            <CaseWorkbench alertId={selected?.alert_id ?? null} onDisposed={() => setQueueReload(k => k + 1)} />
-          </div>
-        )
-      ) : tab === 'model' ? (
-        <div className="flex-1 min-h-0 overflow-y-auto">
-          <ModelDashboard />
-        </div>
-      ) : tab === 'models' ? (
-        <div className="flex-1 min-h-0 overflow-y-auto">
-          <ModelsView />
-        </div>
-      ) : (
-        <div className="flex-1 min-h-0 overflow-y-auto">
-          <ToolsView />
-        </div>
-      )}
+      <main className="app-main-content" id="main-content">
+        {tab === 'investigation' ? hasLoaded && !selected ? <div className="app-empty"><div><Inbox /><p>{queueError ? 'Could not load alerts' : 'No open alerts'}</p></div></div>
+          : <div className="investigation-workspace"><AlertQueue selectedAlertId={selected?.alert_id ?? null} onSelect={setSelected} reloadKey={queueReload} />
+            <CaseWorkbench alertId={selected?.alert_id ?? null} onDisposed={() => setQueueReload(key => key + 1)} /></div>
+          : <div className="app-scroll-page">{tab === 'model' ? <ModelDashboard /> : tab === 'models' ? <ModelsView /> : <ToolsView />}</div>}
+      </main>
     </div>
-  )
+  </div>
 }
 
-function StatusDot({ label, ok, title }: { label: string; ok?: boolean; title?: string }) {
-  return (
-    <div className="flex items-center gap-1.5" title={title}>
-      <Circle
-        className={`w-2 h-2 fill-current ${ok ? 'text-aml-green' : 'text-ink-muted'}`}
-      />
-      <span className="text-white/50 text-xs">{label}</span>
-    </div>
-  )
-}
-
-function TabBtn({
-  active, icon, label, onClick, primary,
-}: {
-  active: boolean; icon: React.ReactNode; label: string;
-  onClick: () => void; primary?: boolean;
-}) {
-  if (primary) {
-    return (
-      <button
-        onClick={onClick}
-        className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-colors
-          ${active
-            ? 'bg-accent text-white'
-            : 'bg-white/10 text-white/70 hover:bg-white/20 hover:text-white'
-          }`}
-      >
-        {icon}{label}
-      </button>
-    )
-  }
-  return (
-    <button
-      onClick={onClick}
-      className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-colors
-        border
-        ${active
-          ? 'border-white/30 bg-white/15 text-white'
-          : 'border-white/10 text-white/50 hover:border-white/20 hover:text-white/80'
-        }`}
-    >
-      {icon}{label}
-    </button>
-  )
+function Status({ label, ok, title }: { label: string; ok: boolean; title?: string }) {
+  return <div className="app-status" title={title || `${label}: ${ok ? 'available' : 'unavailable'}`}>
+    <span className={`app-status-dot ${ok ? 'is-ok' : ''}`} />
+    <span>{label}</span>
+  </div>
 }

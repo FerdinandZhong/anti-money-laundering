@@ -25,8 +25,17 @@ npx -p @mermaid-js/mermaid-cli mmdc -c /tmp/mmd-light.json -i docs/diagrams/aml-
 Everything else in the deck is native editable PowerPoint; only the diagrams are images.
 
 ## UI principles
+- The application shell follows the `semantic-guardrails-cai/ui/sample` reference:
+  white sidebar and top bar, pale workspace, navy headings, purple navigation and
+  controls, and orange Cloudera branding. AML risk bands retain their own colors.
+- Semantic context has three sections: brief account interpretation, one graph
+  of declared Ossie dataset relationships, and optional source YAML. Selecting
+  a node reveals its ontology meaning, essential fields, key function, physical
+  source and linked datasets. A dashed implementation link shows how PDF/OCR
+  evidence is indexed in LanceDB and retrieved into a case. Solid arrows are
+  model joins, not a detected account network.
 - Two dashboards, one visual language; risk expressed by band color (CRITICAL/HIGH/
-  MEDIUM), not raw score.
+  MEDIUM) alongside the recorded priority score.
 - Fail-soft states are first-class: empty queue, no-LLM, CSV-fallback all render a
   clear message rather than an error.
 - The frontend never talks to anything but `/api/*`.

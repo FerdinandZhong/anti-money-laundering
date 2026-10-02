@@ -174,7 +174,7 @@ export const CaseWorkbench: React.FC<Props> = ({ alertId, onDisposed }) => {
             : <PanelEmpty icon={<Network className="w-8 h-8" />} message="No material account links were found." />
         )}
         {activeTab === 'documents' && <KycKnowledge key={detail.alert_id} alertId={detail.alert_id} legacy={detail.kyc_documents ?? []} />}
-        {activeTab === 'semantic' && <SemanticExplorer key={detail.alert_id} customerId={detail.customer_id} alertId={detail.alert_id} detail={detail} />}
+        {activeTab === 'semantic' && <SemanticExplorer key={detail.alert_id} detail={detail} />}
         {activeTab === 'findings' && (
           <div className="space-y-4">
             <section className="rounded-lg border border-surface-3 bg-white p-4 text-xs">

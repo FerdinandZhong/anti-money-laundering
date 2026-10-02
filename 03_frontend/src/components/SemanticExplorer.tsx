@@ -7,7 +7,7 @@ function money(value: number | null | undefined) {
   return value == null ? 'not available' : value.toLocaleString('en-SG', { maximumFractionDigits: 0 })
 }
 
-export function SemanticExplorer({ detail }: { customerId: string; alertId: string; detail: CaseDetail }) {
+export function SemanticExplorer({ detail }: { detail: CaseDetail }) {
   const account = detail.account_id || 'the selected account'
   return <div className="space-y-4 text-xs text-ink">
     <section className="rounded-lg border border-surface-3 bg-white p-5">

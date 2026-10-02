@@ -1,6 +1,6 @@
 """Tests for the AML MCP client tools — the HTTP layer is mocked, so no live API.
 
-Run:  cd mcp_server && python -m pytest test_server.py -q
+Run:  cd mcp_server && uv run --locked --group dev pytest test_server.py -q
 """
 import os
 import asyncio

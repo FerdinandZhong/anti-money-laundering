@@ -86,89 +86,6 @@ export const searchKnowledge = (alertId: string, release: string, query: string)
 export const knowledgeAssetUrl = (alertId: string, release: string, version: string, page = 1) =>
   `/api/alerts/${encodeURIComponent(alertId)}/knowledge/assets/${encodeURIComponent(version)}?release=${encodeURIComponent(release)}#page=${page}`
 
-export interface ControlEvidence {
-  assertion_id: string; source: string; field: string; value: string;
-  received_at: string; source_ref: string; page: number;
-  document_id: string; version_id: string; chunk_id: string; source_sha256: string;
-  mapping: { status: string; mapping_ids: string[] };
-}
-export interface ControlResult {
-  control_id: string; control_version: string; concept: string;
-  outcome: string; reason: string; source_label: string;
-  evidence: ControlEvidence[];
-  missing_sources?: string[];
-  missing_evidence?: { assertion_id: string; reason: string }[];
-  calculation?: Record<string, unknown>;
-  source_tables?: string[];
-}
-export interface ControlAssessment {
-  available: boolean; reason?: string; classification?: string;
-  account_id?: string; as_of?: string; release_id?: string; control_pack_version?: string;
-  booking_context?: { booking_jurisdiction: string; product: string };
-  controls?: ControlResult[];
-  regulatory_linkage?: { status: string; register_version: string; notice: string; candidates?: {source_id:string; clause:string; concepts:string[]; relation:string; source_url:string; review_status:string}[] };
-  metrics?: { applicable_controls: number; satisfied_controls: number; coverage: number; complete: boolean };
-}
-export const getControlAssessment = (alertId: string) =>
-  api.get<ControlAssessment>(`/alerts/${encodeURIComponent(alertId)}/controls`).then(r => r.data)
-export const controlSourceUrl = (alertId: string, assertionId: string, release: string, page: number) =>
-  `/api/alerts/${encodeURIComponent(alertId)}/controls/records/${encodeURIComponent(assertionId)}?release=${encodeURIComponent(release)}#page=${page}`
-export const saveControlAssessment = (alertId: string, release: string) =>
-  api.post<{assessment_id: string; result: ControlAssessment}>(`/alerts/${encodeURIComponent(alertId)}/controls/assessments`, null, { params: { release } }).then(r => r.data)
-export const controlAuditUrl = (alertId: string, id: string) =>
-  `/api/alerts/${encodeURIComponent(alertId)}/controls/assessments/${encodeURIComponent(id)}`
-export const replayControlAssessment = (alertId: string, id: string) =>
-  api.get<{matches: boolean; mode: string}>(controlAuditUrl(alertId,id).replace(/^\/api/, '') + '/replay').then(r => r.data)
-export const getControlHistory = (alertId: string) =>
-  api.get<{assessments: {assessment_id: string; created_at: string}[]}>(`/alerts/${encodeURIComponent(alertId)}/controls/assessments`).then(r => r.data.assessments)
-export const getRetainedControlAssessment = (alertId: string, id: string) =>
-  api.get<{result: ControlAssessment}>(controlAuditUrl(alertId,id).replace(/^\/api/, '')).then(r => r.data.result)
-export const exportControlAssessment = (alertId: string, id: string) =>
-  api.get<Blob>(controlAuditUrl(alertId,id).replace(/^\/api/, ''), { responseType: 'blob' }).then(r => r.data)
-export interface ControlReviewEvent {
-  event_id: string; assessment_id: string; sequence: number; created_at: string;
-  actor_id: string; control_id: string; action: string; reason: string; payload_hash: string;
-}
-export const getControlReviews = (alertId: string, id: string) =>
-  api.get<{events: ControlReviewEvent[]}>(controlAuditUrl(alertId,id).replace(/^\/api/, '') + '/reviews').then(r => r.data.events)
-export const getControlReviewer = (alertId: string) =>
-  api.get<{mode: string; actor_id: string | null; can_review: boolean}>(`/alerts/${encodeURIComponent(alertId)}/controls/reviewer`).then(r => r.data)
-export const addControlReview = (alertId: string, id: string, body: {event_id: string; actor_id?: string; control_id: string; action: string; reason: string}) =>
-  api.post<{event: ControlReviewEvent}>(controlAuditUrl(alertId,id).replace(/^\/api/, '') + '/reviews',body).then(r => r.data.event)
-
-export interface SemanticFact {
-  id: string
-  concept: string
-  value: unknown
-  source_ref: string
-  scope: Record<string, unknown>
-  label?: string
-  definition?: string
-}
-
-export interface SemanticContext {
-  semantic_model_version: string
-  ontology_version: string
-  intent: string
-  alert_id?: string | null
-  scope: { data_cutoff_at?: string; window_start_at?: string; selected_account_id?: string; account_ids?: string[] }
-  facts: SemanticFact[]
-  evidence_refs: { evidence_id: string }[]
-  claim_limitations: string[]
-  intent_description?: string
-  allowed_conclusions?: string[]
-  declared_concepts?: string[]
-  unavailable_fact_concepts?: string[]
-  retrieval_notes?: string[]
-  requested_concepts?: string[]
-  unavailable_concepts?: string[]
-}
-
-export interface SemanticIntent {
-  description: string
-  concepts: string[]
-}
-
 export interface SemanticGraph {
   version: string
   model: string
@@ -193,17 +110,6 @@ export interface SemanticContractSource {
 
 export const getSemanticContracts = () =>
   api.get<{ contracts: SemanticContractSource[] }>('/semantic/contracts').then(r => r.data.contracts)
-
-export const getSemanticIntents = () =>
-  api.get<{ intents: Record<string, SemanticIntent> }>('/semantic/intents').then(r => r.data.intents)
-
-export const querySemanticFacts = (customerId: string, alertId: string, intent: string, concepts: string[]) =>
-  api.post<SemanticContext>('/semantic/query', { customer_id: customerId, alert_id: alertId, intent, concepts }).then(r => r.data)
-
-export const getSemanticPaths = () =>
-  api.get<{ paths: { id: string; from: string; to: string; definition: string }[][] }>('/semantic/relationships', {
-    params: { from_concept: 'customer', to_concept: 'transaction' },
-  }).then(r => r.data.paths)
 
 export interface ScoreSignal {
   label: string
@@ -289,10 +195,6 @@ export interface EnvironmentHealth {
 
 export type AlertSort = 'risk_score' | 'newest' | 'oldest'
 
-export const getCaseSemanticContext = (customerId: string, intent: string, alertId?: string | null) =>
-  api.post<SemanticContext>('/semantic/context', {
-    customer_id: customerId, intent, ...(alertId ? { alert_id: alertId } : {}),
-  }).then(r => r.data)
 export type AlertStatus = 'OPEN' | 'PROPOSED' | 'PENDING' | 'CLOSED'
 
 export const getEnvironmentHealth = () =>
@@ -482,13 +384,3 @@ export const updateEmbedded = (name: string, body: { params: Record<string, stri
 
 export const testEmbedded = (name: string, params: Record<string, string>) =>
   api.post<ToolTestResult>(`/config/embedded/${name}/test`, { params }).then(r => r.data)
-
-export interface RegulatoryMeaning {
-  id: string; source_id: string; clause: string; term: string; meaning: string;
-  requirement: string; applicability: string; business_concepts: string[];
-  fields: string[]; evidence_types: string[]; distinction: string;
-  jurisdiction: string; issuer: string; edition: string; source_url: string;
-  mapping_relation: string; applicability_status: string;
-}
-export const getRegulatoryMeanings = () =>
-  api.get<{version: string; requirements: RegulatoryMeaning[]}>('/semantic/regulations').then(r => r.data)

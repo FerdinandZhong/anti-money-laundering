@@ -1,7 +1,8 @@
 # Semantic investigation — stages A and B
 
 The investigation now prepares one alert-scoped input bundle before dispatching
-workers. The Semantic context tab remains unchanged. AI Findings leads with a plain-language
+workers. Semantic context remains a read-only view of account meaning and
+lineage. AI Findings leads with a plain-language
 investigation report. Source observations, AI interpretations and evidence remain
 available in the expandable detailed findings.
 

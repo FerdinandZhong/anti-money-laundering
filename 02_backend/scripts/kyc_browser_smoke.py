@@ -60,25 +60,22 @@ def main():
             page.goto('http://aml.local/investigation')
             page.get_by_text('CUST-000294',exact=True).first.click(timeout=30000)
             page.get_by_role('tab',name='Semantic context',exact=True).click()
-            page.locator('#semantic-kyc').get_by_text('CONFLICTING EVIDENCE',exact=True).wait_for()
-            for section in range(1,5):
-                assert page.locator(f'#semantic-section-{section}').count()==1
-            assert not re.search(r'\b(synthetic|demo)\b',page.locator('#semantic-section-1').inner_text(),re.I)
-            assert page.get_by_role('heading',name='Regulation',exact=True).count()==1
-            assert page.get_by_role('heading',name='Live data & screening',exact=True).count()==1
-            explorer=page.get_by_label('Business meaning explorer')
-            explorer.get_by_role('button',name=re.compile('Calculated metric')).click()
-            explorer.get_by_text('Outbound transaction amounts → sum over 30 days',exact=True).wait_for()
-            explorer.get_by_text('transactions.amount',exact=True).wait_for()
-            explorer.get_by_role('button',name=re.compile('Model output')).click()
-            explorer.get_by_text('Account priority score',exact=True).wait_for()
-            explorer.get_by_role('button',name=re.compile('Declared value')).click()
-            page.get_by_role('button',name='Query facts',exact=True).click()
-            page.get_by_text('Resolved context · kyc review',exact=True).wait_for()
+            for heading in ['What this account data says','How the data connects','Ossie source files']:
+                page.get_by_role('heading',name=heading,exact=True).wait_for()
+            assert not re.search(r'\b(synthetic|demo)\b',page.get_by_role('heading',name='What this account data says').locator('..').inner_text(),re.I)
+            graph=page.get_by_label('Ossie model and data lineage graph')
+            graph.get_by_role('button',name='aml.accounts Account').wait_for()
+            assert graph.get_by_role('button').count()==7
+            graph.get_by_role('button',name='aml.transactions Transaction').click()
+            page.get_by_text('Records monetary movement used to calculate observed activity.',exact=False).wait_for()
+            page.get_by_text('transaction_id',exact=True).wait_for()
+            graph.get_by_role('button',name='LanceDB · PDF / OCR KYC page index').click()
+            page.get_by_text('document versions linked to this customer/account',exact=False).wait_for()
+            page.get_by_text('bilingual full-text; vector search when an embedding model is configured.',exact=False).wait_for()
             page.get_by_text('Browse Ossie-style model and AML extensions (YAML)',exact=True).click()
-            page.locator('#semantic-section-4 details details').first.wait_for()
+            page.get_by_text('Ossie-style AML semantic model',exact=True).wait_for()
             page.get_by_text('Browse Ossie-style model and AML extensions (YAML)',exact=True).click()
-            page.locator('#semantic-section-1').evaluate('''element => {
+            page.get_by_role('heading',name='What this account data says').evaluate('''element => {
                 for (let parent = element.parentElement; parent; parent = parent.parentElement) {
                     if (getComputedStyle(parent).overflowY === 'auto') parent.scrollTop = 0;
                 }
@@ -87,12 +84,12 @@ def main():
             assert page.get_by_role('textbox',name='Reviewer ID').count()==0
             assert page.get_by_role('button',name='Record review',exact=True).count()==0
             assert page.get_by_role('button',name='Retain assessment',exact=True).count()==0
-            links=page.locator('#semantic-kyc a')
-            assert links.count() >= 2
-            for link in links.all():
-                response=client.get(link.get_attribute('href').split('#')[0])
-                assert response.status_code==200
-                assert response.content
+            assert page.get_by_role('button',name='Query facts',exact=True).count()==0
+            page.get_by_role('tab',name='KYC Documents',exact=True).click()
+            document_link=page.get_by_role('link',name='Open original document ↗').first
+            document_link.wait_for()
+            response=client.get(document_link.get_attribute('href').split('#')[0])
+            assert response.status_code==200 and response.content
             with sqlite3.connect(database) as copied:
                 copied.execute("UPDATE alerts SET status='OPEN' WHERE alert_id='ALERT-ML-B313A7B299'")
             page.reload()
@@ -102,17 +99,14 @@ def main():
             assert page.get_by_text('Customer profile · Markdown view',exact=True).count()==1
             assert page.get_by_role('textbox',name='Search KYC evidence').count()==0
             page.get_by_role('tab',name='Semantic context',exact=True).click()
-            regulation=page.locator('#semantic-regulation')
-            regulation.get_by_role('heading',name='Ongoing monitoring',exact=True).wait_for()
-            assert regulation.locator('article').count()==5
-            assert 'pending' not in regulation.inner_text().lower()
-            regulation.get_by_role('combobox',name='Regulation jurisdiction').select_option('HK')
-            assert regulation.locator('article').count()==1
-            regulation.get_by_text('HKMA-AML2-2023 §4.4.1-4.4.4 ↗',exact=True).wait_for()
+            page.get_by_role('heading',name='What this account data says').wait_for()
+            graph=page.get_by_label('Ossie model and data lineage graph')
+            graph.get_by_role('button',name='LanceDB · PDF / OCR KYC page index').click()
+            page.get_by_text('0 document versions linked to this customer/account',exact=False).wait_for()
 
             assert not errors,errors
-            report={'browser':'chromium','sections':4,'query':'passed','source_documents':'passed',
-                    'regulation_without_documents':'passed','markdown_fallback':'passed','original_files':'passed','review_form':'removed',
+            report={'browser':'chromium','sections':3,'graph_nodes':7,'source_documents':'passed',
+                    'empty_index_fallback':'passed','markdown_fallback':'passed','original_files':'passed','review_form':'removed',
                     'page_errors':errors,'ops_database':'temporary copy'}
             (output/'browser_report.json').write_text(json.dumps(report,indent=2))
             print(json.dumps(report,indent=2))

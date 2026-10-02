@@ -13,8 +13,10 @@ SEMANTIC_ROOT = PROJECT_ROOT / "semantic"
 
 
 def contract_sources() -> list[dict[str, str]]:
-    """Publish only the three checked-in semantic contracts, never arbitrary files."""
+    """Publish only the checked-in semantic contracts, never arbitrary files."""
     contracts = [
+        ("aml_regulation.ossie.yaml", "Regulatory semantic model",
+         "Regulations, requirements, applicability conditions and related business fields."),
         ("aml_semantic_model.ossie.yaml", "Ossie-style AML semantic model",
          "Our AML example: datasets, fields, relationships, metrics and AI guidance. Not an official or validated native Ossie contract."),
         ("aml_ontology.yaml", "AML ontology extension",

@@ -65,38 +65,41 @@ export interface CaseDetail {
 
 export interface KycDocument { name: string; source: string; content: string }
 
-export interface SemanticFact {
-  id: string
-  concept: string
-  value: unknown
-  source_ref: string
-  scope: Record<string, unknown>
-  label?: string
-  definition?: string
+export interface KnowledgeDocument {
+  document_id: string; version_id: string; title: string; source: string;
+  language: string; received_at: string; provenance: string; sha256: string;
+  illustrative: boolean; page_count?: number; page?: number; text?: string;
+  chunk_id?: string; retrieval_score?: number;
+}
+export interface KnowledgeLibrary {
+  available: boolean; release_id: string | null; documents: KnowledgeDocument[];
+  alert_cutoff?: string | null; note?: string;
+}
+export interface KnowledgeSearch {
+  available: boolean; release_id?: string; mode?: string; note?: string;
+  as_of?: string; hits: KnowledgeDocument[];
+}
+export const getKnowledgeLibrary = (alertId: string) =>
+  api.get<KnowledgeLibrary>(`/alerts/${encodeURIComponent(alertId)}/knowledge`).then(r => r.data)
+export const searchKnowledge = (alertId: string, release: string, query: string) =>
+  api.get<KnowledgeSearch>(`/alerts/${encodeURIComponent(alertId)}/knowledge/search`, { params: { q: query, release } }).then(r => r.data)
+export const knowledgeAssetUrl = (alertId: string, release: string, version: string, page = 1) =>
+  `/api/alerts/${encodeURIComponent(alertId)}/knowledge/assets/${encodeURIComponent(version)}?release=${encodeURIComponent(release)}#page=${page}`
+
+export interface SemanticGraph {
+  version: string
+  model: string
+  nodes: { id: string; label: string; source: string; description: string;
+    primary_key: string[]; fields: { name: string; description: string }[] }[]
+  edges: { id: string; source: string; target: string; from_field: string;
+    to_field: string; description: string }[]
+  metrics: { id: string; description: string }[]
+  ontology: { version: string; concepts: { id: string; label: string; definition: string; synonyms: string[] }[];
+    relations: { id: string; source: string; target: string; description: string }[] }
 }
 
-export interface SemanticContext {
-  semantic_model_version: string
-  ontology_version: string
-  intent: string
-  alert_id?: string | null
-  scope: { data_cutoff_at?: string; window_start_at?: string; selected_account_id?: string; account_ids?: string[] }
-  facts: SemanticFact[]
-  evidence_refs: { evidence_id: string }[]
-  claim_limitations: string[]
-  intent_description?: string
-  allowed_conclusions?: string[]
-  declared_concepts?: string[]
-  unavailable_fact_concepts?: string[]
-  retrieval_notes?: string[]
-  requested_concepts?: string[]
-  unavailable_concepts?: string[]
-}
-
-export interface SemanticIntent {
-  description: string
-  concepts: string[]
-}
+export const getSemanticGraph = () =>
+  api.get<SemanticGraph>('/semantic/graph').then(r => r.data)
 
 export interface SemanticContractSource {
   filename: string
@@ -107,17 +110,6 @@ export interface SemanticContractSource {
 
 export const getSemanticContracts = () =>
   api.get<{ contracts: SemanticContractSource[] }>('/semantic/contracts').then(r => r.data.contracts)
-
-export const getSemanticIntents = () =>
-  api.get<{ intents: Record<string, SemanticIntent> }>('/semantic/intents').then(r => r.data.intents)
-
-export const querySemanticFacts = (customerId: string, alertId: string, intent: string, concepts: string[]) =>
-  api.post<SemanticContext>('/semantic/query', { customer_id: customerId, alert_id: alertId, intent, concepts }).then(r => r.data)
-
-export const getSemanticPaths = () =>
-  api.get<{ paths: { id: string; from: string; to: string; definition: string }[][] }>('/semantic/relationships', {
-    params: { from_concept: 'customer', to_concept: 'transaction' },
-  }).then(r => r.data.paths)
 
 export interface ScoreSignal {
   label: string
@@ -203,10 +195,6 @@ export interface EnvironmentHealth {
 
 export type AlertSort = 'risk_score' | 'newest' | 'oldest'
 
-export const getCaseSemanticContext = (customerId: string, intent: string, alertId?: string | null) =>
-  api.post<SemanticContext>('/semantic/context', {
-    customer_id: customerId, intent, ...(alertId ? { alert_id: alertId } : {}),
-  }).then(r => r.data)
 export type AlertStatus = 'OPEN' | 'PROPOSED' | 'PENDING' | 'CLOSED'
 
 export const getEnvironmentHealth = () =>

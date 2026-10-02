@@ -1,7 +1,7 @@
 @import "tailwindcss";
 
 @theme {
-  --font-sans: 'Inter', system-ui, sans-serif;
+  --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
 
   /* Type scale — 2xs absorbs all prior ad-hoc text-[10px]/[11px] meta labels */
@@ -9,25 +9,25 @@
   --text-2xs--line-height: 1.3;
   --text-2xs--letter-spacing: 0.01em;
 
-  /* One soft shadow — the only elevation in the system (DESIGN.md discipline) */
-  --shadow-soft: 0 1px 2px rgb(16 16 40 / 0.04), 0 6px 20px rgb(16 16 40 / 0.06);
+  --shadow-soft: 0 3px 12px rgb(24 18 57 / 0.04);
 
-  /* Cloudera Applied-ML-Prototype light theme — aligned with app/analytics */
-  --color-header:   #1c0f43;   /* deep indigo brand header */
-  --color-surface-0: #f4f5f7;  /* page canvas */
-  --color-surface-1: #ffffff;  /* card / panel */
-  --color-surface-2: #f7f8fa;  /* subtle inset */
-  --color-surface-3: #e3e6ea;  /* hairline border */
-  --color-surface-4: #d5d9e0;  /* input border / divider */
+  /* Shared with the semantic-guardrails-cai workspace design. */
+  --color-header:   #19123d;
+  --color-surface-0: #f7f8fa;
+  --color-surface-1: #ffffff;
+  --color-surface-2: #faf9fc;
+  --color-surface-3: #e7e6ec;
+  --color-surface-4: #dedbe5;
 
   /* Text ramp */
-  --color-ink:        #1a1a2e; /* primary text */
-  --color-ink-muted:  #6b7280; /* secondary text */
-  --color-ink-faint:  #9aa1ac; /* placeholder / meta */
+  --color-ink:        #242335;
+  --color-ink-muted:  #777687;
+  --color-ink-faint:  #93919f;
 
-  /* Cloudera brand accent — single burnt-orange, locked page-wide */
-  --color-accent:     #e35b1f;
-  --color-accent-dim: #c94e18;
+  --color-brand:      #ed5a26;
+  --color-accent:     #6750e8;
+  --color-accent-dim: #5038c4;
+  --color-accent-soft:#f1edfe;
 
   /* AML status colours */
   --color-aml-red:       #dc2626;
@@ -38,12 +38,12 @@
   --color-aml-green-dim: #065f46;
 }
 
-body { background: var(--color-surface-0); color: var(--color-ink); }
+body { background: var(--color-surface-0); color: var(--color-ink); font-size: 14px; line-height: 1.5; }
 
 ::-webkit-scrollbar { width: 6px; height: 6px; }
 ::-webkit-scrollbar-track { background: var(--color-surface-2); }
 ::-webkit-scrollbar-thumb { background: var(--color-surface-4); border-radius: 3px; }
-::-webkit-scrollbar-thumb:hover { background: #b9bece; }
+::-webkit-scrollbar-thumb:hover { background: #b9b4c7; }
 
 /* Visible keyboard focus on every interactive element (a11y floor) */
 button:focus-visible, a:focus-visible, input:focus-visible,

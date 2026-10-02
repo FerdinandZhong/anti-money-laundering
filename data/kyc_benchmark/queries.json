@@ -1,0 +1,402 @@
+{
+  "version": "synthetic-retrieval-v1",
+  "frozen_before_first_run": true,
+  "queries": [
+    {
+      "id": "Q01",
+      "category": "english",
+      "customer_id": "DEMO-CUST-001",
+      "account_id": "DEMO-ACC-001-1",
+      "as_of": "2026-09-25T00:00:00Z",
+      "query": "Who is the beneficial owner, as distinct from the legal representative?",
+      "expected_document_id": "corpus-001-registry",
+      "expected_received_at": null
+    },
+    {
+      "id": "Q02",
+      "category": "chinese",
+      "customer_id": "DEMO-CUST-001",
+      "account_id": "DEMO-ACC-001-1",
+      "as_of": "2026-09-25T00:00:00Z",
+      "query": "查找账户授权签字人及付款签署限额",
+      "expected_document_id": "corpus-001-mandate",
+      "expected_received_at": null
+    },
+    {
+      "id": "Q03",
+      "category": "identifier",
+      "customer_id": "DEMO-CUST-001",
+      "account_id": "DEMO-ACC-001-1",
+      "as_of": "2026-09-25T00:00:00Z",
+      "query": "KYC001FUNDING2",
+      "expected_document_id": "corpus-001-funding",
+      "expected_received_at": "2026-09-18T00:00:00Z"
+    },
+    {
+      "id": "Q04",
+      "category": "english",
+      "customer_id": "DEMO-CUST-002",
+      "account_id": "DEMO-ACC-002-1",
+      "as_of": "2026-09-25T00:00:00Z",
+      "query": "Who can sign payments on this account and what is the signing limit?",
+      "expected_document_id": "corpus-002-mandate",
+      "expected_received_at": null
+    },
+    {
+      "id": "Q05",
+      "category": "chinese",
+      "customer_id": "DEMO-CUST-002",
+      "account_id": "DEMO-ACC-002-1",
+      "as_of": "2026-09-25T00:00:00Z",
+      "query": "本次入账资金来自哪张出口发票？",
+      "expected_document_id": "corpus-002-funding",
+      "expected_received_at": null
+    },
+    {
+      "id": "Q06",
+      "category": "identifier",
+      "customer_id": "DEMO-CUST-002",
+      "account_id": "DEMO-ACC-002-1",
+      "as_of": "2026-09-25T00:00:00Z",
+      "query": "KYC002WEALTH2",
+      "expected_document_id": "corpus-002-wealth",
+      "expected_received_at": "2026-09-18T00:00:00Z"
+    },
+    {
+      "id": "Q07",
+      "category": "english",
+      "customer_id": "DEMO-CUST-003",
+      "account_id": "DEMO-ACC-003-1",
+      "as_of": "2026-09-25T00:00:00Z",
+      "query": "Which export invoice explains the source of this payment?",
+      "expected_document_id": "corpus-003-funding",
+      "expected_received_at": null
+    },
+    {
+      "id": "Q08",
+      "category": "chinese",
+      "customer_id": "DEMO-CUST-003",
+      "account_id": "DEMO-ACC-003-1",
+      "as_of": "2026-09-25T00:00:00Z",
+      "query": "客户财富来源是否为继承房产出售？",
+      "expected_document_id": "corpus-003-wealth",
+      "expected_received_at": null
+    },
+    {
+      "id": "Q09",
+      "category": "identifier",
+      "customer_id": "DEMO-CUST-003",
+      "account_id": "DEMO-ACC-003-1",
+      "as_of": "2026-09-25T00:00:00Z",
+      "query": "KYC003REVIEW2",
+      "expected_document_id": "corpus-003-review",
+      "expected_received_at": "2026-09-18T00:00:00Z"
+    },
+    {
+      "id": "Q10",
+      "category": "english",
+      "customer_id": "DEMO-CUST-004",
+      "account_id": "DEMO-ACC-004-1",
+      "as_of": "2026-09-25T00:00:00Z",
+      "query": "How was the accumulated wealth obtained?",
+      "expected_document_id": "corpus-004-wealth",
+      "expected_received_at": null
+    },
+    {
+      "id": "Q11",
+      "category": "chinese",
+      "customer_id": "DEMO-CUST-004",
+      "account_id": "DEMO-ACC-004-1",
+      "as_of": "2026-09-25T00:00:00Z",
+      "query": "定期尽职调查的复核到期日和待审查负面新闻",
+      "expected_document_id": "corpus-004-review",
+      "expected_received_at": null
+    },
+    {
+      "id": "Q12",
+      "category": "identifier",
+      "customer_id": "DEMO-CUST-004",
+      "account_id": "DEMO-ACC-004-1",
+      "as_of": "2026-09-25T00:00:00Z",
+      "query": "KYC004REGISTRY2",
+      "expected_document_id": "corpus-004-registry",
+      "expected_received_at": "2026-09-18T00:00:00Z"
+    },
+    {
+      "id": "Q13",
+      "category": "english",
+      "customer_id": "DEMO-CUST-005",
+      "account_id": "DEMO-ACC-005-1",
+      "as_of": "2026-09-25T00:00:00Z",
+      "query": "When is the next periodic review and what adverse media remains unresolved?",
+      "expected_document_id": "corpus-005-review",
+      "expected_received_at": null
+    },
+    {
+      "id": "Q14",
+      "category": "chinese",
+      "customer_id": "DEMO-CUST-005",
+      "account_id": "DEMO-ACC-005-1",
+      "as_of": "2026-09-25T00:00:00Z",
+      "query": "查询企业受益所有人，不要把法定代表人当作受益人",
+      "expected_document_id": "corpus-005-registry",
+      "expected_received_at": null
+    },
+    {
+      "id": "Q15",
+      "category": "identifier",
+      "customer_id": "DEMO-CUST-005",
+      "account_id": "DEMO-ACC-005-1",
+      "as_of": "2026-09-25T00:00:00Z",
+      "query": "KYC005MANDATE2",
+      "expected_document_id": "corpus-005-mandate",
+      "expected_received_at": "2026-09-18T00:00:00Z"
+    },
+    {
+      "id": "Q16",
+      "category": "english",
+      "customer_id": "DEMO-CUST-006",
+      "account_id": "DEMO-ACC-006-1",
+      "as_of": "2026-09-25T00:00:00Z",
+      "query": "Who is the beneficial owner, as distinct from the legal representative?",
+      "expected_document_id": "corpus-006-registry",
+      "expected_received_at": null
+    },
+    {
+      "id": "Q17",
+      "category": "chinese",
+      "customer_id": "DEMO-CUST-006",
+      "account_id": "DEMO-ACC-006-1",
+      "as_of": "2026-09-25T00:00:00Z",
+      "query": "查找账户授权签字人及付款签署限额",
+      "expected_document_id": "corpus-006-mandate",
+      "expected_received_at": null
+    },
+    {
+      "id": "Q18",
+      "category": "identifier",
+      "customer_id": "DEMO-CUST-006",
+      "account_id": "DEMO-ACC-006-1",
+      "as_of": "2026-09-25T00:00:00Z",
+      "query": "KYC006FUNDING2",
+      "expected_document_id": "corpus-006-funding",
+      "expected_received_at": "2026-09-18T00:00:00Z"
+    },
+    {
+      "id": "Q19",
+      "category": "english",
+      "customer_id": "DEMO-CUST-007",
+      "account_id": "DEMO-ACC-007-1",
+      "as_of": "2026-09-25T00:00:00Z",
+      "query": "Who can sign payments on this account and what is the signing limit?",
+      "expected_document_id": "corpus-007-mandate",
+      "expected_received_at": null
+    },
+    {
+      "id": "Q20",
+      "category": "chinese",
+      "customer_id": "DEMO-CUST-007",
+      "account_id": "DEMO-ACC-007-1",
+      "as_of": "2026-09-25T00:00:00Z",
+      "query": "本次入账资金来自哪张出口发票？",
+      "expected_document_id": "corpus-007-funding",
+      "expected_received_at": null
+    },
+    {
+      "id": "Q21",
+      "category": "identifier",
+      "customer_id": "DEMO-CUST-007",
+      "account_id": "DEMO-ACC-007-1",
+      "as_of": "2026-09-25T00:00:00Z",
+      "query": "KYC007WEALTH2",
+      "expected_document_id": "corpus-007-wealth",
+      "expected_received_at": "2026-09-18T00:00:00Z"
+    },
+    {
+      "id": "Q22",
+      "category": "english",
+      "customer_id": "DEMO-CUST-008",
+      "account_id": "DEMO-ACC-008-1",
+      "as_of": "2026-09-25T00:00:00Z",
+      "query": "Which export invoice explains the source of this payment?",
+      "expected_document_id": "corpus-008-funding",
+      "expected_received_at": null
+    },
+    {
+      "id": "Q23",
+      "category": "chinese",
+      "customer_id": "DEMO-CUST-008",
+      "account_id": "DEMO-ACC-008-1",
+      "as_of": "2026-09-25T00:00:00Z",
+      "query": "客户财富来源是否为继承房产出售？",
+      "expected_document_id": "corpus-008-wealth",
+      "expected_received_at": null
+    },
+    {
+      "id": "Q24",
+      "category": "identifier",
+      "customer_id": "DEMO-CUST-008",
+      "account_id": "DEMO-ACC-008-1",
+      "as_of": "2026-09-25T00:00:00Z",
+      "query": "KYC008REVIEW2",
+      "expected_document_id": "corpus-008-review",
+      "expected_received_at": "2026-09-18T00:00:00Z"
+    },
+    {
+      "id": "Q25",
+      "category": "english",
+      "customer_id": "DEMO-CUST-009",
+      "account_id": "DEMO-ACC-009-1",
+      "as_of": "2026-09-25T00:00:00Z",
+      "query": "How was the accumulated wealth obtained?",
+      "expected_document_id": "corpus-009-wealth",
+      "expected_received_at": null
+    },
+    {
+      "id": "Q26",
+      "category": "chinese",
+      "customer_id": "DEMO-CUST-009",
+      "account_id": "DEMO-ACC-009-1",
+      "as_of": "2026-09-25T00:00:00Z",
+      "query": "定期尽职调查的复核到期日和待审查负面新闻",
+      "expected_document_id": "corpus-009-review",
+      "expected_received_at": null
+    },
+    {
+      "id": "Q27",
+      "category": "identifier",
+      "customer_id": "DEMO-CUST-009",
+      "account_id": "DEMO-ACC-009-1",
+      "as_of": "2026-09-25T00:00:00Z",
+      "query": "KYC009REGISTRY2",
+      "expected_document_id": "corpus-009-registry",
+      "expected_received_at": "2026-09-18T00:00:00Z"
+    },
+    {
+      "id": "Q28",
+      "category": "english",
+      "customer_id": "DEMO-CUST-010",
+      "account_id": "DEMO-ACC-010-1",
+      "as_of": "2026-09-25T00:00:00Z",
+      "query": "When is the next periodic review and what adverse media remains unresolved?",
+      "expected_document_id": "corpus-010-review",
+      "expected_received_at": null
+    },
+    {
+      "id": "Q29",
+      "category": "chinese",
+      "customer_id": "DEMO-CUST-010",
+      "account_id": "DEMO-ACC-010-1",
+      "as_of": "2026-09-25T00:00:00Z",
+      "query": "查询企业受益所有人，不要把法定代表人当作受益人",
+      "expected_document_id": "corpus-010-registry",
+      "expected_received_at": null
+    },
+    {
+      "id": "Q30",
+      "category": "identifier",
+      "customer_id": "DEMO-CUST-010",
+      "account_id": "DEMO-ACC-010-1",
+      "as_of": "2026-09-25T00:00:00Z",
+      "query": "KYC010MANDATE2",
+      "expected_document_id": "corpus-010-mandate",
+      "expected_received_at": "2026-09-18T00:00:00Z"
+    },
+    {
+      "id": "Q31",
+      "category": "english",
+      "customer_id": "DEMO-CUST-011",
+      "account_id": "DEMO-ACC-011-1",
+      "as_of": "2026-09-25T00:00:00Z",
+      "query": "Who is the beneficial owner, as distinct from the legal representative?",
+      "expected_document_id": "corpus-011-registry",
+      "expected_received_at": null
+    },
+    {
+      "id": "Q32",
+      "category": "chinese",
+      "customer_id": "DEMO-CUST-011",
+      "account_id": "DEMO-ACC-011-1",
+      "as_of": "2026-09-25T00:00:00Z",
+      "query": "查找账户授权签字人及付款签署限额",
+      "expected_document_id": "corpus-011-mandate",
+      "expected_received_at": null
+    },
+    {
+      "id": "Q33",
+      "category": "identifier",
+      "customer_id": "DEMO-CUST-011",
+      "account_id": "DEMO-ACC-011-1",
+      "as_of": "2026-09-25T00:00:00Z",
+      "query": "KYC011FUNDING2",
+      "expected_document_id": "corpus-011-funding",
+      "expected_received_at": "2026-09-18T00:00:00Z"
+    },
+    {
+      "id": "Q34",
+      "category": "english",
+      "customer_id": "DEMO-CUST-012",
+      "account_id": "DEMO-ACC-012-1",
+      "as_of": "2026-09-25T00:00:00Z",
+      "query": "Who can sign payments on this account and what is the signing limit?",
+      "expected_document_id": "corpus-012-mandate",
+      "expected_received_at": null
+    },
+    {
+      "id": "Q35",
+      "category": "chinese",
+      "customer_id": "DEMO-CUST-012",
+      "account_id": "DEMO-ACC-012-1",
+      "as_of": "2026-09-25T00:00:00Z",
+      "query": "本次入账资金来自哪张出口发票？",
+      "expected_document_id": "corpus-012-funding",
+      "expected_received_at": null
+    },
+    {
+      "id": "Q36",
+      "category": "identifier",
+      "customer_id": "DEMO-CUST-012",
+      "account_id": "DEMO-ACC-012-1",
+      "as_of": "2026-09-25T00:00:00Z",
+      "query": "KYC012WEALTH2",
+      "expected_document_id": "corpus-012-wealth",
+      "expected_received_at": "2026-09-18T00:00:00Z"
+    },
+    {
+      "id": "Q37",
+      "category": "negative_scope",
+      "customer_id": "UNKNOWN-CUSTOMER",
+      "account_id": "DEMO-ACC-001-1",
+      "as_of": "2026-09-25T00:00:00Z",
+      "query": "beneficial owner 受益所有人",
+      "expected_document_id": null
+    },
+    {
+      "id": "Q38",
+      "category": "negative_scope",
+      "customer_id": "UNKNOWN-CUSTOMER",
+      "account_id": "DEMO-ACC-002-1",
+      "as_of": "2026-09-25T00:00:00Z",
+      "query": "beneficial owner 受益所有人",
+      "expected_document_id": null
+    },
+    {
+      "id": "Q39",
+      "category": "negative_time",
+      "customer_id": "DEMO-CUST-003",
+      "account_id": "DEMO-ACC-003-1",
+      "as_of": "2026-08-31T00:00:00Z",
+      "query": "beneficial owner 受益所有人",
+      "expected_document_id": null
+    },
+    {
+      "id": "Q40",
+      "category": "negative_time",
+      "customer_id": "DEMO-CUST-004",
+      "account_id": "DEMO-ACC-004-1",
+      "as_of": "2026-08-31T00:00:00Z",
+      "query": "beneficial owner 受益所有人",
+      "expected_document_id": null
+    }
+  ]
+}

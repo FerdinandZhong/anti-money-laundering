@@ -1,0 +1,1566 @@
+{
+  "version": "linked-corpus-retrieval-v2",
+  "frozen_before_first_run": true,
+  "queries": [
+    {
+      "id": "Q001",
+      "category": "english",
+      "customer_id": "CUST-000296",
+      "account_id": "ACC-0000296",
+      "as_of": "2026-09-25T00:00:00Z",
+      "query": "Who is the beneficial owner rather than the legal representative?",
+      "expected_document_id": "corpus-001-registry"
+    },
+    {
+      "id": "Q002",
+      "category": "english",
+      "customer_id": "CUST-000296",
+      "account_id": "ACC-0000296",
+      "as_of": "2026-09-25T00:00:00Z",
+      "query": "Who can sign payment instructions and what limit applies?",
+      "expected_document_id": "corpus-001-mandate"
+    },
+    {
+      "id": "Q003",
+      "category": "english",
+      "customer_id": "CUST-000296",
+      "account_id": "ACC-0000296",
+      "as_of": "2026-09-25T00:00:00Z",
+      "query": "Which export invoice supports this payment funding?",
+      "expected_document_id": "corpus-001-funding"
+    },
+    {
+      "id": "Q004",
+      "category": "english",
+      "customer_id": "CUST-000296",
+      "account_id": "ACC-0000296",
+      "as_of": "2026-09-25T00:00:00Z",
+      "query": "How was accumulated wealth acquired before this payment?",
+      "expected_document_id": "corpus-001-wealth"
+    },
+    {
+      "id": "Q005",
+      "category": "english",
+      "customer_id": "CUST-000296",
+      "account_id": "ACC-0000296",
+      "as_of": "2026-09-25T00:00:00Z",
+      "query": "When is the KYC review due and is the adverse media match resolved?",
+      "expected_document_id": "corpus-001-review"
+    },
+    {
+      "id": "Q006",
+      "category": "chinese",
+      "customer_id": "CUST-000296",
+      "account_id": "ACC-0000296",
+      "as_of": "2026-09-25T00:00:00Z",
+      "query": "查询企业受益所有人，不要将法定代表人当成受益人",
+      "expected_document_id": "corpus-001-registry"
+    },
+    {
+      "id": "Q007",
+      "category": "chinese",
+      "customer_id": "CUST-000296",
+      "account_id": "ACC-0000296",
+      "as_of": "2026-09-25T00:00:00Z",
+      "query": "查找账户授权签字人和付款限额",
+      "expected_document_id": "corpus-001-mandate"
+    },
+    {
+      "id": "Q008",
+      "category": "chinese",
+      "customer_id": "CUST-000296",
+      "account_id": "ACC-0000296",
+      "as_of": "2026-09-25T00:00:00Z",
+      "query": "查找本次付款资金来源对应的出口发票",
+      "expected_document_id": "corpus-001-funding"
+    },
+    {
+      "id": "Q009",
+      "category": "chinese",
+      "customer_id": "CUST-000296",
+      "account_id": "ACC-0000296",
+      "as_of": "2026-09-25T00:00:00Z",
+      "query": "客户积累财富的来源是什么",
+      "expected_document_id": "corpus-001-wealth"
+    },
+    {
+      "id": "Q010",
+      "category": "chinese",
+      "customer_id": "CUST-000296",
+      "account_id": "ACC-0000296",
+      "as_of": "2026-09-25T00:00:00Z",
+      "query": "定期尽职调查什么时候到期，负面新闻是否待审",
+      "expected_document_id": "corpus-001-review"
+    },
+    {
+      "id": "Q011",
+      "category": "identifier",
+      "customer_id": "CUST-000296",
+      "account_id": "ACC-0000296",
+      "as_of": "2026-09-25T00:00:00Z",
+      "query": "KYC001MANDATE2",
+      "expected_document_id": "corpus-001-mandate",
+      "expected_received_at": "2026-09-18T00:00:00Z"
+    },
+    {
+      "id": "Q012",
+      "category": "historical",
+      "customer_id": "CUST-000296",
+      "account_id": "ACC-0000296",
+      "as_of": "2026-09-10T00:00:00Z",
+      "query": "KYC001REGISTRY1",
+      "expected_document_id": "corpus-001-registry",
+      "expected_received_at": "2026-09-01T00:00:00Z"
+    },
+    {
+      "id": "Q013",
+      "category": "account_scope",
+      "customer_id": "CUST-000296",
+      "account_id": "ACC-KYC-001-2",
+      "as_of": "2026-09-25T00:00:00Z",
+      "query": "Authorized signatory / 授权签字人",
+      "expected_document_id": null,
+      "excluded_document_id": "corpus-001-mandate"
+    },
+    {
+      "id": "Q014",
+      "category": "temporal_scope",
+      "customer_id": "CUST-000296",
+      "account_id": "ACC-0000296",
+      "as_of": "2026-08-31T00:00:00Z",
+      "query": "KYC mandate",
+      "expected_document_id": null,
+      "excluded_document_id": "corpus-001-mandate"
+    },
+    {
+      "id": "Q015",
+      "category": "english",
+      "customer_id": "CUST-000297",
+      "account_id": "ACC-0000297",
+      "as_of": "2026-09-25T00:00:00Z",
+      "query": "Who is the beneficial owner rather than the legal representative?",
+      "expected_document_id": "corpus-002-registry"
+    },
+    {
+      "id": "Q016",
+      "category": "english",
+      "customer_id": "CUST-000297",
+      "account_id": "ACC-0000297",
+      "as_of": "2026-09-25T00:00:00Z",
+      "query": "Who can sign payment instructions and what limit applies?",
+      "expected_document_id": "corpus-002-mandate"
+    },
+    {
+      "id": "Q017",
+      "category": "english",
+      "customer_id": "CUST-000297",
+      "account_id": "ACC-0000297",
+      "as_of": "2026-09-25T00:00:00Z",
+      "query": "Which export invoice supports this payment funding?",
+      "expected_document_id": "corpus-002-funding"
+    },
+    {
+      "id": "Q018",
+      "category": "english",
+      "customer_id": "CUST-000297",
+      "account_id": "ACC-0000297",
+      "as_of": "2026-09-25T00:00:00Z",
+      "query": "How was accumulated wealth acquired before this payment?",
+      "expected_document_id": "corpus-002-wealth"
+    },
+    {
+      "id": "Q019",
+      "category": "english",
+      "customer_id": "CUST-000297",
+      "account_id": "ACC-0000297",
+      "as_of": "2026-09-25T00:00:00Z",
+      "query": "When is the KYC review due and is the adverse media match resolved?",
+      "expected_document_id": "corpus-002-review"
+    },
+    {
+      "id": "Q020",
+      "category": "chinese",
+      "customer_id": "CUST-000297",
+      "account_id": "ACC-0000297",
+      "as_of": "2026-09-25T00:00:00Z",
+      "query": "查询企业受益所有人，不要将法定代表人当成受益人",
+      "expected_document_id": "corpus-002-registry"
+    },
+    {
+      "id": "Q021",
+      "category": "chinese",
+      "customer_id": "CUST-000297",
+      "account_id": "ACC-0000297",
+      "as_of": "2026-09-25T00:00:00Z",
+      "query": "查找账户授权签字人和付款限额",
+      "expected_document_id": "corpus-002-mandate"
+    },
+    {
+      "id": "Q022",
+      "category": "chinese",
+      "customer_id": "CUST-000297",
+      "account_id": "ACC-0000297",
+      "as_of": "2026-09-25T00:00:00Z",
+      "query": "查找本次付款资金来源对应的出口发票",
+      "expected_document_id": "corpus-002-funding"
+    },
+    {
+      "id": "Q023",
+      "category": "chinese",
+      "customer_id": "CUST-000297",
+      "account_id": "ACC-0000297",
+      "as_of": "2026-09-25T00:00:00Z",
+      "query": "客户积累财富的来源是什么",
+      "expected_document_id": "corpus-002-wealth"
+    },
+    {
+      "id": "Q024",
+      "category": "chinese",
+      "customer_id": "CUST-000297",
+      "account_id": "ACC-0000297",
+      "as_of": "2026-09-25T00:00:00Z",
+      "query": "定期尽职调查什么时候到期，负面新闻是否待审",
+      "expected_document_id": "corpus-002-review"
+    },
+    {
+      "id": "Q025",
+      "category": "identifier",
+      "customer_id": "CUST-000297",
+      "account_id": "ACC-0000297",
+      "as_of": "2026-09-25T00:00:00Z",
+      "query": "KYC002MANDATE2",
+      "expected_document_id": "corpus-002-mandate",
+      "expected_received_at": "2026-09-18T00:00:00Z"
+    },
+    {
+      "id": "Q026",
+      "category": "historical",
+      "customer_id": "CUST-000297",
+      "account_id": "ACC-0000297",
+      "as_of": "2026-09-10T00:00:00Z",
+      "query": "KYC002REGISTRY1",
+      "expected_document_id": "corpus-002-registry",
+      "expected_received_at": "2026-09-01T00:00:00Z"
+    },
+    {
+      "id": "Q027",
+      "category": "account_scope",
+      "customer_id": "CUST-000297",
+      "account_id": "ACC-KYC-002-2",
+      "as_of": "2026-09-25T00:00:00Z",
+      "query": "Authorized signatory / 授权签字人",
+      "expected_document_id": null,
+      "excluded_document_id": "corpus-002-mandate"
+    },
+    {
+      "id": "Q028",
+      "category": "temporal_scope",
+      "customer_id": "CUST-000297",
+      "account_id": "ACC-0000297",
+      "as_of": "2026-08-31T00:00:00Z",
+      "query": "KYC mandate",
+      "expected_document_id": null,
+      "excluded_document_id": "corpus-002-mandate"
+    },
+    {
+      "id": "Q029",
+      "category": "english",
+      "customer_id": "CUST-000298",
+      "account_id": "ACC-0000298",
+      "as_of": "2026-09-25T00:00:00Z",
+      "query": "Who is the beneficial owner rather than the legal representative?",
+      "expected_document_id": "corpus-003-registry"
+    },
+    {
+      "id": "Q030",
+      "category": "english",
+      "customer_id": "CUST-000298",
+      "account_id": "ACC-0000298",
+      "as_of": "2026-09-25T00:00:00Z",
+      "query": "Who can sign payment instructions and what limit applies?",
+      "expected_document_id": "corpus-003-mandate"
+    },
+    {
+      "id": "Q031",
+      "category": "english",
+      "customer_id": "CUST-000298",
+      "account_id": "ACC-0000298",
+      "as_of": "2026-09-25T00:00:00Z",
+      "query": "Which export invoice supports this payment funding?",
+      "expected_document_id": "corpus-003-funding"
+    },
+    {
+      "id": "Q032",
+      "category": "english",
+      "customer_id": "CUST-000298",
+      "account_id": "ACC-0000298",
+      "as_of": "2026-09-25T00:00:00Z",
+      "query": "How was accumulated wealth acquired before this payment?",
+      "expected_document_id": "corpus-003-wealth"
+    },
+    {
+      "id": "Q033",
+      "category": "english",
+      "customer_id": "CUST-000298",
+      "account_id": "ACC-0000298",
+      "as_of": "2026-09-25T00:00:00Z",
+      "query": "When is the KYC review due and is the adverse media match resolved?",
+      "expected_document_id": "corpus-003-review"
+    },
+    {
+      "id": "Q034",
+      "category": "chinese",
+      "customer_id": "CUST-000298",
+      "account_id": "ACC-0000298",
+      "as_of": "2026-09-25T00:00:00Z",
+      "query": "查询企业受益所有人，不要将法定代表人当成受益人",
+      "expected_document_id": "corpus-003-registry"
+    },
+    {
+      "id": "Q035",
+      "category": "chinese",
+      "customer_id": "CUST-000298",
+      "account_id": "ACC-0000298",
+      "as_of": "2026-09-25T00:00:00Z",
+      "query": "查找账户授权签字人和付款限额",
+      "expected_document_id": "corpus-003-mandate"
+    },
+    {
+      "id": "Q036",
+      "category": "chinese",
+      "customer_id": "CUST-000298",
+      "account_id": "ACC-0000298",
+      "as_of": "2026-09-25T00:00:00Z",
+      "query": "查找本次付款资金来源对应的出口发票",
+      "expected_document_id": "corpus-003-funding"
+    },
+    {
+      "id": "Q037",
+      "category": "chinese",
+      "customer_id": "CUST-000298",
+      "account_id": "ACC-0000298",
+      "as_of": "2026-09-25T00:00:00Z",
+      "query": "客户积累财富的来源是什么",
+      "expected_document_id": "corpus-003-wealth"
+    },
+    {
+      "id": "Q038",
+      "category": "chinese",
+      "customer_id": "CUST-000298",
+      "account_id": "ACC-0000298",
+      "as_of": "2026-09-25T00:00:00Z",
+      "query": "定期尽职调查什么时候到期，负面新闻是否待审",
+      "expected_document_id": "corpus-003-review"
+    },
+    {
+      "id": "Q039",
+      "category": "identifier",
+      "customer_id": "CUST-000298",
+      "account_id": "ACC-0000298",
+      "as_of": "2026-09-25T00:00:00Z",
+      "query": "KYC003MANDATE2",
+      "expected_document_id": "corpus-003-mandate",
+      "expected_received_at": "2026-09-18T00:00:00Z"
+    },
+    {
+      "id": "Q040",
+      "category": "historical",
+      "customer_id": "CUST-000298",
+      "account_id": "ACC-0000298",
+      "as_of": "2026-09-10T00:00:00Z",
+      "query": "KYC003REGISTRY1",
+      "expected_document_id": "corpus-003-registry",
+      "expected_received_at": "2026-09-01T00:00:00Z"
+    },
+    {
+      "id": "Q041",
+      "category": "account_scope",
+      "customer_id": "CUST-000298",
+      "account_id": "ACC-KYC-003-2",
+      "as_of": "2026-09-25T00:00:00Z",
+      "query": "Authorized signatory / 授权签字人",
+      "expected_document_id": null,
+      "excluded_document_id": "corpus-003-mandate"
+    },
+    {
+      "id": "Q042",
+      "category": "temporal_scope",
+      "customer_id": "CUST-000298",
+      "account_id": "ACC-0000298",
+      "as_of": "2026-08-31T00:00:00Z",
+      "query": "KYC mandate",
+      "expected_document_id": null,
+      "excluded_document_id": "corpus-003-mandate"
+    },
+    {
+      "id": "Q043",
+      "category": "english",
+      "customer_id": "CUST-000299",
+      "account_id": "ACC-0000299",
+      "as_of": "2026-09-25T00:00:00Z",
+      "query": "Who is the beneficial owner rather than the legal representative?",
+      "expected_document_id": "corpus-004-registry"
+    },
+    {
+      "id": "Q044",
+      "category": "english",
+      "customer_id": "CUST-000299",
+      "account_id": "ACC-0000299",
+      "as_of": "2026-09-25T00:00:00Z",
+      "query": "Who can sign payment instructions and what limit applies?",
+      "expected_document_id": "corpus-004-mandate"
+    },
+    {
+      "id": "Q045",
+      "category": "english",
+      "customer_id": "CUST-000299",
+      "account_id": "ACC-0000299",
+      "as_of": "2026-09-25T00:00:00Z",
+      "query": "Which export invoice supports this payment funding?",
+      "expected_document_id": "corpus-004-funding"
+    },
+    {
+      "id": "Q046",
+      "category": "english",
+      "customer_id": "CUST-000299",
+      "account_id": "ACC-0000299",
+      "as_of": "2026-09-25T00:00:00Z",
+      "query": "How was accumulated wealth acquired before this payment?",
+      "expected_document_id": "corpus-004-wealth"
+    },
+    {
+      "id": "Q047",
+      "category": "english",
+      "customer_id": "CUST-000299",
+      "account_id": "ACC-0000299",
+      "as_of": "2026-09-25T00:00:00Z",
+      "query": "When is the KYC review due and is the adverse media match resolved?",
+      "expected_document_id": "corpus-004-review"
+    },
+    {
+      "id": "Q048",
+      "category": "chinese",
+      "customer_id": "CUST-000299",
+      "account_id": "ACC-0000299",
+      "as_of": "2026-09-25T00:00:00Z",
+      "query": "查询企业受益所有人，不要将法定代表人当成受益人",
+      "expected_document_id": "corpus-004-registry"
+    },
+    {
+      "id": "Q049",
+      "category": "chinese",
+      "customer_id": "CUST-000299",
+      "account_id": "ACC-0000299",
+      "as_of": "2026-09-25T00:00:00Z",
+      "query": "查找账户授权签字人和付款限额",
+      "expected_document_id": "corpus-004-mandate"
+    },
+    {
+      "id": "Q050",
+      "category": "chinese",
+      "customer_id": "CUST-000299",
+      "account_id": "ACC-0000299",
+      "as_of": "2026-09-25T00:00:00Z",
+      "query": "查找本次付款资金来源对应的出口发票",
+      "expected_document_id": "corpus-004-funding"
+    },
+    {
+      "id": "Q051",
+      "category": "chinese",
+      "customer_id": "CUST-000299",
+      "account_id": "ACC-0000299",
+      "as_of": "2026-09-25T00:00:00Z",
+      "query": "客户积累财富的来源是什么",
+      "expected_document_id": "corpus-004-wealth"
+    },
+    {
+      "id": "Q052",
+      "category": "chinese",
+      "customer_id": "CUST-000299",
+      "account_id": "ACC-0000299",
+      "as_of": "2026-09-25T00:00:00Z",
+      "query": "定期尽职调查什么时候到期，负面新闻是否待审",
+      "expected_document_id": "corpus-004-review"
+    },
+    {
+      "id": "Q053",
+      "category": "identifier",
+      "customer_id": "CUST-000299",
+      "account_id": "ACC-0000299",
+      "as_of": "2026-09-25T00:00:00Z",
+      "query": "KYC004MANDATE2",
+      "expected_document_id": "corpus-004-mandate",
+      "expected_received_at": "2026-09-18T00:00:00Z"
+    },
+    {
+      "id": "Q054",
+      "category": "historical",
+      "customer_id": "CUST-000299",
+      "account_id": "ACC-0000299",
+      "as_of": "2026-09-10T00:00:00Z",
+      "query": "KYC004REGISTRY1",
+      "expected_document_id": "corpus-004-registry",
+      "expected_received_at": "2026-09-01T00:00:00Z"
+    },
+    {
+      "id": "Q055",
+      "category": "account_scope",
+      "customer_id": "CUST-000299",
+      "account_id": "ACC-KYC-004-2",
+      "as_of": "2026-09-25T00:00:00Z",
+      "query": "Authorized signatory / 授权签字人",
+      "expected_document_id": null,
+      "excluded_document_id": "corpus-004-mandate"
+    },
+    {
+      "id": "Q056",
+      "category": "temporal_scope",
+      "customer_id": "CUST-000299",
+      "account_id": "ACC-0000299",
+      "as_of": "2026-08-31T00:00:00Z",
+      "query": "KYC mandate",
+      "expected_document_id": null,
+      "excluded_document_id": "corpus-004-mandate"
+    },
+    {
+      "id": "Q057",
+      "category": "english",
+      "customer_id": "CUST-000300",
+      "account_id": "ACC-0000300",
+      "as_of": "2026-09-25T00:00:00Z",
+      "query": "Who is the beneficial owner rather than the legal representative?",
+      "expected_document_id": "corpus-005-registry"
+    },
+    {
+      "id": "Q058",
+      "category": "english",
+      "customer_id": "CUST-000300",
+      "account_id": "ACC-0000300",
+      "as_of": "2026-09-25T00:00:00Z",
+      "query": "Who can sign payment instructions and what limit applies?",
+      "expected_document_id": "corpus-005-mandate"
+    },
+    {
+      "id": "Q059",
+      "category": "english",
+      "customer_id": "CUST-000300",
+      "account_id": "ACC-0000300",
+      "as_of": "2026-09-25T00:00:00Z",
+      "query": "Which export invoice supports this payment funding?",
+      "expected_document_id": "corpus-005-funding"
+    },
+    {
+      "id": "Q060",
+      "category": "english",
+      "customer_id": "CUST-000300",
+      "account_id": "ACC-0000300",
+      "as_of": "2026-09-25T00:00:00Z",
+      "query": "How was accumulated wealth acquired before this payment?",
+      "expected_document_id": "corpus-005-wealth"
+    },
+    {
+      "id": "Q061",
+      "category": "english",
+      "customer_id": "CUST-000300",
+      "account_id": "ACC-0000300",
+      "as_of": "2026-09-25T00:00:00Z",
+      "query": "When is the KYC review due and is the adverse media match resolved?",
+      "expected_document_id": "corpus-005-review"
+    },
+    {
+      "id": "Q062",
+      "category": "chinese",
+      "customer_id": "CUST-000300",
+      "account_id": "ACC-0000300",
+      "as_of": "2026-09-25T00:00:00Z",
+      "query": "查询企业受益所有人，不要将法定代表人当成受益人",
+      "expected_document_id": "corpus-005-registry"
+    },
+    {
+      "id": "Q063",
+      "category": "chinese",
+      "customer_id": "CUST-000300",
+      "account_id": "ACC-0000300",
+      "as_of": "2026-09-25T00:00:00Z",
+      "query": "查找账户授权签字人和付款限额",
+      "expected_document_id": "corpus-005-mandate"
+    },
+    {
+      "id": "Q064",
+      "category": "chinese",
+      "customer_id": "CUST-000300",
+      "account_id": "ACC-0000300",
+      "as_of": "2026-09-25T00:00:00Z",
+      "query": "查找本次付款资金来源对应的出口发票",
+      "expected_document_id": "corpus-005-funding"
+    },
+    {
+      "id": "Q065",
+      "category": "chinese",
+      "customer_id": "CUST-000300",
+      "account_id": "ACC-0000300",
+      "as_of": "2026-09-25T00:00:00Z",
+      "query": "客户积累财富的来源是什么",
+      "expected_document_id": "corpus-005-wealth"
+    },
+    {
+      "id": "Q066",
+      "category": "chinese",
+      "customer_id": "CUST-000300",
+      "account_id": "ACC-0000300",
+      "as_of": "2026-09-25T00:00:00Z",
+      "query": "定期尽职调查什么时候到期，负面新闻是否待审",
+      "expected_document_id": "corpus-005-review"
+    },
+    {
+      "id": "Q067",
+      "category": "identifier",
+      "customer_id": "CUST-000300",
+      "account_id": "ACC-0000300",
+      "as_of": "2026-09-25T00:00:00Z",
+      "query": "KYC005MANDATE2",
+      "expected_document_id": "corpus-005-mandate",
+      "expected_received_at": "2026-09-18T00:00:00Z"
+    },
+    {
+      "id": "Q068",
+      "category": "historical",
+      "customer_id": "CUST-000300",
+      "account_id": "ACC-0000300",
+      "as_of": "2026-09-10T00:00:00Z",
+      "query": "KYC005REGISTRY1",
+      "expected_document_id": "corpus-005-registry",
+      "expected_received_at": "2026-09-01T00:00:00Z"
+    },
+    {
+      "id": "Q069",
+      "category": "account_scope",
+      "customer_id": "CUST-000300",
+      "account_id": "ACC-KYC-005-2",
+      "as_of": "2026-09-25T00:00:00Z",
+      "query": "Authorized signatory / 授权签字人",
+      "expected_document_id": null,
+      "excluded_document_id": "corpus-005-mandate"
+    },
+    {
+      "id": "Q070",
+      "category": "temporal_scope",
+      "customer_id": "CUST-000300",
+      "account_id": "ACC-0000300",
+      "as_of": "2026-08-31T00:00:00Z",
+      "query": "KYC mandate",
+      "expected_document_id": null,
+      "excluded_document_id": "corpus-005-mandate"
+    },
+    {
+      "id": "Q071",
+      "category": "english",
+      "customer_id": "CUST-000301",
+      "account_id": "ACC-0000301",
+      "as_of": "2026-09-25T00:00:00Z",
+      "query": "Who is the beneficial owner rather than the legal representative?",
+      "expected_document_id": "corpus-006-registry"
+    },
+    {
+      "id": "Q072",
+      "category": "english",
+      "customer_id": "CUST-000301",
+      "account_id": "ACC-0000301",
+      "as_of": "2026-09-25T00:00:00Z",
+      "query": "Who can sign payment instructions and what limit applies?",
+      "expected_document_id": "corpus-006-mandate"
+    },
+    {
+      "id": "Q073",
+      "category": "english",
+      "customer_id": "CUST-000301",
+      "account_id": "ACC-0000301",
+      "as_of": "2026-09-25T00:00:00Z",
+      "query": "Which export invoice supports this payment funding?",
+      "expected_document_id": "corpus-006-funding"
+    },
+    {
+      "id": "Q074",
+      "category": "english",
+      "customer_id": "CUST-000301",
+      "account_id": "ACC-0000301",
+      "as_of": "2026-09-25T00:00:00Z",
+      "query": "How was accumulated wealth acquired before this payment?",
+      "expected_document_id": "corpus-006-wealth"
+    },
+    {
+      "id": "Q075",
+      "category": "english",
+      "customer_id": "CUST-000301",
+      "account_id": "ACC-0000301",
+      "as_of": "2026-09-25T00:00:00Z",
+      "query": "When is the KYC review due and is the adverse media match resolved?",
+      "expected_document_id": "corpus-006-review"
+    },
+    {
+      "id": "Q076",
+      "category": "chinese",
+      "customer_id": "CUST-000301",
+      "account_id": "ACC-0000301",
+      "as_of": "2026-09-25T00:00:00Z",
+      "query": "查询企业受益所有人，不要将法定代表人当成受益人",
+      "expected_document_id": "corpus-006-registry"
+    },
+    {
+      "id": "Q077",
+      "category": "chinese",
+      "customer_id": "CUST-000301",
+      "account_id": "ACC-0000301",
+      "as_of": "2026-09-25T00:00:00Z",
+      "query": "查找账户授权签字人和付款限额",
+      "expected_document_id": "corpus-006-mandate"
+    },
+    {
+      "id": "Q078",
+      "category": "chinese",
+      "customer_id": "CUST-000301",
+      "account_id": "ACC-0000301",
+      "as_of": "2026-09-25T00:00:00Z",
+      "query": "查找本次付款资金来源对应的出口发票",
+      "expected_document_id": "corpus-006-funding"
+    },
+    {
+      "id": "Q079",
+      "category": "chinese",
+      "customer_id": "CUST-000301",
+      "account_id": "ACC-0000301",
+      "as_of": "2026-09-25T00:00:00Z",
+      "query": "客户积累财富的来源是什么",
+      "expected_document_id": "corpus-006-wealth"
+    },
+    {
+      "id": "Q080",
+      "category": "chinese",
+      "customer_id": "CUST-000301",
+      "account_id": "ACC-0000301",
+      "as_of": "2026-09-25T00:00:00Z",
+      "query": "定期尽职调查什么时候到期，负面新闻是否待审",
+      "expected_document_id": "corpus-006-review"
+    },
+    {
+      "id": "Q081",
+      "category": "identifier",
+      "customer_id": "CUST-000301",
+      "account_id": "ACC-0000301",
+      "as_of": "2026-09-25T00:00:00Z",
+      "query": "KYC006MANDATE2",
+      "expected_document_id": "corpus-006-mandate",
+      "expected_received_at": "2026-09-18T00:00:00Z"
+    },
+    {
+      "id": "Q082",
+      "category": "historical",
+      "customer_id": "CUST-000301",
+      "account_id": "ACC-0000301",
+      "as_of": "2026-09-10T00:00:00Z",
+      "query": "KYC006REGISTRY1",
+      "expected_document_id": "corpus-006-registry",
+      "expected_received_at": "2026-09-01T00:00:00Z"
+    },
+    {
+      "id": "Q083",
+      "category": "account_scope",
+      "customer_id": "CUST-000301",
+      "account_id": "ACC-KYC-006-2",
+      "as_of": "2026-09-25T00:00:00Z",
+      "query": "Authorized signatory / 授权签字人",
+      "expected_document_id": null,
+      "excluded_document_id": "corpus-006-mandate"
+    },
+    {
+      "id": "Q084",
+      "category": "temporal_scope",
+      "customer_id": "CUST-000301",
+      "account_id": "ACC-0000301",
+      "as_of": "2026-08-31T00:00:00Z",
+      "query": "KYC mandate",
+      "expected_document_id": null,
+      "excluded_document_id": "corpus-006-mandate"
+    },
+    {
+      "id": "Q085",
+      "category": "english",
+      "customer_id": "CUST-000302",
+      "account_id": "ACC-0000302",
+      "as_of": "2026-09-25T00:00:00Z",
+      "query": "Who is the beneficial owner rather than the legal representative?",
+      "expected_document_id": "corpus-007-registry"
+    },
+    {
+      "id": "Q086",
+      "category": "english",
+      "customer_id": "CUST-000302",
+      "account_id": "ACC-0000302",
+      "as_of": "2026-09-25T00:00:00Z",
+      "query": "Who can sign payment instructions and what limit applies?",
+      "expected_document_id": "corpus-007-mandate"
+    },
+    {
+      "id": "Q087",
+      "category": "english",
+      "customer_id": "CUST-000302",
+      "account_id": "ACC-0000302",
+      "as_of": "2026-09-25T00:00:00Z",
+      "query": "Which export invoice supports this payment funding?",
+      "expected_document_id": "corpus-007-funding"
+    },
+    {
+      "id": "Q088",
+      "category": "english",
+      "customer_id": "CUST-000302",
+      "account_id": "ACC-0000302",
+      "as_of": "2026-09-25T00:00:00Z",
+      "query": "How was accumulated wealth acquired before this payment?",
+      "expected_document_id": "corpus-007-wealth"
+    },
+    {
+      "id": "Q089",
+      "category": "english",
+      "customer_id": "CUST-000302",
+      "account_id": "ACC-0000302",
+      "as_of": "2026-09-25T00:00:00Z",
+      "query": "When is the KYC review due and is the adverse media match resolved?",
+      "expected_document_id": "corpus-007-review"
+    },
+    {
+      "id": "Q090",
+      "category": "chinese",
+      "customer_id": "CUST-000302",
+      "account_id": "ACC-0000302",
+      "as_of": "2026-09-25T00:00:00Z",
+      "query": "查询企业受益所有人，不要将法定代表人当成受益人",
+      "expected_document_id": "corpus-007-registry"
+    },
+    {
+      "id": "Q091",
+      "category": "chinese",
+      "customer_id": "CUST-000302",
+      "account_id": "ACC-0000302",
+      "as_of": "2026-09-25T00:00:00Z",
+      "query": "查找账户授权签字人和付款限额",
+      "expected_document_id": "corpus-007-mandate"
+    },
+    {
+      "id": "Q092",
+      "category": "chinese",
+      "customer_id": "CUST-000302",
+      "account_id": "ACC-0000302",
+      "as_of": "2026-09-25T00:00:00Z",
+      "query": "查找本次付款资金来源对应的出口发票",
+      "expected_document_id": "corpus-007-funding"
+    },
+    {
+      "id": "Q093",
+      "category": "chinese",
+      "customer_id": "CUST-000302",
+      "account_id": "ACC-0000302",
+      "as_of": "2026-09-25T00:00:00Z",
+      "query": "客户积累财富的来源是什么",
+      "expected_document_id": "corpus-007-wealth"
+    },
+    {
+      "id": "Q094",
+      "category": "chinese",
+      "customer_id": "CUST-000302",
+      "account_id": "ACC-0000302",
+      "as_of": "2026-09-25T00:00:00Z",
+      "query": "定期尽职调查什么时候到期，负面新闻是否待审",
+      "expected_document_id": "corpus-007-review"
+    },
+    {
+      "id": "Q095",
+      "category": "identifier",
+      "customer_id": "CUST-000302",
+      "account_id": "ACC-0000302",
+      "as_of": "2026-09-25T00:00:00Z",
+      "query": "KYC007MANDATE2",
+      "expected_document_id": "corpus-007-mandate",
+      "expected_received_at": "2026-09-18T00:00:00Z"
+    },
+    {
+      "id": "Q096",
+      "category": "historical",
+      "customer_id": "CUST-000302",
+      "account_id": "ACC-0000302",
+      "as_of": "2026-09-10T00:00:00Z",
+      "query": "KYC007REGISTRY1",
+      "expected_document_id": "corpus-007-registry",
+      "expected_received_at": "2026-09-01T00:00:00Z"
+    },
+    {
+      "id": "Q097",
+      "category": "account_scope",
+      "customer_id": "CUST-000302",
+      "account_id": "ACC-KYC-007-2",
+      "as_of": "2026-09-25T00:00:00Z",
+      "query": "Authorized signatory / 授权签字人",
+      "expected_document_id": null,
+      "excluded_document_id": "corpus-007-mandate"
+    },
+    {
+      "id": "Q098",
+      "category": "temporal_scope",
+      "customer_id": "CUST-000302",
+      "account_id": "ACC-0000302",
+      "as_of": "2026-08-31T00:00:00Z",
+      "query": "KYC mandate",
+      "expected_document_id": null,
+      "excluded_document_id": "corpus-007-mandate"
+    },
+    {
+      "id": "Q099",
+      "category": "english",
+      "customer_id": "CUST-000303",
+      "account_id": "ACC-0000303",
+      "as_of": "2026-09-25T00:00:00Z",
+      "query": "Who is the beneficial owner rather than the legal representative?",
+      "expected_document_id": "corpus-008-registry"
+    },
+    {
+      "id": "Q100",
+      "category": "english",
+      "customer_id": "CUST-000303",
+      "account_id": "ACC-0000303",
+      "as_of": "2026-09-25T00:00:00Z",
+      "query": "Who can sign payment instructions and what limit applies?",
+      "expected_document_id": "corpus-008-mandate"
+    },
+    {
+      "id": "Q101",
+      "category": "english",
+      "customer_id": "CUST-000303",
+      "account_id": "ACC-0000303",
+      "as_of": "2026-09-25T00:00:00Z",
+      "query": "Which export invoice supports this payment funding?",
+      "expected_document_id": "corpus-008-funding"
+    },
+    {
+      "id": "Q102",
+      "category": "english",
+      "customer_id": "CUST-000303",
+      "account_id": "ACC-0000303",
+      "as_of": "2026-09-25T00:00:00Z",
+      "query": "How was accumulated wealth acquired before this payment?",
+      "expected_document_id": "corpus-008-wealth"
+    },
+    {
+      "id": "Q103",
+      "category": "english",
+      "customer_id": "CUST-000303",
+      "account_id": "ACC-0000303",
+      "as_of": "2026-09-25T00:00:00Z",
+      "query": "When is the KYC review due and is the adverse media match resolved?",
+      "expected_document_id": "corpus-008-review"
+    },
+    {
+      "id": "Q104",
+      "category": "chinese",
+      "customer_id": "CUST-000303",
+      "account_id": "ACC-0000303",
+      "as_of": "2026-09-25T00:00:00Z",
+      "query": "查询企业受益所有人，不要将法定代表人当成受益人",
+      "expected_document_id": "corpus-008-registry"
+    },
+    {
+      "id": "Q105",
+      "category": "chinese",
+      "customer_id": "CUST-000303",
+      "account_id": "ACC-0000303",
+      "as_of": "2026-09-25T00:00:00Z",
+      "query": "查找账户授权签字人和付款限额",
+      "expected_document_id": "corpus-008-mandate"
+    },
+    {
+      "id": "Q106",
+      "category": "chinese",
+      "customer_id": "CUST-000303",
+      "account_id": "ACC-0000303",
+      "as_of": "2026-09-25T00:00:00Z",
+      "query": "查找本次付款资金来源对应的出口发票",
+      "expected_document_id": "corpus-008-funding"
+    },
+    {
+      "id": "Q107",
+      "category": "chinese",
+      "customer_id": "CUST-000303",
+      "account_id": "ACC-0000303",
+      "as_of": "2026-09-25T00:00:00Z",
+      "query": "客户积累财富的来源是什么",
+      "expected_document_id": "corpus-008-wealth"
+    },
+    {
+      "id": "Q108",
+      "category": "chinese",
+      "customer_id": "CUST-000303",
+      "account_id": "ACC-0000303",
+      "as_of": "2026-09-25T00:00:00Z",
+      "query": "定期尽职调查什么时候到期，负面新闻是否待审",
+      "expected_document_id": "corpus-008-review"
+    },
+    {
+      "id": "Q109",
+      "category": "identifier",
+      "customer_id": "CUST-000303",
+      "account_id": "ACC-0000303",
+      "as_of": "2026-09-25T00:00:00Z",
+      "query": "KYC008MANDATE2",
+      "expected_document_id": "corpus-008-mandate",
+      "expected_received_at": "2026-09-18T00:00:00Z"
+    },
+    {
+      "id": "Q110",
+      "category": "historical",
+      "customer_id": "CUST-000303",
+      "account_id": "ACC-0000303",
+      "as_of": "2026-09-10T00:00:00Z",
+      "query": "KYC008REGISTRY1",
+      "expected_document_id": "corpus-008-registry",
+      "expected_received_at": "2026-09-01T00:00:00Z"
+    },
+    {
+      "id": "Q111",
+      "category": "account_scope",
+      "customer_id": "CUST-000303",
+      "account_id": "ACC-KYC-008-2",
+      "as_of": "2026-09-25T00:00:00Z",
+      "query": "Authorized signatory / 授权签字人",
+      "expected_document_id": null,
+      "excluded_document_id": "corpus-008-mandate"
+    },
+    {
+      "id": "Q112",
+      "category": "temporal_scope",
+      "customer_id": "CUST-000303",
+      "account_id": "ACC-0000303",
+      "as_of": "2026-08-31T00:00:00Z",
+      "query": "KYC mandate",
+      "expected_document_id": null,
+      "excluded_document_id": "corpus-008-mandate"
+    },
+    {
+      "id": "Q113",
+      "category": "english",
+      "customer_id": "CUST-000304",
+      "account_id": "ACC-0000304",
+      "as_of": "2026-09-25T00:00:00Z",
+      "query": "Who is the beneficial owner rather than the legal representative?",
+      "expected_document_id": "corpus-009-registry"
+    },
+    {
+      "id": "Q114",
+      "category": "english",
+      "customer_id": "CUST-000304",
+      "account_id": "ACC-0000304",
+      "as_of": "2026-09-25T00:00:00Z",
+      "query": "Who can sign payment instructions and what limit applies?",
+      "expected_document_id": "corpus-009-mandate"
+    },
+    {
+      "id": "Q115",
+      "category": "english",
+      "customer_id": "CUST-000304",
+      "account_id": "ACC-0000304",
+      "as_of": "2026-09-25T00:00:00Z",
+      "query": "Which export invoice supports this payment funding?",
+      "expected_document_id": "corpus-009-funding"
+    },
+    {
+      "id": "Q116",
+      "category": "english",
+      "customer_id": "CUST-000304",
+      "account_id": "ACC-0000304",
+      "as_of": "2026-09-25T00:00:00Z",
+      "query": "How was accumulated wealth acquired before this payment?",
+      "expected_document_id": "corpus-009-wealth"
+    },
+    {
+      "id": "Q117",
+      "category": "english",
+      "customer_id": "CUST-000304",
+      "account_id": "ACC-0000304",
+      "as_of": "2026-09-25T00:00:00Z",
+      "query": "When is the KYC review due and is the adverse media match resolved?",
+      "expected_document_id": "corpus-009-review"
+    },
+    {
+      "id": "Q118",
+      "category": "chinese",
+      "customer_id": "CUST-000304",
+      "account_id": "ACC-0000304",
+      "as_of": "2026-09-25T00:00:00Z",
+      "query": "查询企业受益所有人，不要将法定代表人当成受益人",
+      "expected_document_id": "corpus-009-registry"
+    },
+    {
+      "id": "Q119",
+      "category": "chinese",
+      "customer_id": "CUST-000304",
+      "account_id": "ACC-0000304",
+      "as_of": "2026-09-25T00:00:00Z",
+      "query": "查找账户授权签字人和付款限额",
+      "expected_document_id": "corpus-009-mandate"
+    },
+    {
+      "id": "Q120",
+      "category": "chinese",
+      "customer_id": "CUST-000304",
+      "account_id": "ACC-0000304",
+      "as_of": "2026-09-25T00:00:00Z",
+      "query": "查找本次付款资金来源对应的出口发票",
+      "expected_document_id": "corpus-009-funding"
+    },
+    {
+      "id": "Q121",
+      "category": "chinese",
+      "customer_id": "CUST-000304",
+      "account_id": "ACC-0000304",
+      "as_of": "2026-09-25T00:00:00Z",
+      "query": "客户积累财富的来源是什么",
+      "expected_document_id": "corpus-009-wealth"
+    },
+    {
+      "id": "Q122",
+      "category": "chinese",
+      "customer_id": "CUST-000304",
+      "account_id": "ACC-0000304",
+      "as_of": "2026-09-25T00:00:00Z",
+      "query": "定期尽职调查什么时候到期，负面新闻是否待审",
+      "expected_document_id": "corpus-009-review"
+    },
+    {
+      "id": "Q123",
+      "category": "identifier",
+      "customer_id": "CUST-000304",
+      "account_id": "ACC-0000304",
+      "as_of": "2026-09-25T00:00:00Z",
+      "query": "KYC009MANDATE2",
+      "expected_document_id": "corpus-009-mandate",
+      "expected_received_at": "2026-09-18T00:00:00Z"
+    },
+    {
+      "id": "Q124",
+      "category": "historical",
+      "customer_id": "CUST-000304",
+      "account_id": "ACC-0000304",
+      "as_of": "2026-09-10T00:00:00Z",
+      "query": "KYC009REGISTRY1",
+      "expected_document_id": "corpus-009-registry",
+      "expected_received_at": "2026-09-01T00:00:00Z"
+    },
+    {
+      "id": "Q125",
+      "category": "account_scope",
+      "customer_id": "CUST-000304",
+      "account_id": "ACC-KYC-009-2",
+      "as_of": "2026-09-25T00:00:00Z",
+      "query": "Authorized signatory / 授权签字人",
+      "expected_document_id": null,
+      "excluded_document_id": "corpus-009-mandate"
+    },
+    {
+      "id": "Q126",
+      "category": "temporal_scope",
+      "customer_id": "CUST-000304",
+      "account_id": "ACC-0000304",
+      "as_of": "2026-08-31T00:00:00Z",
+      "query": "KYC mandate",
+      "expected_document_id": null,
+      "excluded_document_id": "corpus-009-mandate"
+    },
+    {
+      "id": "Q127",
+      "category": "english",
+      "customer_id": "CUST-000305",
+      "account_id": "ACC-0000305",
+      "as_of": "2026-09-25T00:00:00Z",
+      "query": "Who is the beneficial owner rather than the legal representative?",
+      "expected_document_id": "corpus-010-registry"
+    },
+    {
+      "id": "Q128",
+      "category": "english",
+      "customer_id": "CUST-000305",
+      "account_id": "ACC-0000305",
+      "as_of": "2026-09-25T00:00:00Z",
+      "query": "Who can sign payment instructions and what limit applies?",
+      "expected_document_id": "corpus-010-mandate"
+    },
+    {
+      "id": "Q129",
+      "category": "english",
+      "customer_id": "CUST-000305",
+      "account_id": "ACC-0000305",
+      "as_of": "2026-09-25T00:00:00Z",
+      "query": "Which export invoice supports this payment funding?",
+      "expected_document_id": "corpus-010-funding"
+    },
+    {
+      "id": "Q130",
+      "category": "english",
+      "customer_id": "CUST-000305",
+      "account_id": "ACC-0000305",
+      "as_of": "2026-09-25T00:00:00Z",
+      "query": "How was accumulated wealth acquired before this payment?",
+      "expected_document_id": "corpus-010-wealth"
+    },
+    {
+      "id": "Q131",
+      "category": "english",
+      "customer_id": "CUST-000305",
+      "account_id": "ACC-0000305",
+      "as_of": "2026-09-25T00:00:00Z",
+      "query": "When is the KYC review due and is the adverse media match resolved?",
+      "expected_document_id": "corpus-010-review"
+    },
+    {
+      "id": "Q132",
+      "category": "chinese",
+      "customer_id": "CUST-000305",
+      "account_id": "ACC-0000305",
+      "as_of": "2026-09-25T00:00:00Z",
+      "query": "查询企业受益所有人，不要将法定代表人当成受益人",
+      "expected_document_id": "corpus-010-registry"
+    },
+    {
+      "id": "Q133",
+      "category": "chinese",
+      "customer_id": "CUST-000305",
+      "account_id": "ACC-0000305",
+      "as_of": "2026-09-25T00:00:00Z",
+      "query": "查找账户授权签字人和付款限额",
+      "expected_document_id": "corpus-010-mandate"
+    },
+    {
+      "id": "Q134",
+      "category": "chinese",
+      "customer_id": "CUST-000305",
+      "account_id": "ACC-0000305",
+      "as_of": "2026-09-25T00:00:00Z",
+      "query": "查找本次付款资金来源对应的出口发票",
+      "expected_document_id": "corpus-010-funding"
+    },
+    {
+      "id": "Q135",
+      "category": "chinese",
+      "customer_id": "CUST-000305",
+      "account_id": "ACC-0000305",
+      "as_of": "2026-09-25T00:00:00Z",
+      "query": "客户积累财富的来源是什么",
+      "expected_document_id": "corpus-010-wealth"
+    },
+    {
+      "id": "Q136",
+      "category": "chinese",
+      "customer_id": "CUST-000305",
+      "account_id": "ACC-0000305",
+      "as_of": "2026-09-25T00:00:00Z",
+      "query": "定期尽职调查什么时候到期，负面新闻是否待审",
+      "expected_document_id": "corpus-010-review"
+    },
+    {
+      "id": "Q137",
+      "category": "identifier",
+      "customer_id": "CUST-000305",
+      "account_id": "ACC-0000305",
+      "as_of": "2026-09-25T00:00:00Z",
+      "query": "KYC010MANDATE2",
+      "expected_document_id": "corpus-010-mandate",
+      "expected_received_at": "2026-09-18T00:00:00Z"
+    },
+    {
+      "id": "Q138",
+      "category": "historical",
+      "customer_id": "CUST-000305",
+      "account_id": "ACC-0000305",
+      "as_of": "2026-09-10T00:00:00Z",
+      "query": "KYC010REGISTRY1",
+      "expected_document_id": "corpus-010-registry",
+      "expected_received_at": "2026-09-01T00:00:00Z"
+    },
+    {
+      "id": "Q139",
+      "category": "account_scope",
+      "customer_id": "CUST-000305",
+      "account_id": "ACC-KYC-010-2",
+      "as_of": "2026-09-25T00:00:00Z",
+      "query": "Authorized signatory / 授权签字人",
+      "expected_document_id": null,
+      "excluded_document_id": "corpus-010-mandate"
+    },
+    {
+      "id": "Q140",
+      "category": "temporal_scope",
+      "customer_id": "CUST-000305",
+      "account_id": "ACC-0000305",
+      "as_of": "2026-08-31T00:00:00Z",
+      "query": "KYC mandate",
+      "expected_document_id": null,
+      "excluded_document_id": "corpus-010-mandate"
+    },
+    {
+      "id": "Q141",
+      "category": "english",
+      "customer_id": "CUST-000306",
+      "account_id": "ACC-0000306",
+      "as_of": "2026-09-25T00:00:00Z",
+      "query": "Who is the beneficial owner rather than the legal representative?",
+      "expected_document_id": "corpus-011-registry"
+    },
+    {
+      "id": "Q142",
+      "category": "english",
+      "customer_id": "CUST-000306",
+      "account_id": "ACC-0000306",
+      "as_of": "2026-09-25T00:00:00Z",
+      "query": "Who can sign payment instructions and what limit applies?",
+      "expected_document_id": "corpus-011-mandate"
+    },
+    {
+      "id": "Q143",
+      "category": "english",
+      "customer_id": "CUST-000306",
+      "account_id": "ACC-0000306",
+      "as_of": "2026-09-25T00:00:00Z",
+      "query": "Which export invoice supports this payment funding?",
+      "expected_document_id": "corpus-011-funding"
+    },
+    {
+      "id": "Q144",
+      "category": "english",
+      "customer_id": "CUST-000306",
+      "account_id": "ACC-0000306",
+      "as_of": "2026-09-25T00:00:00Z",
+      "query": "How was accumulated wealth acquired before this payment?",
+      "expected_document_id": "corpus-011-wealth"
+    },
+    {
+      "id": "Q145",
+      "category": "english",
+      "customer_id": "CUST-000306",
+      "account_id": "ACC-0000306",
+      "as_of": "2026-09-25T00:00:00Z",
+      "query": "When is the KYC review due and is the adverse media match resolved?",
+      "expected_document_id": "corpus-011-review"
+    },
+    {
+      "id": "Q146",
+      "category": "chinese",
+      "customer_id": "CUST-000306",
+      "account_id": "ACC-0000306",
+      "as_of": "2026-09-25T00:00:00Z",
+      "query": "查询企业受益所有人，不要将法定代表人当成受益人",
+      "expected_document_id": "corpus-011-registry"
+    },
+    {
+      "id": "Q147",
+      "category": "chinese",
+      "customer_id": "CUST-000306",
+      "account_id": "ACC-0000306",
+      "as_of": "2026-09-25T00:00:00Z",
+      "query": "查找账户授权签字人和付款限额",
+      "expected_document_id": "corpus-011-mandate"
+    },
+    {
+      "id": "Q148",
+      "category": "chinese",
+      "customer_id": "CUST-000306",
+      "account_id": "ACC-0000306",
+      "as_of": "2026-09-25T00:00:00Z",
+      "query": "查找本次付款资金来源对应的出口发票",
+      "expected_document_id": "corpus-011-funding"
+    },
+    {
+      "id": "Q149",
+      "category": "chinese",
+      "customer_id": "CUST-000306",
+      "account_id": "ACC-0000306",
+      "as_of": "2026-09-25T00:00:00Z",
+      "query": "客户积累财富的来源是什么",
+      "expected_document_id": "corpus-011-wealth"
+    },
+    {
+      "id": "Q150",
+      "category": "chinese",
+      "customer_id": "CUST-000306",
+      "account_id": "ACC-0000306",
+      "as_of": "2026-09-25T00:00:00Z",
+      "query": "定期尽职调查什么时候到期，负面新闻是否待审",
+      "expected_document_id": "corpus-011-review"
+    },
+    {
+      "id": "Q151",
+      "category": "identifier",
+      "customer_id": "CUST-000306",
+      "account_id": "ACC-0000306",
+      "as_of": "2026-09-25T00:00:00Z",
+      "query": "KYC011MANDATE2",
+      "expected_document_id": "corpus-011-mandate",
+      "expected_received_at": "2026-09-18T00:00:00Z"
+    },
+    {
+      "id": "Q152",
+      "category": "historical",
+      "customer_id": "CUST-000306",
+      "account_id": "ACC-0000306",
+      "as_of": "2026-09-10T00:00:00Z",
+      "query": "KYC011REGISTRY1",
+      "expected_document_id": "corpus-011-registry",
+      "expected_received_at": "2026-09-01T00:00:00Z"
+    },
+    {
+      "id": "Q153",
+      "category": "account_scope",
+      "customer_id": "CUST-000306",
+      "account_id": "ACC-KYC-011-2",
+      "as_of": "2026-09-25T00:00:00Z",
+      "query": "Authorized signatory / 授权签字人",
+      "expected_document_id": null,
+      "excluded_document_id": "corpus-011-mandate"
+    },
+    {
+      "id": "Q154",
+      "category": "temporal_scope",
+      "customer_id": "CUST-000306",
+      "account_id": "ACC-0000306",
+      "as_of": "2026-08-31T00:00:00Z",
+      "query": "KYC mandate",
+      "expected_document_id": null,
+      "excluded_document_id": "corpus-011-mandate"
+    },
+    {
+      "id": "Q155",
+      "category": "english",
+      "customer_id": "CUST-000307",
+      "account_id": "ACC-0000307",
+      "as_of": "2026-09-25T00:00:00Z",
+      "query": "Who is the beneficial owner rather than the legal representative?",
+      "expected_document_id": "corpus-012-registry"
+    },
+    {
+      "id": "Q156",
+      "category": "english",
+      "customer_id": "CUST-000307",
+      "account_id": "ACC-0000307",
+      "as_of": "2026-09-25T00:00:00Z",
+      "query": "Who can sign payment instructions and what limit applies?",
+      "expected_document_id": "corpus-012-mandate"
+    },
+    {
+      "id": "Q157",
+      "category": "english",
+      "customer_id": "CUST-000307",
+      "account_id": "ACC-0000307",
+      "as_of": "2026-09-25T00:00:00Z",
+      "query": "Which export invoice supports this payment funding?",
+      "expected_document_id": "corpus-012-funding"
+    },
+    {
+      "id": "Q158",
+      "category": "english",
+      "customer_id": "CUST-000307",
+      "account_id": "ACC-0000307",
+      "as_of": "2026-09-25T00:00:00Z",
+      "query": "How was accumulated wealth acquired before this payment?",
+      "expected_document_id": "corpus-012-wealth"
+    },
+    {
+      "id": "Q159",
+      "category": "english",
+      "customer_id": "CUST-000307",
+      "account_id": "ACC-0000307",
+      "as_of": "2026-09-25T00:00:00Z",
+      "query": "When is the KYC review due and is the adverse media match resolved?",
+      "expected_document_id": "corpus-012-review"
+    },
+    {
+      "id": "Q160",
+      "category": "chinese",
+      "customer_id": "CUST-000307",
+      "account_id": "ACC-0000307",
+      "as_of": "2026-09-25T00:00:00Z",
+      "query": "查询企业受益所有人，不要将法定代表人当成受益人",
+      "expected_document_id": "corpus-012-registry"
+    },
+    {
+      "id": "Q161",
+      "category": "chinese",
+      "customer_id": "CUST-000307",
+      "account_id": "ACC-0000307",
+      "as_of": "2026-09-25T00:00:00Z",
+      "query": "查找账户授权签字人和付款限额",
+      "expected_document_id": "corpus-012-mandate"
+    },
+    {
+      "id": "Q162",
+      "category": "chinese",
+      "customer_id": "CUST-000307",
+      "account_id": "ACC-0000307",
+      "as_of": "2026-09-25T00:00:00Z",
+      "query": "查找本次付款资金来源对应的出口发票",
+      "expected_document_id": "corpus-012-funding"
+    },
+    {
+      "id": "Q163",
+      "category": "chinese",
+      "customer_id": "CUST-000307",
+      "account_id": "ACC-0000307",
+      "as_of": "2026-09-25T00:00:00Z",
+      "query": "客户积累财富的来源是什么",
+      "expected_document_id": "corpus-012-wealth"
+    },
+    {
+      "id": "Q164",
+      "category": "chinese",
+      "customer_id": "CUST-000307",
+      "account_id": "ACC-0000307",
+      "as_of": "2026-09-25T00:00:00Z",
+      "query": "定期尽职调查什么时候到期，负面新闻是否待审",
+      "expected_document_id": "corpus-012-review"
+    },
+    {
+      "id": "Q165",
+      "category": "identifier",
+      "customer_id": "CUST-000307",
+      "account_id": "ACC-0000307",
+      "as_of": "2026-09-25T00:00:00Z",
+      "query": "KYC012MANDATE2",
+      "expected_document_id": "corpus-012-mandate",
+      "expected_received_at": "2026-09-18T00:00:00Z"
+    },
+    {
+      "id": "Q166",
+      "category": "historical",
+      "customer_id": "CUST-000307",
+      "account_id": "ACC-0000307",
+      "as_of": "2026-09-10T00:00:00Z",
+      "query": "KYC012REGISTRY1",
+      "expected_document_id": "corpus-012-registry",
+      "expected_received_at": "2026-09-01T00:00:00Z"
+    },
+    {
+      "id": "Q167",
+      "category": "account_scope",
+      "customer_id": "CUST-000307",
+      "account_id": "ACC-KYC-012-2",
+      "as_of": "2026-09-25T00:00:00Z",
+      "query": "Authorized signatory / 授权签字人",
+      "expected_document_id": null,
+      "excluded_document_id": "corpus-012-mandate"
+    },
+    {
+      "id": "Q168",
+      "category": "temporal_scope",
+      "customer_id": "CUST-000307",
+      "account_id": "ACC-0000307",
+      "as_of": "2026-08-31T00:00:00Z",
+      "query": "KYC mandate",
+      "expected_document_id": null,
+      "excluded_document_id": "corpus-012-mandate"
+    }
+  ]
+}

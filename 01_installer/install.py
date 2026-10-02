@@ -6,6 +6,7 @@ import os
 import shutil
 import json
 import urllib.request
+import secrets
 
 try:
     PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -15,16 +16,37 @@ except NameError:
 
 
 def install_python_deps():
-    """Install Python dependencies from requirements.txt."""
+    """Resolve base and enabled KYC packages together, including preinstalled CML packages."""
     req_file = os.path.join(PROJECT_ROOT, "requirements.txt")
 
     print("=" * 50)
     print("Installing Python dependencies...")
     print("=" * 50)
-    subprocess.check_call(
-        [sys.executable, "-m", "pip", "install", "-r", req_file],
-    )
+    command = [sys.executable, "-m", "pip", "install", "-r", req_file]
+    for name in kyc_requirements():
+        command.extend(['-r', os.path.join(PROJECT_ROOT, '02_backend', 'scripts', name)])
+    subprocess.check_call(command)
     print("Python dependencies installed.\n")
+
+
+def kyc_requirements():
+    """AMP defaults enable real CPU PDF/OCR; local baseline installs stay optional."""
+    if os.environ.get('AML_PREPARE_KYC') != '1':
+        return []
+    manifests = []
+    if os.environ.get('AML_KYC_DOCUMENT_MODE', 'pdf') == 'pdf' and not os.environ.get('AML_KYC_MANIFEST'):
+        manifests.append('requirements-kyc-runtime.txt')
+    if os.environ.get('AML_EMBEDDING_MODEL_DIR'):
+        manifests.append('requirements-kyc-embeddings.txt')
+    return manifests
+
+
+def validate_python_deps():
+    """Check ABI compatibility in a fresh interpreter, not a cached Jupyter kernel."""
+    command = [sys.executable, os.path.join(PROJECT_ROOT, '02_backend', 'scripts', 'check_python_runtime.py')]
+    if 'requirements-kyc-runtime.txt' in kyc_requirements():
+        command.append('--ocr')
+    subprocess.check_call(command)
 
 
 def get_latest_node_lts_major():
@@ -145,6 +167,28 @@ def create_directories():
         print(f"  Directory ready: {d}")
 
 
+def ensure_demo_audit_key():
+    """Stable local demo seal across restarts; external custody is a separate deployment choice."""
+    if os.environ.get('AML_KYC_AUDIT_HMAC_KEY_FILE') not in (None,'','data/kyc_audit_demo.key'):
+        return
+    path=os.path.join(PROJECT_ROOT,'data','kyc_audit_demo.key')
+    os.makedirs(os.path.dirname(path),exist_ok=True)
+    try:
+        fd=os.open(path,os.O_WRONLY | os.O_CREAT | os.O_EXCL,0o600)
+    except FileExistsError:
+        if os.path.islink(path):
+            raise RuntimeError('Demo KYC audit key path must not be a symlink')
+        with open(path,encoding='utf-8') as handle:
+            if len(handle.read().strip()) < 32:
+                raise RuntimeError('Existing demo KYC audit key is too short')
+        os.chmod(path,0o600)
+        print('Demo KYC audit seal key already exists; preserving it.')
+        return
+    with os.fdopen(fd,'w',encoding='utf-8') as handle:
+        handle.write(secrets.token_hex(32)+'\n')
+    print('Demo KYC audit seal key created in project storage.')
+
+
 def validate_resources():
     """Quick resource check."""
     print("=" * 50)
@@ -174,9 +218,11 @@ def main():
     print("Creating directories...")
     print("=" * 50)
     create_directories()
+    ensure_demo_audit_key()
     print()
 
     install_python_deps()
+    validate_python_deps()
     install_nodejs()
     install_frontend()
 

@@ -1,4 +1,5 @@
 import React from 'react'
+import { InvestigationFindings, type InvestigationFinding } from './InvestigationFindings'
 import { Loader2, CheckCircle2, MinusCircle, AlertTriangle } from 'lucide-react'
 import { WorkflowGraph, type WorkflowNode } from './WorkflowGraph'
 
@@ -9,6 +10,7 @@ export interface PipelineItem {
   status: 'running' | 'ok' | 'skip' | 'error'
   detail?: string        // worker findings (bullet lines) or step detail
   chips?: string[]       // evidence ids
+  structuredFindings?: InvestigationFinding[]
   mono?: boolean         // render label mono (console character)
 }
 
@@ -119,7 +121,8 @@ export const PipelineStream: React.FC<Props> = ({
                   {it.label}
                 </span>
               </div>
-              {it.detail && (
+              {!!it.structuredFindings?.length && <InvestigationFindings findings={it.structuredFindings} />}
+              {it.detail && !it.structuredFindings?.length && (
                 <p className="text-2xs text-ink-muted mt-1.5 whitespace-pre-wrap leading-relaxed">
                   {it.detail}
                 </p>

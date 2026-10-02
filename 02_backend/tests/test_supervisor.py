@@ -13,6 +13,7 @@ def _stub_chat(monkeypatch):
         return iter(["Hello", " world"])
 
     monkeypatch.setattr(supervisor, "chat", _fake_chat)
+    monkeypatch.setattr(supervisor, "prepare_context", lambda *a: None)
 
 
 def _fake_worker(name):
@@ -71,6 +72,19 @@ def test_run_investigation_survives_a_worker_exception(monkeypatch):
     assert done_events["pattern"]["evidence_ids"] == []
     # the pipeline still completes despite the worker failure
     assert events[-1]["type"] == "done"
+
+
+def test_control_outcomes_are_appended_verbatim_after_model_tokens(monkeypatch):
+    from agents import supervisor
+    _stub_workers(monkeypatch, supervisor)
+    summary = 'DEMO-SG-OWNER: CONFLICTING_EVIDENCE; assessment-retained'
+    monkeypatch.setattr(supervisor, 'run_profile_worker', lambda **kw: {
+        'worker': 'profile', 'findings': summary, 'evidence_ids': ['EVD-controls'],
+        'control_summary': summary})
+    monkeypatch.setattr(supervisor, 'run_verification_worker', lambda *a: None)
+    events = list(supervisor.run_investigation('CASE', 'ALERT', 'CUSTOMER', 'ACCOUNT'))
+    narrative = ''.join(event['text'] for event in events if event['type'] == 'token')
+    assert narrative == 'Hello world\n\n' + summary
 
 
 def test_verifying_phase_and_events_when_configured(monkeypatch):

@@ -341,3 +341,235 @@ Note: `start_app.py` launches its own backend on :7078 — kill any stray
 | `03_frontend/src/components/{AlertQueue,CaseWorkbench,AgentPanel,ModelDashboard,Badge}.tsx` | UI |
 | `config/config.yaml` | `source:` (Impala/CSV) + ops db + model + llm |
 | `.omc/plans/aml-blueprint-hardening.md` | Full plan + changelog |
+
+## KYC continuation — 2026-09-26
+
+Latest update: AMP `.project-metadata.yaml` now defaults to `AML_PREPARE_KYC=1`,
+`AML_ENABLE_KYC_DEMO_CONTROLS=1` and `AML_KYC_DOCUMENT_MODE=pdf`. Installer adds
+`requirements-kyc-runtime.txt` and initializes the packaged OCR models as a preflight.
+Without a supplied manifest, pipeline generates five control PDFs (two scanned)
+plus 120 linked corpus PDFs, runs real OCR and builds LanceDB; local output is
+`artifacts/kyc_poc/amp_documents/` and `artifacts/kyc_poc/amp_corpus/`.
+It excludes unrelated extraction POC artifacts. Explicit markdown mode remains
+available, and embeddings remain optional. Preparation variables now reach the
+separate CML install job as well as generation. Fresh-project generation,
+OCR, index and control evaluation passed in the OCR environment; the current
+full backend suite is 142 passed, one skipped.
+No actual CML deployment or Linux runtime validation was performed.
+
+Further continuation: linked corpus customer IDs `CUST-000296`–`CUST-000307`
+and 30 deterministic account IDs now appear in generation, the 120-document PDF
+corpus, and generated eight-table semantic source. Default AMP expanded-corpus
+flag is `AML_KYC_EXPANDED_CORPUS=1`. Local combined release with 127 documents
+is `kyc-ba41967fd7d110b8c7ff`; hybrid release is
+`kyc-3bcfd88a84784154f434`. Semantic runtime source has 32 accounts and
+234 assertion metadata rows. Local publication validates typed Parquet and
+generates retry-safe `INSERT OVERWRITE`/`validate.sql`/activation settings for
+eight Iceberg tables. Five document-evidence DEMO control families per SG/HK
+context execute through exact bilingual term mappings. Analyst review events
+are scoped, idempotent, hash-linked and separate from computed results; actor IDs
+remain self-declared. Regulatory source candidates are recorded in
+`semantic/regulatory_source_register.yaml` and are non-executable. Frozen linked
+benchmark v2: 144/144 positives and 24/24 exclusions; frozen paraphrase
+challenge: keyword 36/60, hybrid 60/60. See
+`docs/kyc_audit_and_multimodal_demo.md` and `docs/kyc_audit_concept_linkage.md`.
+
+Final linked-data extension: the 30 accounts also receive ownership roots/edges,
+natural/legal parties and complete demo activity profiles/transactions. Local
+eight-table publication now has row counts 32/234/54/94/32/32/34/1 in the
+order accounts/assertions/parties/edges/roots/profiles/transactions/FX.
+`KYC_CORPUS` evaluates seven controls per jurisdiction; a full main account
+can pass seven, a synthetic outflow anomaly reports GAP, and a secondary
+account correctly reports missing mandate/funding evidence. The browser smoke
+check passed retention, replay, analyst review and JSON export on a temporary
+ops DB copy. Reviewer identity remains self-declared; official clauses remain
+candidate-only; remote Impala and CML Linux execution were not performed.
+
+Security/regulatory continuation: private CML Applications are now the default.
+Review writes derive Workbench `RW` identity from `REMOTE-USER` and a signed
+loopback proxy assertion; public CML deployments disable review writes.
+Assessment/review rows and a review head use HMAC seals when a separately
+provisioned key is present; private mode requires a 32+ character key via
+`AML_KYC_AUDIT_HMAC_KEY_FILE`. MAS Notice 626's 30 June 2025 edition and
+selected clauses were verified from MAS; HKMA AML-2 clause 4.4.1 was checked.
+Both remain non-executable `SOURCE_REVIEW_ONLY` links. Full backend suite:
+142 passed, one skipped; frontend build, deploy selfcheck and local browser
+retention/replay/review/export pass. Institution approval and external
+WORM/retention policy are still outstanding. See
+`docs/kyc_regulatory_review_packet.md`.
+
+- Profile worker now evaluates and retains deterministic demo controls using alert-derived scope/cutoff. Results become investigation evidence; the same summary is appended outside the LLM to findings and the final streamed narrative. Missing inputs/disabled controls/retention failure are explicit unavailable results.
+- `prepare_kyc_pipeline.py` is enabled by the AMP template via `AML_PREPARE_KYC=1`. It consumes `AML_KYC_MANIFEST` or generates PDF/OCR evidence and optional hybrid embeddings. CML registration and launch forward relevant environment values. Local preparation tested; no CML API calls made.
+- `prepare_kyc_corpus.py` builds 12 linked groups/30 operational accounts with 120 PDF versions (108 native, 12 real OCR scans). The eight-table semantic source includes these identities, ownership paths and activity.
+- Current frozen benchmarks are `data/kyc_benchmark/queries_v2.json` and `queries_challenge_v1.json`; runner `benchmark_kyc_retrieval.py`. The linked suite passes 144/144 positives and 24/24 exclusions. On the paraphrase challenge, keyword passes 36/60 and hybrid 60/60 Recall@5.
+- Active audit release remains `kyc-6aa2ce87ede353d2bd0f`; expanded hybrid release `kyc-b466ad7410c80cbd6aef` is isolated under the corpus directory. Local pipeline proof uses another isolated index.
+- Validation: 139 backend tests pass, one skipped; frontend production build and browser review/export smoke pass; `git diff --check` clean. Remote Impala execution remains user-deferred.
+- Next: verify actual CML/Linux execution and remote Impala parity when available; institutionally approve regulatory applicability/interpretations and provision protected audit-key/retention infrastructure. See `docs/kyc_audit_and_multimodal_demo.md`.
+
+
+## Local acceptance and origin release — 2026-09-27
+
+User verified the new features locally and authorized a push with AMP updates.
+Release branch: `feature/semantic-demo-explorer` (no merge to main requested).
+Semantic context now uses Context / Lineage / Query / Original Ossie files,
+neutral interactive concept cards, separate regulatory meaning and applicability
+conditions, and accurate onboarding-profile provenance. Review/retention actions
+remain backend APIs, not controls in the semantic UI. Missing indexed documents
+fall back to existing Markdown or a clearly labeled customer-profile view.
+
+The AMP template and `cai_integration/jobs_config.yaml` both default to PDF/OCR,
+expanded corpus preparation and the matching runtime semantic paths. Job
+registration forwards `GIT_SYNC_BRANCH` and the audit-key file setting; set the
+sync branch to this release and re-register existing jobs before running them.
+Generated indexes, publication outputs, credentials and unrelated decks are not
+part of the feature commit. Remote CML/AMP and Impala runs remain user-deferred.
+
+Release validation: an isolated export of the staged files passes 144 backend
+tests (one OCR dependency skip) after the normal source-data generation step.
+The skipped real PDF/OCR bootstrap passes separately in the OCR environment;
+all 10 MCP tests pass with the locked dependencies. Frontend production build,
+deployment self-check and staged whitespace checks pass.
+
+## Semantic investigation stages A/B — 2026-09-27
+
+Added a retained alert-scoped investigation context, uncapped event-time source
+retrieval, currency-separated Decimal metrics, dated device observations and
+recorded alert model signals. Regulatory Ossie concepts now drive bilingual KYC
+searches against one pinned release; configured controls preserve conflicts and
+missing evidence. Workers return deterministic observations with separately
+labelled, ID-bound AI interpretations. Retained JSON evidence and structured
+reports support clickable inputs and saved finding cards. Both investigation
+entry points now select the actual alert account.
+
+No AMP variables/jobs/dependencies added. Frontend rebuild + application restart
+required. Browser acceptance uses a temporary DB and stubbed LLM; it does not
+establish live-model quality. See `docs/semantic_investigation.md` for contracts,
+limitations and remaining stage C (bounded adaptive follow-up/model evaluation).
+
+Validation: 161 backend tests passed, one existing optional OCR test skipped;
+production frontend build passed. Isolated real-API browser acceptance passed
+live findings, owner-conflict evidence links, retained-payload integrity, saved
+report reload and browser-error checks (LLM stubbed). The local app was restarted
+on port 8100 with the existing full_integration knowledge/semantic directories;
+health and the new latest-report endpoint return 200. Current launcher session:
+71813. On 2026-09-28, the user authorized committing and pushing these changes
+to `origin/feature/semantic-demo-explorer`.
+
+## Business investigation report — 2026-09-28
+
+Added a final narrator over recorded findings and the existing recommendation.
+The AI Findings tab now leads with a plain-language report: overall assessment,
+findings, significance and next steps. Detailed findings are collapsed; paragraph
+links open their supporting findings. Material unresolved questions remain visible
+independently of generated prose. Narration validates recommendation, references,
+length and selected technical wording, with one bounded revision and a readable
+source-summary fallback. This validation does not establish factual accuracy of
+every generated sentence. Older retained reports receive a read-only readable
+projection without changing their evidence payloads.
+
+Validation: 170 backend tests passed, one optional test skipped; frontend build
+passed. Browser checks cover report-first display, source navigation, retained
+payload integrity and saved reload. A configured live-model narrator example also
+passed; other model calls were stubbed and the browser used an isolated database.
+This is a live example, not a comprehensive model-quality evaluation. No new AMP
+jobs or dependencies; remote AMP/Impala verification remains user-deferred.
+Stage C adaptive follow-up/model evaluation is still pending. Changes are local
+and uncommitted at this handoff.
+
+## Activity assessment versus evidence completeness — 2026-09-28
+
+Added the versioned activity-and-evidence decision rubric. Concerning activity
+maps to escalation even when KYC/screening remains incomplete; inconclusive
+activity maps to gathering information, and explained activity can suggest
+closure only with no unresolved material checks. Recommendation validation
+requires operational evidence for escalation and preserves source conflicts.
+The report displays supporting-information status separately from its headline.
+Historical reports are not relabelled; rerunning creates a new retained report.
+
+Added deterministic, currency-separated direction counts, rolling 24-hour count
+and amount peaks, recipient concentration and payments within 60 minutes after
+receipts. The semantic model documents their definitions and limitations. These
+are descriptive measures, not hard-coded suspiciousness thresholds. No account
+IDs or priority-score cutoffs decide the recommendation.
+
+Validation: 183 backend tests passed, one optional skip; production frontend build
+passed. Five live-model decision examples passed (both reference accounts escalate,
+explained activity suggests closure review, missing documents alone and a large
+total alone remain inconclusive). Isolated browser acceptance passed with live
+decision and narrator calls; worker interpretations were stubbed in that check.
+See `02_backend/scripts/investigation_decision_smoke.py` and
+`artifacts/investigation/decision-evaluation.json`. These examples do not establish
+general model accuracy. Local app restarted on port 8100; remote AMP/Impala remain
+deferred. No new dependencies or jobs. Changes remain uncommitted.
+
+Both local reference cases were then rerun through the real streaming API with
+live worker, recommendation and narrator calls. Their newly saved reports both
+recommend escalation and separately retain incomplete supporting information.
+The prior evidence remains intact. Latest-report reload was checked for both;
+local launcher session is 21242.
+
+The user authorized committing and pushing the business narrator and activity/
+evidence assessment changes to `origin/feature/semantic-demo-explorer` on
+2026-09-28. Validation above applies to this release; unrelated presentation
+files, local generated reports and runtime data are excluded.
+
+## AMP generation pandas/NumPy ABI repair — 2026-09-28
+
+User reported AMP step 2 completing SQLite generation then failing in pandas
+import during CSV export (dtype size expected 96, got 88). Reproduced exactly in
+an isolated Python 3.11 environment using pandas 2.1.1 with NumPy 2.2.6. The
+previous installer could retain an old pandas binary before a separate OCR pip
+install upgraded NumPy. Base and enabled KYC requirements are now resolved in a
+single pip invocation. NumPy matches the OCR pin; pandas is >=2.2.3,<3 and the
+sklearn/XGBoost minimums require NumPy 2 support. Declared requests explicitly
+after fresh-install tests exposed the CML automation's implicit dependency.
+
+The installer runs check_python_runtime.py in a fresh interpreter: data/ML
+imports, Arrow round-trip, small sklearn/XGBoost fits and optional real OCR
+initialization. CSV export now streams through the standard library and replaces
+each file atomically, avoiding pandas entirely. Regression tests cover a broken
+scientific import, Unicode/CSV quoting, nulls, empty tables, repeatability and
+preservation of existing CSVs on failed replacement.
+
+Validation: repaired isolated Python 3.11 environment passes all 187 backend
+tests including real PDF/OCR bootstrap, runtime validation and pip check. The
+macOS test environment uses the existing local libomp via a test-only search
+directory; no Linux-specific loader setting was added. Linux x86_64/Python 3.11
+binary dependency resolution also passes; actual remote AMP execution has not
+been repeated. Existing Python 3.13 environment passes 186 tests, one OCR skip.
+
+Recovery instructions are in docs/development.md: sync this fix, rerun AMP step 1,
+start a fresh session, run CSV export and KYC preparation against the already
+generated database, then continue at step 3. Do not generate another transaction
+batch to recover this export-only failure. Zero alerts/cases before scoring is
+expected. No jobs added or renamed.
+
+## MCP investigation API coverage review — 2026-09-30
+
+Reviewed the supplied hosted API URL. Anonymous OpenAPI requests redirect to
+Cloudera login; the deployed schema could not be verified. Asked for the name/path
+of an existing API credential (not the secret). Local OpenAPI and endpoint source
+were used for implementation; remote parity remains outstanding.
+
+MCP 0.3.0 now exposes 26 tools (15 existing, 11 added): alert discovery, saved
+business reports, retained evidence, semantic model/contracts/regulations,
+document page text plus original asset links, and saved control assessments.
+Preserves existing tool names and the customer investigation POST as the sole
+business mutation. The case-creating alert detail GET is deliberately excluded.
+Tool descriptions distinguish active-alert presence from an investigation
+conclusion, bounded customer samples from historical metrics, and primary-account
+graphs from alert-specific evidence. The customer investigation API still selects
+the highest-risk active alert; MCP does not pretend it accepts an arbitrary alert.
+
+Added read/write/idempotency annotations, bounded list/search arguments, consistent
+URL encoding, optional pinned releases for library/control reads, and actionable
+MCP errors for authentication redirects, HTML login pages, API errors and timeouts.
+No automatic retries of investigation writes. New aml-mcp-check compares registered
+method/path and required input coverage against hosted or exported OpenAPI.
+
+Validation: all 42 MCP tests pass using locked SDK dependencies; all 26 tool
+contracts match locally generated OpenAPI. Read-only smoke against the running
+local API passed semantic/regulatory discovery, alert context, both saved reports,
+retained evidence and pinned KYC page retrieval. No investigation/write invoked.
+Updated the package lock, MCP README and component API reference. Hosted SSO
+access is still needed for deployed validation.

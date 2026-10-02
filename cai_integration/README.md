@@ -1,12 +1,34 @@
 # Deploying to Cloudera AI (CML) Workbench
 
+The AMP template enables PDF/OCR evidence preparation and demo controls by default.
+The separate job-registration path now carries the same defaults in
+`jobs_config.yaml`; environment values supplied at registration override them.
+Set `AML_PREPARE_KYC=0` to skip preparation explicitly.
+Installation adds OCR dependencies; generation creates five showcase PDFs and
+120 linked corpus PDFs, runs OCR, builds LanceDB and writes the eight-table
+semantic CSV source. `AML_KYC_DOCUMENT_MODE=markdown` selects the lightweight alternative.
+`AML_KYC_MANIFEST` optionally supplies pre-extracted documents instead. Optional
+`AML_EMBEDDING_MODEL_DIR` enables hybrid search using a provisioned model; otherwise
+search uses bilingual keywords. Index/model settings reach the Application.
+Re-register jobs to propagate changed defaults and environment settings.
+`GIT_SYNC_BRANCH` is forwarded to the Git Repository Sync job; set it to the
+branch you intend to deploy (the sync script otherwise defaults to `main`). See the
+[KYC prototype guide](../docs/kyc_audit_and_multimodal_demo.md) for setup and limits.
+The Application is private by default (`APP_PUBLIC=0`). Its review endpoint
+uses Workbench `REMOTE-USER`/`REMOTE-USER-PERM` and accepts writes only from
+`RW` users. Installation creates `data/kyc_audit_demo.key` for persistent demo
+seals; it is git-ignored but lives beside the demo database. For production,
+set `AML_KYC_AUDIT_HMAC_KEY_FILE` to a protected 32-character-or-longer key
+outside project storage and back it up separately. Public CML applications
+disable review writes. Local standalone development retains self-declared IDs.
+
 Runs the **AML Investigation Platform** on CML: a Job chain builds the app and
 trains the model, then a CML **Application** serves the React UI + FastAPI backend
 as one app. Same `cai_integration/` automation pattern as the sibling
 `use_case_discovery` repo, adapted to this Python project.
 
 **Flow:** create the project from git → **CML Job chain**
-`git_sync → install → generate → features → train → launch`: the first five jobs
+`git_sync → install → generate → features → train → score → launch`: the first six jobs
 pre-install deps, build the frontend, generate data and train the model on project
 storage; **`launch`** (Launch Application) then creates/replaces the CML Application
 (pointing at `03_frontend/start_frontend.py`, frontend + backend on `$CDSW_APP_PORT`)
@@ -34,11 +56,14 @@ export GIT_URL=https://github.com/<org>/<repo>   # or GITHUB_REPOSITORY=org/repo
 export PROJECT_NAME="AML Investigation Platform"
 export RUNTIME_IDENTIFIER=<your-python-3.11-runtime>
 
+# When deploying the current feature release, sync the same branch as the checkout:
+export GIT_SYNC_BRANCH=feature/semantic-demo-explorer
+
 export APP_SUBDOMAIN=aml-platform                          # optional (default aml-platform)
 
 python cai_integration/setup_project.py                     # → /tmp/project_id.txt
 PID=$(cat /tmp/project_id.txt)
-python cai_integration/create_jobs.py  --project-id "$PID"  # register git_sync → … → train → launch
+python cai_integration/create_jobs.py  --project-id "$PID"  # register git_sync → … → score → launch
 python cai_integration/trigger_jobs.py --project-id "$PID"  # run the chain; the launch job starts the app
 ```
 
@@ -57,11 +82,11 @@ CML Session where `CDSW_*` are injected): `python cai_integration/deploy_applica
 | File | Role |
 |---|---|
 | `setup_project.py` | Find/create the CML project from `GIT_URL`; wait for clone; write `/tmp/project_id.txt`. |
-| `jobs_config.yaml` | The Job chain: `git_sync → install → generate → features → train → launch`. |
+| `jobs_config.yaml` | The Job chain: `git_sync → install → generate → features → train → score → launch`. |
 | `create_jobs.py` | Create the Jobs from the yaml (delete+create); resolves parent→UUID; injects the launch job's app-config env. |
 | `trigger_jobs.py` | Run the chain: trigger `git_sync`, then wait-or-explicitly-trigger each child through `launch`. Also `--sync-only`. |
 | `git_sync.py` | Job: `git fetch && git reset --hard origin/<branch>`. |
-| `launch_app.py` | Job (**Launch Application**, parent=train): create/replace the CML Application + wait for running. |
+| `launch_app.py` | Job (**Launch Application**, parent=score): create/replace the CML Application + wait for running. |
 | `deploy_application.py` | Shared CML-API helpers + a standalone CLI to create/replace the Application (used by `launch_app.py`; also runnable manually). |
 
 ## LLM / CAII configuration
@@ -78,11 +103,11 @@ reads, set `IMPALA_PASSWORD` in the Application environment (it is passed throug
 by `deploy_application.py` if present) or provide `~/tokens/workload_password`.
 
 ## Auth
-The app is deployed **`bypass_authentication = True`** (public) by default so the
-MCP server / agents can reach `/api` (and Swagger at `/api/docs`) without a
-Workbench SSO browser session. To require SSO instead, set `APP_PUBLIC=0` (baked
-into the launch job) or pass `--private` to `deploy_application.py`. Note this
-exposes investigation data — restrict at the network/gateway layer if needed.
+The app is deployed **`bypass_authentication = False`** (Workbench SSO) by
+default. Set `APP_PUBLIC=1` or pass `--public` to allow unauthenticated access;
+this disables KYC review writes and requires a separate decision about access
+to investigation data. An MCP client accessing a private Application needs
+an authenticated Workbench route.
 Data (SQLite `data/aml.db`, models) persists in project storage.
 
 ## Option B — deploy via the CML UI (no scripts)

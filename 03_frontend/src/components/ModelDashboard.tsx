@@ -13,7 +13,7 @@ import { PipelineStream, type PipelineItem } from './PipelineStream'
 import type { WorkflowNode } from './WorkflowGraph'
 
 // Token-mirrored chart colors (Recharts takes literal hex, not CSS classes).
-const C = { accent: '#e35b1f', grid: '#e3e6ea', axis: '#6b7280', ink: '#1a1a2e', danger: '#dc2626' }
+const C = { accent: '#6750e8', grid: '#e7e6ec', axis: '#777687', ink: '#242335', danger: '#dc2626' }
 
 const BAND_COLOR: Record<string, string> = {
   CRITICAL: '#dc2626', HIGH: '#ea580c', MEDIUM: '#d97706', LOW: '#059669',

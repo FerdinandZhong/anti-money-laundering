@@ -3,6 +3,8 @@ import { Play, Loader2, CheckCircle2, Settings } from 'lucide-react'
 import { disposeCase, investigateCase, streamSSE, api, getCaiiEndpoints, setLlmProvider } from '../api'
 import type { CaiiEndpoint } from '../api'
 import { PipelineStream, Md, type PipelineItem, type Verdict } from './PipelineStream'
+import { BusinessReport, type BusinessReportData } from './BusinessReport'
+import type { InvestigationFinding } from './InvestigationFindings'
 import type { WorkflowNode } from './WorkflowGraph'
 
 interface Props {
@@ -25,10 +27,10 @@ const PHASES = ['COLLECTING', 'VERIFYING', 'ANALYZING', 'REVIEWED']
 
 // Mirrors WORKER_TOOLS in 02_backend/agents/workers.py — tool chips per worker node.
 const WORKER_TOOLS: Record<string, string[]> = {
-  profile:   ['get_alert_detail', 'get_customer_profile'],
-  pattern:   ['get_transaction_history', 'get_model_explanation'],
-  network:   ['get_network_graph', 'get_device_overlap'],
-  screening: ['get_customer_profile'],
+  profile:   ['shared_context', 'regulatory_questions', 'kyc_evidence'],
+  pattern:   ['account_window_metrics', 'recorded_alert_signals'],
+  network:   ['scoped_fund_flows', 'dated_device_observations'],
+  screening: ['screening_availability'],
 }
 
 interface LlmCfg { provider: string; model: string; available_providers: Record<string, { model: string }> }
@@ -37,6 +39,11 @@ export const AgentPanel: React.FC<Props> = ({ caseId, savedAnalysis, onDisposed,
   const [phase, setPhase] = useState<string | null>(null)
   const [workers, setWorkers] = useState<Record<string, PipelineItem>>({})
   const [narrative, setNarrative] = useState('')
+  const [savedReport, setSavedReport] = useState<{ summary: string; business_report?: BusinessReportData; workers: { worker: string; findings: string; structured_findings?: InvestigationFinding[] }[] } | null>(null)
+  const [businessReport, setBusinessReport] = useState<BusinessReportData | null>(null)
+  const [narratorStatus, setNarratorStatus] = useState('idle')
+  const [detailsOpen, setDetailsOpen] = useState(false)
+  const [selectedFindings, setSelectedFindings] = useState<string[]>([])
   const [running, setRunning] = useState(false)
   const [err, setErr] = useState('')
   const [verdicts, setVerdicts] = useState<Verdict[]>([])
@@ -61,6 +68,16 @@ export const AgentPanel: React.FC<Props> = ({ caseId, savedAnalysis, onDisposed,
     }
   }, [showLlm, caiiEndpoints.length])
 
+  useEffect(() => {
+    let active = true
+    setSavedReport(null); setWorkers({}); setNarrative(''); setPhase(null)
+    setBusinessReport(null); setNarratorStatus('idle'); setDetailsOpen(false); setSelectedFindings([])
+    api.get(`/cases/${encodeURIComponent(caseId)}/investigation/latest`).then(r => {
+      if (active && r.data.available) setSavedReport(r.data)
+    }).catch(() => null)
+    return () => { active = false }
+  }, [caseId])
+
   const switchProvider = async (provider: string) => {
     await setLlmProvider({ provider })
     setPicked(null)
@@ -77,6 +94,15 @@ export const AgentPanel: React.FC<Props> = ({ caseId, savedAnalysis, onDisposed,
 
   const handleEvent = (e: Record<string, unknown>) => {
     switch (e.type) {
+      case 'report':
+        setBusinessReport(e.report as BusinessReportData)
+        break
+      case 'narrator_status':
+        setNarratorStatus(String(e.status))
+        break
+      case 'error':
+        setErr(String(e.message ?? 'Investigation unavailable'))
+        break
       case 'phase':
         setPhase(String(e.phase))
         break
@@ -90,8 +116,9 @@ export const AgentPanel: React.FC<Props> = ({ caseId, savedAnalysis, onDisposed,
         setWorkers(prev => ({
           ...prev,
           [w]: {
-            key: w, label: w, status: 'ok', mono: true,
+            key: w, label: w, status: String(e.findings ?? '').startsWith('Error:') ? 'error' : 'ok', mono: true,
             detail: String(e.findings ?? ''),
+            structuredFindings: e.structured_findings as InvestigationFinding[] | undefined,
             chips: (e.evidence_ids as string[]) ?? [],
           },
         }))
@@ -115,6 +142,7 @@ export const AgentPanel: React.FC<Props> = ({ caseId, savedAnalysis, onDisposed,
 
   const runInvestigation = async () => {
     setPhase(null); setWorkers({}); setNarrative(''); setErr('')
+    setBusinessReport(null); setNarratorStatus('idle'); setSelectedFindings([])
     setVerdicts([]); setVtools([])
     setRunning(true)
     try {
@@ -142,13 +170,14 @@ export const AgentPanel: React.FC<Props> = ({ caseId, savedAnalysis, onDisposed,
   const items = itemOrder.filter(w => workers[w]).map(w => workers[w])
 
   // Live DAG: 4 collectors → (verification, if configured) → narrate.
-  const graphNodeOrder = [...WORKER_ORDER, ...(hasVerification ? ['verification'] : []), 'narrate']
+  const graphNodeOrder = [...WORKER_ORDER, ...(hasVerification ? ['verification'] : []), 'recommend', 'narrate']
   const graphNodes: WorkflowNode[] = running || items.length > 0 || narrative
     ? graphNodeOrder.map(id => {
-        if (id === 'narrate') {
-          const status: WorkflowNode['status'] =
-            narrative ? (running ? 'running' : 'completed') : running && items.length === itemOrder.length ? 'running' : 'pending'
-          return { id, label: 'narrate', status, llmCalls: 1 }
+        if (id === 'recommend' || id === 'narrate') {
+          const status: WorkflowNode['status'] = id === 'narrate'
+            ? narratorStatus === 'complete' ? 'completed' : narratorStatus === 'running' ? 'running' : 'pending'
+            : narratorStatus !== 'idle' ? 'completed' : phase === 'ANALYZING' ? 'running' : 'pending'
+          return { id, label: id === 'narrate' ? 'write report' : 'recommend', status, llmCalls: 1 }
         }
         const w = workers[id]
         const status: WorkflowNode['status'] = !w
@@ -167,6 +196,20 @@ export const AgentPanel: React.FC<Props> = ({ caseId, savedAnalysis, onDisposed,
       })
     : []
 
+  const showingSaved = !running && !narrative && !!savedReport
+  const visibleReport = businessReport ?? (showingSaved ? savedReport?.business_report : null)
+  const visibleItems: PipelineItem[] = showingSaved ? savedReport!.workers.map(w => ({
+    key: w.worker, label: w.worker, status: w.findings.startsWith('Error:') ? 'error' : 'ok',
+    detail: w.findings, structuredFindings: w.structured_findings,
+  })) : items
+  const filteredItems = selectedFindings.length ? visibleItems.map(item => ({...item,
+    structuredFindings: item.structuredFindings?.filter(f => selectedFindings.includes(f.id)),
+  })).filter(item => item.structuredFindings?.length) : visibleItems
+  const showEvidence = (ids: string[]) => {
+    setSelectedFindings(ids); setDetailsOpen(true)
+    window.setTimeout(() => document.getElementById('investigation-details')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 0)
+  }
+
   return (
     <div className="space-y-5">
       {/* Section header + LLM badge */}
@@ -175,7 +218,7 @@ export const AgentPanel: React.FC<Props> = ({ caseId, savedAnalysis, onDisposed,
           <div className="w-8 h-0.5 bg-accent mb-2" />
           <h3 className="text-sm font-bold text-ink tracking-tight">AI Investigation</h3>
           <p className="text-xs text-ink-muted mt-0.5">
-            4 specialist workers investigate in parallel, then compose a narrative
+            A clear account review, with supporting evidence and recommended next steps
           </p>
         </div>
         {llmCfg && (
@@ -240,29 +283,25 @@ export const AgentPanel: React.FC<Props> = ({ caseId, savedAnalysis, onDisposed,
         }
       </button>
 
-      {/* Structured stream — saved analysis takes the idle slot until a fresh run starts */}
-      {!running && !narrative && savedAnalysis ? (
-        <div className="border-l-2 border-accent/60 pl-4">
-          <div className="bg-surface-1 rounded-lg shadow-soft p-4">
-            <p className="text-2xs uppercase tracking-wider text-ink-faint mb-1.5">
-              Saved analysis{savedAnalysis.at ? ` · ${new Date(savedAnalysis.at).toLocaleString()}` : ''}
-            </p>
-            <Md text={savedAnalysis.text} />
-          </div>
-        </div>
-      ) : (
-        <PipelineStream
-          phases={PHASES}
-          activePhase={phase}
-          items={items}
-          narrative={narrative}
-          narrativeTitle="Analyst narrative"
+      {running && <p role="status" className="text-sm text-ink-muted">{narratorStatus === 'running' ? 'Preparing your investigation report…' : 'Reviewing account activity and supporting evidence…'}</p>}
+      {visibleReport ? <BusinessReport report={visibleReport} onShowEvidence={showEvidence} />
+        : !running && (narrative || savedAnalysis) ? <section className="rounded-xl border border-surface-3 bg-white p-6">
+            <h3 className="text-base font-bold mb-3">Saved investigation</h3>
+            <Md text={narrative || savedAnalysis!.text} />
+          </section> : null}
+      {(visibleItems.length > 0 || running) && <details id="investigation-details" open={detailsOpen}
+        onToggle={event => setDetailsOpen(event.currentTarget.open)} className="rounded-lg border border-surface-3 p-4">
+        <summary className="cursor-pointer text-sm font-semibold text-ink">Detailed findings and evidence</summary>
+        {selectedFindings.length > 0 && <button className="text-xs text-accent underline mt-3" onClick={() => setSelectedFindings([])}>Show all findings</button>}
+        <div className="mt-4"><PipelineStream
+          phases={showingSaved ? [] : PHASES.filter(p => p !== 'VERIFYING' || hasVerification)}
+          activePhase={showingSaved ? null : phase}
+          items={filteredItems}
           running={running}
-          idle={'// Run inference to stream the agent analysis…'}
-          graphNodes={graphNodes}
-          verdicts={verdicts}
-        />
-      )}
+          graphNodes={showingSaved || selectedFindings.length ? undefined : graphNodes}
+          verdicts={showingSaved ? undefined : verdicts}
+        /></div>
+      </details>}
       {err && (
         <p className="text-xs text-aml-red bg-aml-red/5 px-3 py-2 rounded-lg">{err}</p>
       )}

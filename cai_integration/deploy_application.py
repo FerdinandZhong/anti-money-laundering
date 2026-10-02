@@ -48,6 +48,12 @@ def build_environment(backend_port: str, llm_provider: str | None) -> dict:
     # Optional pass-through: source-data password for Impala/Iceberg reads.
     if os.environ.get("IMPALA_PASSWORD"):
         environment["IMPALA_PASSWORD"] = os.environ["IMPALA_PASSWORD"]
+    for key in ('AML_ENABLE_KYC_DEMO_CONTROLS', 'AML_KNOWLEDGE_DIR', 'AML_EMBEDDING_MODEL_DIR',
+                'AML_KYC_SEMANTIC_DIR', 'AML_KYC_SOURCE_BACKEND', 'AML_KYC_IMPALA_DATABASE',
+                'AML_KYC_AUDIT_HMAC_KEY_FILE'):
+        if os.environ.get(key):
+            environment[key] = os.environ[key]
+    environment.setdefault('AML_KYC_AUDIT_HMAC_KEY_FILE','data/kyc_audit_demo.key')
     return environment
 
 
@@ -55,7 +61,7 @@ def _build_payload(*, name: str, subdomain: str, script: str, runtime_identifier
                    cpu: int, memory: int, bypass_authentication: bool,
                    backend_port: str, llm_provider: str | None) -> dict:
     """Assemble the create-Application payload. Pure — unit-testable without network."""
-    return {
+    payload = {
         "name": name,
         "subdomain": subdomain,
         "script": script,
@@ -65,6 +71,8 @@ def _build_payload(*, name: str, subdomain: str, script: str, runtime_identifier
         "bypass_authentication": bypass_authentication,
         "environment": build_environment(backend_port, llm_provider),
     }
+    payload["environment"]["AML_KYC_APP_PRIVATE"] = "0" if bypass_authentication else "1"
+    return payload
 
 
 def create_application(host: str, api_key: str, project_id: str, *, payload: dict) -> dict:
@@ -181,6 +189,7 @@ def _selfcheck() -> None:
     assert payload["script"] == "03_frontend/start_frontend.py"
     assert payload["environment"]["BACKEND_PORT"] == "7078"
     assert payload["bypass_authentication"] is False
+    assert payload["environment"]["AML_KYC_APP_PRIVATE"] == "1"
     print("deploy_application selfcheck: OK")
 
 
@@ -204,11 +213,10 @@ def main() -> None:
                    help="Localhost port the co-located FastAPI backend binds to (default 7078)")
     p.add_argument("--llm-provider", default=os.environ.get("LLM_PROVIDER", "caii"),
                    help="LLM provider: caii | vllm | ollama (default caii)")
-    # Public by default so agents / the MCP server can reach /api without a Workbench
-    # SSO browser session. Set APP_PUBLIC=0 or pass --private to sit behind SSO.
+    # Private by default so review writes can use Workbench identity.
     p.add_argument("--public", dest="public", action="store_true",
-                   default=(os.environ.get("APP_PUBLIC", "1") != "0"),
-                   help="bypass_authentication=True — allow unauthenticated requests (default)")
+                   default=(os.environ.get("APP_PUBLIC", "0") == "1"),
+                   help="bypass_authentication=True — allow unauthenticated requests")
     p.add_argument("--private", dest="public", action="store_false",
                    help="Require Workbench SSO (bypass_authentication=False)")
     p.add_argument("--wait", dest="wait", action="store_true", default=True,

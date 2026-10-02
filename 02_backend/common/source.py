@@ -292,14 +292,76 @@ def account_flow_direction(transaction: dict, account_id: str) -> str | None:
     return direction if direction in {"INBOUND", "OUTBOUND"} else None
 
 
+def investigation_transactions(account_id: str, start: str, cutoff: str) -> dict:
+    """Uncapped event-time window, (start, cutoff], for one alert account.
+
+    A complete query is not proof that the upstream ledger is complete. MCP
+    result-size guarantees are unknown, so that backend remains incomplete.
+    """
+    start_at, end_at = pd.to_datetime(start, utc=True), pd.to_datetime(cutoff, utc=True)
+    if start_at >= end_at:
+        raise ValueError('Invalid investigation window')
+    resolved = backend()
+    if resolved in ('impala', 'mcp'):
+        df = _sql_df(
+            'SELECT * FROM transactions WHERE (from_account_id = %s OR to_account_id = %s) '
+            'AND CAST(event_time AS TIMESTAMP) > CAST(%s AS TIMESTAMP) '
+            'AND CAST(event_time AS TIMESTAMP) <= CAST(%s AS TIMESTAMP)',
+            (account_id, account_id, start_at.strftime('%Y-%m-%d %H:%M:%S.%f'),
+             end_at.strftime('%Y-%m-%d %H:%M:%S.%f')))
+    else:
+        df = _csv('transactions')
+        df = df[(df['from_account_id'] == account_id) | (df['to_account_id'] == account_id)]
+    if df.empty:
+        return {'rows': [], 'query_complete': resolved != 'mcp', 'backend': resolved,
+                'receipt_time_available': False, 'excluded_later_receipts': 0,
+                'note': 'No records in the requested event-time window; upstream coverage is not certified.'}
+    events = pd.to_datetime(df['event_time'], utc=True, errors='coerce', format='mixed')
+    invalid_time = int(events.isna().sum())
+    selected = (events > start_at) & (events <= end_at)
+    late = pd.Series(False, index=df.index)
+    receipt_available = False
+    if 'received_at' in df:
+        present = df['received_at'].notna() & df['received_at'].astype(str).str.strip().ne('')
+        receipts = pd.to_datetime(df['received_at'], utc=True, errors='coerce', format='mixed')
+        invalid_receipt = present & receipts.isna()
+        invalid_time += int((selected & invalid_receipt).sum())
+        late = selected & present & (receipts > end_at)
+        selected &= ~invalid_receipt & ~late
+        receipt_available = bool(present[selected].all()) and bool(selected.any())
+    return {'rows': _records(df[selected]), 'query_complete': resolved != 'mcp' and not invalid_time,
+            'backend': resolved, 'invalid_timestamps': invalid_time,
+            'excluded_later_receipts': int(late.sum()), 'receipt_time_available': receipt_available,
+            'note': 'Event-time window over available source records; upstream ledger completeness is not certified.'}
+
+
+def investigation_devices(account_id: str, cutoff: str) -> dict:
+    """Dated device observations; sharing a fingerprint is not common control."""
+    end_at = pd.to_datetime(cutoff, utc=True)
+    if backend() in ('impala', 'mcp'):
+        df = _sql_df(
+            'SELECT DISTINCT d.* FROM devices d JOIN devices r '
+            'ON d.device_fingerprint=r.device_fingerprint WHERE r.account_id=%s '
+            'AND CAST(d.login_time AS TIMESTAMP)<=CAST(%s AS TIMESTAMP) '
+            'AND CAST(r.login_time AS TIMESTAMP)<=CAST(%s AS TIMESTAMP)',
+            (account_id, end_at.strftime('%Y-%m-%d %H:%M:%S.%f'), end_at.strftime('%Y-%m-%d %H:%M:%S.%f')))
+    else:
+        df = _csv('devices')
+    if df.empty:
+        return {'available': True, 'observations': []}
+    times = pd.to_datetime(df['login_time'], utc=True, errors='coerce', format='mixed')
+    eligible = df[times <= end_at]
+    roots = set(eligible.loc[eligible['account_id'] == account_id, 'device_fingerprint'].dropna())
+    return {'available': True, 'observations': _records(eligible[eligible['device_fingerprint'].isin(roots)]),
+            'meaning': 'Dated device observations at or before cutoff; ingestion time and upstream completeness are not certified.'}
+
+
 def customer_kyc_documents(customer_id: str) -> list[dict]:
     """Return local synthetic onboarding records for the lightweight demo tab."""
     safe_id = "".join(c for c in customer_id if c.isalnum() or c in "-_")
     if safe_id != customer_id:
         return []
     directory = _KYC_DOCUMENT_ROOT / safe_id
-    if not directory.is_dir():
-        return []
     documents = []
     for path in sorted(directory.glob("*.md")):
         try:
@@ -310,6 +372,24 @@ def customer_kyc_documents(customer_id: str) -> list[dict]:
             })
         except OSError:
             continue
+    if not documents:
+        customer = get_customer(customer_id)
+        if customer:
+            fields = [
+                ("Customer ID", "customer_id"), ("Name", "name"),
+                ("Industry", "industry"), ("Beneficial owner", "beneficial_owner"),
+                ("KYC risk rating", "risk_rating"),
+                ("Expected monthly turnover", "expected_monthly_turnover"),
+                ("KYC last updated", "kyc_last_updated"),
+            ]
+            lines = ["# Recorded onboarding profile", "",
+                     "Source: customer profile records. Supporting document verification is not recorded here.", ""]
+            for label, key in fields:
+                value = customer.get(key)
+                lines.append(f"- {label}: {value if value is not None and str(value).strip() else 'Not recorded'}")
+            documents.append({"name": "Recorded onboarding profile",
+                              "source": "Customer profile · Markdown view",
+                              "content": "\n".join(lines)})
     return documents
 
 

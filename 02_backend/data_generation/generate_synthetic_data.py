@@ -112,6 +112,12 @@ def gen_customers(n: int) -> list[dict]:
                 "beneficial_owner": "Lim Wei Ming",
                 "kyc_last_updated": _date(120),
             })
+        if 296 <= i <= 307:
+            group = i - 295
+            row.update({"name": f"KYC Corpus Group {group:02d} Pte. Ltd.",
+                        "industry": "SME_TRADING", "occupation": "DIRECTOR",
+                        "region": "SG" if group % 2 else "HK",
+                        "beneficial_owner": "Lin Mei"})
         rows.append(row)
 
     # Suspicious/mule customers
@@ -180,6 +186,21 @@ def gen_accounts(customers: list[dict], n_accounts: int) -> list[dict]:
         acc_idx += 1
         if acc_idx >= remaining:
             break
+
+    # Additional account contexts for the linked 12-group KYC corpus. Stable IDs
+    # coexist with scorer-owned baseline accounts and are exported by the normal
+    # SQLite -> CSV source bridge.
+    for group in range(1, 13):
+        customer_id = f"CUST-{group + 295:06d}"
+        customer = next((item for item in customers if item["customer_id"] == customer_id), None)
+        if customer is None:
+            continue
+        for index in range(2, (3 if group <= 6 else 2) + 1):
+            rows.append({"account_id": f"ACC-KYC-{group:03d}-{index}",
+                         "customer_id": customer_id,
+                         "account_type": "CORPORATE" if group % 2 else "CURRENT",
+                         "status": "ACTIVE", "opening_date": _date(customer["account_age_days"]),
+                         "balance": 0.0, "currency": "SGD" if group % 2 else "HKD"})
 
     return rows
 
@@ -771,6 +792,9 @@ def main():
     sys.path.insert(0, os.path.join(PROJECT_ROOT, "02_backend", "scripts"))
     import export_source_csv
     export_source_csv.main()
+    if os.environ.get('AML_PREPARE_KYC') == '1':
+        from prepare_kyc_pipeline import prepare
+        prepare()
 
 
 if __name__ == "__main__":

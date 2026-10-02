@@ -49,9 +49,8 @@ def main() -> None:
     payload = _build_payload(
         name=name, subdomain=subdomain, script="03_frontend/start_frontend.py",
         runtime_identifier=runtime, cpu=2, memory=8,
-        # Public by default (APP_PUBLIC=0 re-enables SSO) so the MCP server / agents
-        # can reach /api without a Workbench SSO browser session.
-        bypass_authentication=(os.environ.get("APP_PUBLIC", "1") != "0"),
+        # Private by default: reviewer attribution requires Workbench SSO.
+        bypass_authentication=(os.environ.get("APP_PUBLIC", "0") == "1"),
         backend_port=os.environ.get("BACKEND_PORT", "7078"),
         llm_provider=os.environ.get("LLM_PROVIDER", "caii"),
     )

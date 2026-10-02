@@ -9,6 +9,7 @@ import { Badge, RiskBadge } from './Badge'
 import { AgentPanel } from './AgentPanel'
 import { NetworkGraph } from './NetworkGraph'
 import { SemanticExplorer } from './SemanticExplorer'
+import { KycKnowledge } from './KycKnowledge'
 
 interface Props {
   alertId: string | null
@@ -110,11 +111,11 @@ export const CaseWorkbench: React.FC<Props> = ({ alertId, onDisposed }) => {
 
   return (
     <div className="flex-1 flex flex-col bg-surface-1 rounded-lg overflow-hidden shadow-soft min-w-0 min-h-0">
-      <div className="flex items-start justify-between px-6 py-4 border-b border-surface-3 shrink-0 bg-surface-2">
+      <div className="flex items-start justify-between px-4 sm:px-6 py-4 border-b border-surface-3 shrink-0 bg-surface-2">
         <div className="min-w-0">
           <div className="w-8 h-0.5 bg-accent mb-2.5" />
-          <div className="flex items-center gap-2.5 mb-1">
-            <h2 className="text-base font-bold text-ink truncate">{detail.customer_name}</h2>
+          <div className="flex flex-wrap items-center gap-2 mb-1">
+            <h2 className="text-base font-bold text-ink break-words">{detail.customer_name}</h2>
             <RiskBadge band={detail.risk_band} />
           </div>
           <p className="text-xs text-ink-muted font-mono">
@@ -129,7 +130,7 @@ export const CaseWorkbench: React.FC<Props> = ({ alertId, onDisposed }) => {
         </div>
       </div>
 
-      <div className="grid grid-cols-4 gap-4 px-6 py-3 border-b border-surface-3 shrink-0 bg-surface-1">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 px-4 sm:px-6 py-3 border-b border-surface-3 shrink-0 bg-surface-1">
         <MetaItem label="KYC Risk Rating"><Badge label={detail.customer_kyc_rating} small neutral /></MetaItem>
         <MetaItem label="Account Age">{detail.account_age_days} days</MetaItem>
         <MetaItem label="Expected Monthly Turnover">{fmt(detail.expected_monthly_turnover)}</MetaItem>
@@ -172,13 +173,13 @@ export const CaseWorkbench: React.FC<Props> = ({ alertId, onDisposed }) => {
             ? <NetworkGraph graph={detail.network} expanded />
             : <PanelEmpty icon={<Network className="w-8 h-8" />} message="No material account links were found." />
         )}
-        {activeTab === 'documents' && <KycDocuments documents={detail.kyc_documents ?? []} />}
-        {activeTab === 'semantic' && <SemanticExplorer key={detail.alert_id} customerId={detail.customer_id} alertId={detail.alert_id} />}
+        {activeTab === 'documents' && <KycKnowledge key={detail.alert_id} alertId={detail.alert_id} legacy={detail.kyc_documents ?? []} />}
+        {activeTab === 'semantic' && <SemanticExplorer key={detail.alert_id} detail={detail} />}
         {activeTab === 'findings' && (
           <div className="space-y-4">
             <section className="rounded-lg border border-surface-3 bg-white p-4 text-xs">
               <h3 className="font-bold text-ink">Analysis basis</h3>
-              <p className="mt-2 text-ink-muted">Workers receive intent-specific facts, definitions and claim limitations. Explore the current contract separately from saved findings.</p>
+              <p className="mt-2 text-ink-muted">Explore what the account data means and where it comes from. Saved reports reflect the information available when the investigation ran.</p>
               <button onClick={() => setActiveTab('semantic')} className="mt-3 text-accent font-semibold">Explore semantic context →</button>
             </section>
             <AgentPanel
@@ -193,15 +194,6 @@ export const CaseWorkbench: React.FC<Props> = ({ alertId, onDisposed }) => {
     </div>
   )
 }
-
-const KycDocuments: React.FC<{ documents: NonNullable<CaseDetail['kyc_documents']> }> = ({ documents }) => (
-  documents.length ? <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
-    {documents.map(doc => <section key={doc.name} className="rounded-lg border border-surface-3 bg-white p-5 shadow-soft">
-      <div className="flex items-center gap-2 mb-3"><FileSearch className="w-4 h-4 text-accent" /><div><h3 className="text-sm font-bold text-ink">{doc.name}</h3><p className="text-2xs text-ink-muted">{doc.source}</p></div></div>
-      <div className="whitespace-pre-line text-xs leading-5 text-ink-muted">{doc.content}</div>
-    </section>)}
-  </div> : <PanelEmpty icon={<FolderOpen className="w-8 h-8" />} message="No local KYC documents are available for this customer." />
-)
 
 const Overview: React.FC<{ detail: CaseDetail; onOpenTransactions: () => void }> = ({ detail, onOpenTransactions }) => {
   const ratio = detail.observed_vs_expected_pct

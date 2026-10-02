@@ -53,6 +53,26 @@ def test_semantic_model_and_concept_discovery(tmp_db_path):
     assert c.get("/api/semantic/concepts/no-such-term").status_code == 404
 
 
+def test_semantic_graph_preserves_declared_field_relationships(tmp_db_path):
+    from semantic.model_loader import ontology, semantic_model
+
+    graph = _client().get("/api/semantic/graph").json()
+    model = semantic_model()["semantic_model"][0]
+    assert graph["version"] == semantic_model()["version"]
+    assert {node["id"] for node in graph["nodes"]} == {
+        dataset["name"] for dataset in model["datasets"]
+    }
+    actual = {(edge["id"], edge["from_field"], edge["to_field"]) for edge in graph["edges"]}
+    declared = {(edge["name"], edge["from"], edge["to"]) for edge in model["relationships"]}
+    assert actual == declared
+    assert all(edge["source"] in {node["id"] for node in graph["nodes"]}
+               and edge["target"] in {node["id"] for node in graph["nodes"]}
+               for edge in graph["edges"])
+    assert {(edge["id"], edge["source"], edge["target"]) for edge in graph["ontology"]["relations"]} == {
+        (edge["id"], edge["from"], edge["to"]) for edge in ontology()["relations"]
+    }
+
+
 def test_semantic_context_is_time_scoped_and_read_only(tmp_db_path, monkeypatch):
     from common.db import get_connection
     conn = get_connection(); _seed(conn)
@@ -101,7 +121,7 @@ def test_semantic_contract_sources_are_exact_and_fixed(tmp_db_path):
     assert response.status_code == 200
     contracts = response.json()['contracts']
     assert {item['filename'] for item in contracts} == {
-        'aml_semantic_model.ossie.yaml', 'aml_ontology.yaml', 'aml_context_registry.yaml',
+        'aml_semantic_model.ossie.yaml', 'aml_ontology.yaml', 'aml_context_registry.yaml', 'aml_regulation.ossie.yaml',
     }
     for item in contracts:
         assert item['content'] == (SEMANTIC_ROOT / item['filename']).read_text(encoding='utf-8')
@@ -116,7 +136,8 @@ def test_context_explains_meaning_and_missing_coverage(tmp_db_path, monkeypatch)
         'customer_id': 'CUST-S1', 'intent': 'kyc_review', 'alert_id': 'ALERT-S1',
     }).json()
     facts = {fact['concept']: fact for fact in body['facts']}
-    assert facts['kyc_declaration']['label'] == 'KYC declaration'
+    assert facts['kyc_declaration']['label'] == 'Recorded onboarding profile'
+    assert facts['kyc_declaration']['source_ref'] == 'customers.expected_monthly_turnover'
     assert 'not proof' in facts['kyc_declaration']['definition']
     assert facts['observed_outbound_flow_30d']['source_ref'] == 'transactions.amount'
     assert 'account' in body['declared_concepts']
@@ -146,3 +167,16 @@ def test_demo_queries_and_distinct_kyc_concepts(tmp_db_path, monkeypatch):
     assert c.post('/api/semantic/context', json={
         'customer_id': 'CUST-S1', 'alert_id': 'OTHER', 'intent': 'kyc_review',
     }).status_code == 404
+
+
+def test_regulatory_meaning_does_not_require_account_evidence(tmp_db_path):
+    response = _client().get('/api/semantic/regulations')
+    assert response.status_code == 200
+    requirements = response.json()['requirements']
+    assert {r['jurisdiction'] for r in requirements} == {'SG', 'HK'}
+    assert len(requirements) == 5
+    assert all(r['applicability_status'] == 'conditions_only' for r in requirements)
+    assert all(r['fields'] and r['meaning'] and r['source_url'].startswith('https://') for r in requirements)
+    owner = next(r for r in requirements if r['id'] == 'sg-owner')
+    assert 'declaration.UBO' in owner['fields']
+    assert owner['mapping_relation'] == 'related'

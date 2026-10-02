@@ -1,0 +1,58 @@
+version: regulatory-source-candidates-v2
+classification: SOURCE_REVIEW_ONLY
+checked_on: '2026-09-26'
+notice: >-
+  Official editions and clause locations have been checked for the listed
+  sources. Candidate semantic links are not control interpretations or
+  institutionally approved policies. No DEMO outcome is legal compliance.
+sources:
+  - id: HKMA-AML2-2023
+    jurisdiction: HK
+    issuer: Hong Kong Monetary Authority
+    title: AML-2 Guideline on Anti-Money Laundering and Counter-Financing of Terrorism (For Authorized Institutions)
+    issue_date: '2023-05-25'
+    edition: AML-2, 25 May 2023
+    applies_to: Hong Kong authorized institutions
+    repository_status_checked: current
+    repository_url: https://brdr.hkma.gov.hk/eng/doc-ldg/docId/20230525-4-EN
+    pdf_url: https://brdr.hkma.gov.hk/eng/doc-ldg/docId/getPdf/20230525-4-EN/AML-2.pdf
+    review_status: source_located_not_institution_approved
+    candidate_links:
+      - clause: '4.4.1'
+        regulatory_term: beneficial owner
+        business_concepts: [registry_owner_record, controlling_person, beneficial_owner]
+        relation: candidate_related_not_equivalent
+        reason: A registry label alone does not verify ultimate ownership or control.
+        coverage_gap: Demo evidence and shareholding paths do not establish identity verification or control through other means.
+  - id: SG-MAS-626
+    jurisdiction: SG
+    issuer: Monetary Authority of Singapore
+    title: MAS Notice 626 / Guidelines to MAS Notice 626
+    edition: Notice dated 28 March 2024, revised 30 June 2025
+    applies_to: Banks in Singapore as defined by the Banking Act 1970
+    effective_from: '2024-04-01'
+    latest_amendment_effective_from: '2025-07-01'
+    repository_url: https://www.mas.gov.sg/regulation/notices/notice-626
+    pdf_url: https://www.mas.gov.sg/-/media/amld-amendments---30-june-2025/mas-notice-626.pdf
+    review_status: clauses_located_not_institution_approved
+    candidate_links:
+      - clause: '6.11'
+        regulatory_term: natural person appointed to act on a customer's behalf
+        business_concepts: [account_signing_authority]
+        relation: candidate_related_not_equivalent
+        reason: A mandate name is only one part of due-authority and identity verification.
+      - clause: '6.13-6.14'
+        regulatory_term: beneficial owner
+        business_concepts: [registry_owner_record, beneficial_owner, disclosed_ownership_paths]
+        relation: candidate_related_not_equivalent
+        reason: Disclosed ownership paths do not establish ultimate control or complete identification.
+      - clause: '6.19-6.24'
+        regulatory_term: ongoing monitoring and CDD review
+        business_concepts: [periodic_review_due, account_external_outflow_30d, source_of_funds]
+        relation: candidate_related_not_equivalent
+        reason: A dated review field and synthetic outflow comparison do not implement risk-based monitoring or CDD review.
+      - clause: '12.1-12.5'
+        regulatory_term: record keeping
+        business_concepts: [retained_assessment, review_event]
+        relation: candidate_related_not_equivalent
+        reason: The application audit trail is only one record type; statutory periods, legal holds and independent custody need institution policy and storage controls.

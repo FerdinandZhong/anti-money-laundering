@@ -1,0 +1,3 @@
+profile_id,customer_id,account_id,currency,expected_amount,threshold_ratio,window_days,direction,exclude_internal,complete,effective_from,received_at,expected_rows,coverage_start,coverage_end
+PROFILE-SG,CUST-000294,ACC-0000294,SGD,1000.00,2.0,30,outbound,true,true,2026-08-01,2026-09-01,3,2026-08-01,2026-09-12T10:31:21Z
+PROFILE-HK,CUST-000295,ACC-0000295,HKD,10000.00,2.0,30,outbound,true,true,2026-08-01,2026-09-01,1,2026-08-01,2026-09-12T10:31:21Z

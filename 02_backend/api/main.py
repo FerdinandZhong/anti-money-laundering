@@ -33,6 +33,7 @@ from semantic.resolver import (
     relationship_paths,
     resolve_concept,
 )
+from semantic.graph import model_graph
 
 # docs/openapi under /api so they're reachable through the frontend proxy
 # (which only forwards /api/*) — the hosted app's Swagger UI lives at /api/docs.
@@ -49,6 +50,11 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+from knowledge.api import router as knowledge_router
+from compliance.api import router as compliance_router
+app.include_router(knowledge_router)
+app.include_router(compliance_router)
 
 
 def get_db():
@@ -397,20 +403,25 @@ def investigate_case(case_id: str, body: InvestigateBody, conn=Depends(get_db)):
     alert_id    = case["alert_id"]
     customer_id = case["customer_id"]
 
-    # first account for this customer (needed by tx/network tools)
-    accounts   = source.get_accounts(customer_id)
-    account_id = accounts[0]["account_id"] if accounts else customer_id
+    alert_row = conn.execute('SELECT account_id FROM alerts WHERE alert_id=?', (alert_id,)).fetchone()
+    account_id = alert_row['account_id'] if alert_row else None
+    if not account_id:
+        raise HTTPException(422, 'Alert has no recorded account')
 
     def event_stream():
         narrative_parts: list[str] = []
         findings_parts: list[str] = []
+        has_business_report = False
         for evt in run_investigation(case_id, alert_id, customer_id, account_id):
             if evt.get("type") == "token":
                 narrative_parts.append(evt.get("text", ""))
+            elif evt.get("type") == "report":
+                has_business_report = True
             elif evt.get("type") == "worker_done":
                 findings_parts.append(f"[{evt.get('worker', '').upper()}]\n{evt.get('findings', '')}")
             elif evt.get("type") == "done":
-                analysis = ("\n\n".join(findings_parts) + "\n\n" + "".join(narrative_parts)).strip()
+                analysis = ("".join(narrative_parts) if has_business_report else
+                            "\n\n".join(findings_parts) + "\n\n" + "".join(narrative_parts)).strip()
                 write_conn = get_connection()
                 try:
                     write_conn.execute(
@@ -509,6 +520,40 @@ def set_transaction_labels(case_id: str, body: TxLabelsBody, conn=Depends(get_db
             upserts += 1
     conn.commit()
     return {"ok": True, "labeled": upserts, "cleared": deletes}
+
+
+@app.get("/api/cases/{case_id}/investigation/latest")
+def latest_investigation(case_id: str, conn=Depends(get_db)):
+    if not conn.execute('SELECT 1 FROM cases WHERE case_id=?', (case_id,)).fetchone():
+        raise HTTPException(404, 'Case not found')
+    row = conn.execute("SELECT evidence_id FROM evidence WHERE case_id=? AND tool='investigation_report' "
+                       "ORDER BY created_at DESC, rowid DESC LIMIT 1", (case_id,)).fetchone()
+    if not row:
+        return {'available': False}
+    from common.evidence import get_evidence as read_evidence
+    evidence = read_evidence(row['evidence_id'])
+    if not evidence['integrity_valid']:
+        raise HTTPException(409, 'Investigation report integrity check failed')
+    payload = evidence['payload']
+    if not payload.get('business_report'):
+        # Read-only presentation of older structured reports; retain original bytes.
+        from agents.narrator import fallback_report, render_report
+        report = fallback_report({'cutoff': payload.get('cutoff')}, payload.get('workers', []),
+                                 payload.get('recommendation', {}))
+        payload = {**payload, 'business_report': report, 'technical_summary': payload.get('summary'),
+                   'summary': render_report(report)}
+    return {'available': True, **payload}
+
+
+@app.get("/api/cases/{case_id}/evidence/{evidence_id}")
+def retained_evidence(case_id: str, evidence_id: str):
+    from common.evidence import get_evidence as read_evidence
+    evidence = read_evidence(evidence_id)
+    if not evidence or evidence['case_id'] != case_id:
+        raise HTTPException(404, 'Evidence not found in this case')
+    if evidence['integrity_valid'] is False:
+        raise HTTPException(409, 'Evidence integrity check failed')
+    return evidence
 
 
 @app.get("/api/cases/{case_id}/evidence")
@@ -650,27 +695,36 @@ def customer_investigate(customer_id: str, conn=Depends(get_db)):
     if alert is None:
         raise HTTPException(404, f"No alert for customer {customer_id}; nothing to investigate")
     case_id = case["case_id"]
-    accounts = source.get_accounts(customer_id)
-    account_id = accounts[0]["account_id"] if accounts else customer_id
+    account_id = alert.get('account_id')
+    if not account_id:
+        raise HTTPException(422, 'Alert has no recorded account')
 
     narrative_parts, worker_findings, verdicts = [], [], []
+    business_report = None
     for evt in run_investigation(case_id, alert["alert_id"], customer_id, account_id):
         t = evt.get("type")
+        if t == "error":
+            raise HTTPException(503, evt.get('message', 'Investigation unavailable'))
         if t == "token":
             narrative_parts.append(evt.get("text", ""))
+        elif t == "report":
+            business_report = evt['report']
         elif t == "worker_done":
-            worker_findings.append({"worker": evt.get("worker"), "findings": evt.get("findings", "")})
+            worker_findings.append({"worker": evt.get("worker"), "findings": evt.get("findings", ""),
+                                    "structured_findings": evt.get("structured_findings", []),
+                                    "evidence_ids": evt.get("evidence_ids", [])})
         elif t == "verdict":
             verdicts.append({"claim": evt.get("claim"), "verdict": evt.get("verdict"),
                              "sources": evt.get("sources", [])})
     findings_block = "\n\n".join(f"[{w['worker'].upper()}]\n{w['findings']}" for w in worker_findings)
-    analysis = (findings_block + "\n\n" + "".join(narrative_parts)).strip()
+    analysis = ("".join(narrative_parts) if business_report else
+                findings_block + "\n\n" + "".join(narrative_parts)).strip()
 
     conn.execute("UPDATE cases SET analysis = ?, analyzed_at = ? WHERE case_id = ?",
                  (analysis, datetime.now(timezone.utc).isoformat(), case_id))
     conn.commit()
     return {"case_id": case_id, "analysis": analysis, "verdicts": verdicts,
-            "worker_findings": worker_findings}
+            "worker_findings": worker_findings, "business_report": business_report}
 
 
 # ── Governed AML semantic layer ────────────────────────────────────────────
@@ -688,6 +742,13 @@ class SemanticQueryBody(SemanticContextBody):
     concepts: list[str]
 
 
+@app.get("/api/semantic/regulations")
+def get_regulatory_meaning():
+    """Regulatory meanings and conditions, independent of document coverage."""
+    from semantic.regulation import regulation_catalog
+    return regulation_catalog()
+
+
 @app.get("/api/semantic/contracts")
 def get_semantic_contracts():
     """Exact source YAML for the fixed, public AML semantic contract files."""
@@ -699,6 +760,12 @@ def get_semantic_contracts():
 def get_semantic_model():
     """Published AML semantic-model summary, safe for agent discovery."""
     return semantic_model_summary()
+
+
+@app.get("/api/semantic/graph")
+def get_semantic_graph():
+    """Datasets, source fields and declared relationships for the visual explorer."""
+    return model_graph()
 
 
 @app.get("/api/semantic/intents")

@@ -41,7 +41,7 @@ export const AlertQueue: React.FC<Props> = ({ selectedAlertId, onSelect, reloadK
   useEffect(() => { load() }, [reloadKey])   // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
-    <div className="w-[310px] xl:w-[330px] shrink-0 flex flex-col bg-surface-1 rounded-lg overflow-hidden shadow-soft min-h-0">
+    <div className="w-full lg:w-[310px] xl:w-[330px] shrink-0 flex flex-col bg-surface-1 rounded-lg overflow-hidden shadow-soft min-h-0">
       {/* Header */}
       <div className="flex items-center gap-2.5 px-4 py-3 border-b border-surface-3 shrink-0 bg-surface-2">
         <Bell className="w-3.5 h-3.5 text-accent" />

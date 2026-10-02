@@ -2,10 +2,38 @@
 
 Current tasks, priorities, and known issues. Newest first.
 
+## Release preparation — 2026-09-27
+- [x] User verified the new features in the local application.
+- [x] Four-section semantic UI with neutral meaning cards; removed review/retention controls from the main UI.
+- [x] Independent regulation semantic model and endpoint, visible without account document evidence.
+- [x] Onboarding-profile labels and Markdown fallback for accounts without indexed documents.
+- [x] Align AMP and registered CML job defaults; forward selected Git sync branch.
+- [ ] Expand indexed documents to the rest of the active alert queue (current release covers one of 20 open alerts).
+- Remote AMP/Impala verification remains deferred; this release does not claim either ran.
+
+## KYC continuation — 2026-09-26
+- [x] AMP enables PDF/OCR preparation and demo controls by default; installer provisions the CPU OCR runtime. Fresh-project real-OCR test passes; current full backend suite: 142 passed, one skipped.
+- [x] Profile worker retains deterministic, cutoff-scoped control assessments and cites them in findings/final narrative.
+- [x] Optional knowledge preparation in the existing generation job; CML environment forwarding tested locally.
+- [x] Link 12 generated customers/30 accounts/120 document versions to AMP source IDs and semantic CSVs, including 12 real OCR scans.
+- [x] Frozen 40-query retrieval benchmark; first hybrid run passes 36 retrieval and four exclusion checks.
+- [x] Eight-table CSV/Impala read adapter, typed local publication, retry-safe isolated SQL and validation/activation handoff.
+- [x] Seven linked-account DEMO controls per SG/HK context: five PDF evidence concepts, ownership paths and 30-day activity; hash-linked analyst review events.
+- [x] Frozen linked 168-query and 60-paraphrase benchmarks; hybrid clears the challenge, keyword exposes a 60% Recall@5 gap.
+- [x] Extend ownership and activity rows to all 30 accounts; shared FX fixture remains available for the original cross-currency case.
+- [x] Bind private-CML review writes to signed Workbench `RW` identity; HMAC-seal snapshots and review chain with an independent key; block public-CML review writes.
+- [x] Verify current MAS Notice 626 and HKMA AML-2 edition/clause locations; retain candidate-only regulatory links and a clause review packet.
+- [x] Fail closed if an executable control pack is reclassified or loses its `DEMO-` control IDs.
+- [ ] Institutionally approve regulatory applicability/interpretation; provision protected audit key and external retention/legal-hold controls.
+- [ ] Verify actual CML deployment (user-deferred).
+- [ ] Remote Impala validation remains user-deferred; local publication scripts are available.
+
+Details: [current KYC guide](docs/kyc_audit_and_multimodal_demo.md).
+
 ## Semantic demonstration enhancement (Phase 1.5)
 - [x] Foldable exact-source YAML viewer for the Ossie-style model and AML extensions, distinct from runtime output.
 - [x] Dedicated Semantic context tab with live, read-only intent/query previews.
-- [x] Three demo presets: KYC comparison, score explanation, and intent exclusion.
+- [x] Two query presets: KYC comparison and score explanation; API intent exclusion remains tested.
 - [x] Show definitions, source lineage, account/time scope, interpretation limits and declared relationships.
 - [x] Expose missing fact coverage and retrieval limits without implying full ontology execution.
 - [x] Remove misleading source-of-wealth synonym for expected turnover; add API regression tests.
@@ -114,3 +142,10 @@ Current tasks, priorities, and known issues. Newest first.
 - [x] Executive deck on the v5 Cloudera template (`docs/aml-overview.pptx`).
 - [x] Project docs organized per the Vibe-Coding guideline (AGENTS.md + docs/).
 - [x] Smoke test `02_backend/scripts/smoke_test.py` — ALL GREEN.
+
+## Semantic investigation
+- [x] Stages A/B: shared alert scope, retained inputs, structured findings,
+  regulatory questions, bilingual evidence retrieval and finding-card UI.
+- [x] Fix both API entry points to investigate the alert's account.
+- [ ] Stage C: bounded follow-up from unresolved findings; configured-model
+  quality/latency comparison. See `docs/semantic_investigation.md`.

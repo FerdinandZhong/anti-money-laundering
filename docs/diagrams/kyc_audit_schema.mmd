@@ -1,0 +1,18 @@
+erDiagram
+    CONCEPT_VERSIONS ||--o{ MAPPING_VERSIONS : defines_meaning
+    CONCEPT_VERSIONS ||--o{ METRIC_VERSIONS : measures
+    REGULATORY_INSTRUMENTS ||--|{ REGULATORY_CLAUSES : contains
+    REGULATORY_CLAUSES ||--o{ CONTROL_CLAUSE_LINKS : authority
+    CONTROL_VERSIONS ||--o{ CONTROL_CLAUSE_LINKS : grounded_in
+    CONTROL_VERSIONS ||--o{ CONTROL_APPLICABILITY : scoped_by
+    CASES ||--o{ ASSESSMENT_RUNS : investigated_in
+    ACCOUNTS ||--o{ ASSESSMENT_RUNS : assessed
+    DATASET_RELEASES ||--o{ ASSESSMENT_RUNS : pins_inputs
+    ASSESSMENT_RUNS ||--o{ CONTROL_RESULTS : produces
+    CONTROL_VERSIONS ||--o{ CONTROL_RESULTS : evaluated
+    CONTROL_RESULTS ||--o{ ASSESSMENT_INPUTS : reproducible_from
+    CONTROL_RESULTS ||--o{ REVIEW_ACTIONS : reviewed
+    EXTRACTED_FACTS o|--o{ ASSESSMENT_INPUTS : document_evidence
+    SOURCE_RECORDS o|--o{ ASSESSMENT_INPUTS : business_evidence
+    MAPPING_VERSIONS o|--o{ ASSESSMENT_INPUTS : interpretation
+    METRIC_VERSIONS o|--o{ ASSESSMENT_INPUTS : calculation

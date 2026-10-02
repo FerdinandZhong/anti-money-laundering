@@ -1,0 +1,19 @@
+flowchart LR
+    C[Versioned schema contract] --> G[Seeded scenario generator]
+    G --> R[Typed rows and source snapshots]
+    R --> V[Schema / keys / time / scenario validation]
+    V --> CSV[CSV release for local demo]
+    V --> PQ[Typed Parquet staging]
+    PQ --> ST[External staging tables]
+    ST --> I[Iceberg publication through Impala]
+    I --> M[Validate and publish release manifest]
+    CSV --> A[common/source.py]
+    M --> A
+    G --> D[PDF / scans / tables / diagrams]
+    D --> L[LanceDB chunks and vectors]
+    D --> O[Versioned document objects]
+    L --> K[Scoped evidence retrieval]
+    A --> E[Semantic mappings and control evaluation]
+    K --> E
+    E --> S[SQLite case and audit events]
+    S --> X[Incremental audit export to Iceberg]

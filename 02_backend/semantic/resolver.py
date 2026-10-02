@@ -179,6 +179,9 @@ def _active_alert(conn, customer_id: str) -> dict[str, Any] | None:
 
 def _fact(concept: str, value: Any, source_ref: str, *, scope: dict[str, Any] | None = None) -> dict[str, Any]:
     definition = resolve_concept(concept) or {}
+    if concept == "kyc_declaration":
+        definition = {**definition, "label": "Recorded onboarding profile",
+                      "definition": "Expected monthly turnover recorded in the customer profile; not proof of document verification."}
     return {
         "id": f"fact:{concept}", "concept": concept, "value": value,
         "source_ref": source_ref, "scope": scope or {},

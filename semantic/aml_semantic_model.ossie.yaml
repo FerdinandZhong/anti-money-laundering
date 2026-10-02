@@ -1,4 +1,4 @@
-version: "0.1"
+version: "0.2"
 semantic_model:
   - name: aml_investigation
     description: >-
@@ -121,6 +121,16 @@ semantic_model:
         to: case.case_id
         description: Evidence supports review of a case.
     metrics:
+      - name: account_activity_patterns
+        description: Investigation-only descriptive activity measures over the retained alert window, calculated separately per currency.
+        ai_context:
+          synonyms: ["incoming and outgoing counts", "24 hour activity peaks", "recipient concentration", "payments after receipts"]
+          instructions: Directions are relative to the selected account. Exclude self-transfers but retain other internal transfers. Rolling 24-hour windows use (end minus 24 hours, end] within the available 30-day history; peak count and peak amount may occur at different times. Recipient concentration uses account IDs or recorded names, with unknown recipients excluded from the numerator and retained in the outflow denominator. A payment within 60 minutes after an earlier same-currency receipt is a timing observation, not tracing of the same funds. Withhold these measures for incomplete queries, conflicting records or invalid timing. These measures have no universal suspiciousness threshold. Assess combined activity indicators and supported business explanations separately from KYC evidence completeness.
+      - name: account_recorded_outflow_by_currency
+        description: Recorded outgoing amounts grouped by currency for the alert account in (data_cutoff_at minus 30 days, data_cutoff_at]. Includes internal transfers; no FX conversion.
+        ai_context:
+          synonyms: ["account outflow by currency"]
+          instructions: Use the full available event-time query, exclude known later receipts, deduplicate transaction IDs and withhold totals on conflicting rows or incomplete queries. Source coverage is not certified. Do not divide by customer-level expected turnover or substitute the separate control ledger.
       - name: observed_outbound_flow_30d
         description: Sum of outbound transaction amounts for the selected account(s) in the 30 days ending at data_cutoff_at.
         ai_context:

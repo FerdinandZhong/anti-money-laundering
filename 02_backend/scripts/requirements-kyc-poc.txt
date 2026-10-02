@@ -1,0 +1,11 @@
+# Isolated POC dependencies; tested on macOS arm64 / Python 3.13.9.
+# Linux/CML Python 3.11 compatibility still needs verification.
+rapidocr_onnxruntime==1.2.3
+onnxruntime==1.24.4
+opencv-python==5.0.0.93
+numpy==2.2.6
+PyMuPDF==1.26.7
+Pillow==12.3.0
+pyarrow==23.0.1
+impyla==0.22.0
+PyYAML==6.0.3

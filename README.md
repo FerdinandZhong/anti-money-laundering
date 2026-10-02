@@ -169,8 +169,7 @@ business definitions available to external Agent Studio agents without granting
 raw SQL/database access. In particular, `account_priority_score` is a queue
 ranking, not a probability or conclusion of financial crime.
 
-After PR #13 is merged, configure it in Cloudera AI Studio (or any MCP client)
-with the deployed API:
+Configure it in Cloudera AI Studio (or any MCP client) — points at the deployed API:
 
 ```json
 {
@@ -181,19 +180,15 @@ with the deployed API:
                "git+https://github.com/FerdinandZhong/anti-money-laundering@main#subdirectory=mcp_server",
                "aml-mcp"],
       "env": {
-        "AML_API_BASE_URL": "https://aml-platform-vfcxn0.ml-16e5d8cb-7c9.qzhong-a.a465-9q4k.cloudera.site/api"
+        "AML_API_BASE_URL": "https://aml-platform.<domain>/api",
+        "AML_API_TOKEN": "<optional bearer token>"
       }
     }
   }
 }
 ```
 
-Until PR #13 merges, replace `@main` with `@feature/semantic-demo-explorer`
-to install the tools from this branch. Add `AML_API_TOKEN` to `env` only if the
-deployment accepts a bearer token; do not leave a placeholder token in the config.
-
-Browse/test this deployment's API at
-`https://aml-platform-vfcxn0.ml-16e5d8cb-7c9.qzhong-a.a465-9q4k.cloudera.site/api/docs` (Swagger).
+Browse/​test the API directly at `https://aml-platform.<domain>/api/docs` (Swagger).
 `trigger_investigation` needs an LLM configured (CAII/local), same as the app. See
 `mcp_server/README.md` for local dev.
 

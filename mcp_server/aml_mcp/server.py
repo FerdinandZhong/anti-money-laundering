@@ -9,15 +9,17 @@ framework) with the deployed API's base URL, e.g.:
         "aml-investigation": {
           "command": "uvx",
           "args": ["--from",
-                   "git+https://github.com/FerdinandZhong/anti-money-laundering#subdirectory=mcp_server",
+                   "git+https://github.com/FerdinandZhong/anti-money-laundering@main#subdirectory=mcp_server",
                    "aml-mcp"],
           "env": {
-            "AML_API_BASE_URL": "https://aml-platform.<domain>/api",
-            "AML_API_TOKEN": "<optional bearer token>"
+            "AML_API_BASE_URL": "https://aml-platform.<domain>/api"
           }
         }
       }
     }
+
+Use @feature/semantic-demo-explorer until PR #13 merges; then use @main.
+Set AML_API_TOKEN only when the deployment accepts bearer authentication.
 
 READ-ONLY CONTRACT: every tool is read-only EXCEPT `trigger_investigation`, which
 runs the multi-agent analysis and persists it to the case (the API's only mutation

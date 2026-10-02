@@ -65,8 +65,10 @@ Important source meanings:
 
 ## Configure in Agent Studio
 
-Use the API root ending in `/api`, **not** `/api/docs`. Install from a release ref
-containing these tools; a moving branch may require refreshing the client's uvx cache.
+Use the API root ending in `/api`, **not** `/api/docs`. The example below uses
+`main` for after PR #13 merges. To test the PR before merge, replace `@main`
+with `@feature/semantic-demo-explorer`. A moving branch may require refreshing
+the client's uvx cache.
 
 ```json
 {
@@ -74,11 +76,10 @@ containing these tools; a moving branch may require refreshing the client's uvx 
     "aml-investigation": {
       "command": "uvx",
       "args": ["--from",
-               "git+https://github.com/FerdinandZhong/anti-money-laundering@feature/semantic-demo-explorer#subdirectory=mcp_server",
+               "git+https://github.com/FerdinandZhong/anti-money-laundering@main#subdirectory=mcp_server",
                "aml-mcp"],
       "env": {
-        "AML_API_BASE_URL": "https://aml-platform-vfcxn0.ml-16e5d8cb-7c9.qzhong-a.a465-9q4k.cloudera.site/api",
-        "AML_API_TOKEN": "<credential accepted by this deployment, if required>"
+        "AML_API_BASE_URL": "https://aml-platform-vfcxn0.ml-16e5d8cb-7c9.qzhong-a.a465-9q4k.cloudera.site/api"
       }
     }
   }
@@ -90,7 +91,8 @@ an Agent Studio MCP process. The deployment must accept the configured credentia
 on API requests. Login redirects, 401/403 and HTML responses produce actionable
 MCP errors; the client does not follow redirects with its credential. Other API
 errors (including integrity conflicts) are not converted into empty evidence.
-Omit the token variable for an API that permits unauthenticated access.
+Add `AML_API_TOKEN` only if the deployment accepts a bearer token. Omit it for
+an API that permits unauthenticated access; do not enter a placeholder value.
 
 ## Contract check and tests
 
